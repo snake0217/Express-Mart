@@ -379,7 +379,7 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Computo',
       marca: 'TechNova',
       precio: 18499.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA6F_CIf3sBfX3I8-aX4n7p2R1T0mU9vW2yQ5zL8k9J0hG1fD2sA3pO4iU5yT6rE7wQ8aZ9xS0cV1bN2mM3lK4jH5gF6dS7aP8oI9uY0tR1eW2qA3zS4xD5cV6fB7gN8hM9jK0lL1pP2oO3iI4uU5yY6tT7rR8eE9wW0qQ',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTCJiWI-6-Heul2smvgxTpSo-jL8v7bDz3jlHCIgTvFooVv0glp0pD9_yUfb-Hxn0XYxAHlK-xLIosus43-09r_OJ9gG36Pb2bAc9Sy28ysb7ZJTKIyWoGx-a3fhH0vfD786wJcdJNQZjL83dOGHVC908t41RQIhO4YsmiJhKsUq3Qw7zNR5cAgPbc1EfaSbtFN4rCDccIex3egVIS6QLW-jXaRNG5TXjZsH0HKnQrgfuOjNa_xW_h',
       especificaciones: { procesador: 'Octa-Core 3.8GHz', ram: '16 GB LPDDR5', almacenamiento: '512 GB NVMe SSD', garantia: '12 meses directo' },
       condiciones_envio: 'Envío ExpressPrime gratis (24 a 48 hrs) a todo México vía DHL/FedEx con firma de recibido.',
       stock: 25
@@ -391,7 +391,7 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Audio',
       marca: 'SonicWave',
       precio: 2499.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCedXv8XDlUuM-qRwg3VdijpSBsCBerIAzVaIszHMrMLBf1aurJOnCDevVS7SqHkjQRx8AIxrVulMVaxZ_aev_FU4v3TdBwAQ2WqJj11ZidI9jI57qjLAOeiAQG_wF36tjY7neuyffcrPbXyZaclPWCPqrjDAy6oAfVc8Tng6wCgJLjYXN7Zpzxv6nEB-KaYxrWrkngcjbXxYlHicKFV_eklCM8bqsxVQk39TrJ3zM8Hhas59pz5d9V',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9x7DGUcRUPnx9tMkd8iBqtJ23_AFOqhpYkj3fWrDJlIcKI2yd36PICOhE72gaaPxS5Y9Dpqv5Q4Fb02iu4iRYffEgz5l7Y1HEe_zFPqrsqmB-khaJ4P1W9ZGk-i2lPbcAp6ueFTCKt4SAWt_iTEo2fVmbtksTh9TRylOkLWWSM-8Arg_MYNEAStON-TPpRq_1KyM1vitKx6_In4pKMAoaHDP4h2srmMUK5u70VSumliGn9nJE20hV',
       especificaciones: { conectividad: 'Bluetooth 5.4 + 3.5mm + USB-C', bateria: '65 horas', peso: '250g', garantia: '12 meses' },
       condiciones_envio: 'Envío ExpressPrime GRATIS en pedidos mayores a $599 MXN. Llega mañana en CDMX.',
       stock: 60
@@ -403,31 +403,31 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Computo',
       marca: 'VisionMax',
       precio: 6890.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaWrQOCragy6pVfdZItXjcXeHKUuQNoShSMaVCWJG_EVMGQg6lxfhxImbiE3spE-R1f93zmcCgAoNpb5WQjqf-GeKj2V-bj0Pp2SV2DHf8fdivaNTPisjOT86gubftTQAvSw7p3je84Tilc4Albtz52D1WSE4mWF991BG4oTGkvHiUiOo459DQFOakeztWxxZLmicxEH0QUKkLf7xKZMufgpG24dueNpOy9S0zIp_R041lvz5RfY7I',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDQ1NdX8iUR_vBOTMEVF6O8It3gDpYZdPZB3hW3Dl2UcJXDNsYaM8C9TbL12y-CZbnOfB08O3svEPEWukO0j_t_MjAKSgyQz9p15m_-yg9z_pxzIYFBdF0G6XmJKpZhsiRGdxnMQKTEYyWCqU19E1aignr_kuL_oQEbFTkPcgtfKJSWnkSk9PjxbCxQDIkmST_S9gigp15pEI-LHGn8nxd2Di8IoWw98ylOtk9-I2xy4VtoLB2GpM-S',
       especificaciones: { resolucion: '3840x2160 4K', panel: 'IPS 144Hz 1ms', puertos: '2x HDMI 2.1, 1x DP 1.4, USB-C 90W', garantia: '24 meses' },
       condiciones_envio: 'Envío asegurado ExpressPrime sin costo con empaque de doble protección.',
       stock: 18
     },
     {
       sku: 'EM-SMT-004',
-      nombre: 'Smartphone GalaxyNova S26 5G 256GB AMOLED + Smartwatch Titanium',
-      descripcion: 'Cámara triple de 108MP con estabilización óptica, pantalla AMOLED de 120Hz, resistencia IP68 y carga rápida de 65W.',
+      nombre: 'Smartwatch GalaxyNova Titanium AMOLED GPS + LTE',
+      descripcion: 'Pantalla de cristal de zafiro AMOLED siempre activa, sensores avanzados de salud y ECG, resistencia al agua 50m y batería de 72 horas.',
       categoria: 'telefonia',
       marca: 'TechNova',
       precio: 12999.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA8fQhac3gOTei5-sqyOfue1vRfv0cVQTE_-CTOGfSMtY2hEgR1T1l7FzsJMKEU5EUeqs2u-62QpD5x3rCUMQsy-KU84LQAnCNKMREX5pYDqcRoZufPPoDC0fcS1Npv-rY2w1A4JlwZuaXhRNylFbTd8oKyjMykN1_kLDAF8enh8UCtwV88V8MtyObQMOvO83yErylZis9HS6cXQsDBaXk1kWeSXPk9XYitJvRWGz5kQ0I-47AfA6xg',
-      especificaciones: { pantalla: '6.7" Dynamic AMOLED 120Hz', almacenamiento: '256 GB', ram: '12 GB', red: '5G Telcel/AT&T/Movistar Liberado' },
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_I25Hzq_-crMeyOnuy1kHP4ka435D-xpmNhPWiqrP2XCM3De3JYQL-zut4nxmCLfVXkRHUBb1gXwrKhc_21sfLIK0iWYUVZJXIhMKVEMD3KoOezG5urma7XD80_PeFXRq1s17gsrpHGLRGRfYgCEz16vbXMrK1HQkapd-FQ8z-qW-PEN91cFvVe-1EgMHSnU4_clXOUgmr4eJZeWt1BBJVXTaE8qBkJYTl1yJa00eo3nJI1Zcek06',
+      especificaciones: { pantalla: '1.9" Super AMOLED Zafiro', almacenamiento: '32 GB', conectores: 'GPS Dual + 5G LTE', red: 'Compatible iOS y Android' },
       condiciones_envio: 'Envío exprés gratis con seguro contra robo o extravío incluido.',
       stock: 32
     },
     {
       sku: 'EM-ACC-005',
-      nombre: 'Teclado Mecánico Inalámbrico RGB Hot-Swap Español + Mouse Pro',
+      nombre: 'Teclado Mecánico Inalámbrico RGB Hot-Swap Español PBT',
       descripcion: 'Distribución ISO Español con tecla Ñ, switches táctiles silenciosos, chasis de aluminio y conexión triple (Bluetooth, 2.4GHz, USB-C).',
       categoria: 'Accesorios',
       marca: 'KeyMaster',
       precio: 1350.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnxVf7d84wGa_-gbuxTT7knFYR5vDRFEa5M4p2pa8k1StzC_DaECoNZkpgUmhkm_m-wtx91Q-2bzVyUJgnjqvy0VT_zFR6Va1nHG0kds8EUoOzDkzztVxyrPxO-w7jY30ub2TQkOMdpRov4N77dWhu6GZ9pZyWd2YqM4cKYrHJ9QczvSGukE-6NdlGeEI_Qwz2keFrgiEhSgFtDc9OvrlYRr3invz7frWoKa9Snk5xUAUBgBP3pc_R',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBC9qDtB-vVjPL7qLlK8A9S7mFDO3qXC3A-5fyWG1LxxaL9OFov3wGFzO91CwziLpyBBnds1vhu5Z8xptAKwyvgaDAu4Zb4H08UqqbQXyPQxJ8aj3fBSj92EXf_ZuC0UT9mlrAy-slr4bWGgSxtXnccjB9MBlmobyxBgZxWGUPBUEyBraQxXtCPevJFICyidsOeLy7EPPRdfLgKcD0Zv6kjdTV6TxvJEqXACvgUiizvv3md2m7wL7WY',
       especificaciones: { switches: 'Táctil Silencioso Hot-Swap', idioma: 'Español Latinoamérica', bateria: '4000 mAh', garantia: '12 meses' },
       condiciones_envio: 'Envío gratis en compras mayores a $599 MXN; despacho el mismo día desde CEDIS CDMX.',
       stock: 45
@@ -439,7 +439,7 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Hogar',
       marca: 'HomeElite',
       precio: 4590.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB5Vfg8-ADEVgjdvRRjOOjucLR0A5blOqmLMPT3fIv4Be-rsyx0GWTdfXJGDkhd1tr4YwKFUamRcLp27cfqRjgJ42RLUE0IKeu6kMMRS8-doOeA8NuuP01pCIlet1lKqfR0cDZmFxfdEwn4wKCVzY5mAY5akn3yPgh2plfT2k1vj8hBUdLYAI9y0qDHfw8wKllDrSgcK5PWIflvJmIjx6nfgvSPixm6miXnhJidC1BMaQjNIGjhuSV5',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDVr-ottMVLlGk9mFLPXAIoqx_Tftu5fXahb1GNfqXLeSbM5gVOWk7TCo87ez421_n1N7BBU-qeNTlCfhzKFlfU57_Jk41UEKsXEgAe9uClKF7UBchcV2tsgZvAAZ28-A9tvZvSPo_cFGWOXczDVMHET2aRi_JB9zgHyFtz9lf_r3AqEybviaDjOqY9eWVGNyn4lXfbsHj43ez-wijgX5kdv_LX0f29pfuk9u4V0bYnXACZkW3rM2wl',
       especificaciones: { presion: '20 Bares Italian Pump', capacidad: '2.0 Litros', potencia: '1450W', garantia: '12 meses en México' },
       condiciones_envio: 'Envío terrestre asegurado sin costo en 24 a 48 horas hábiles.',
       stock: 15
@@ -451,7 +451,7 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Hogar',
       marca: 'HomeElite',
       precio: 5499.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDIyY5M3xYf-XYlv7orH01sd3-GIM5P1lfu0iGsfCtqyG1JQsL2EAjOOLZP4yRT9UKipxwAPskMPtUnTgePkrE-UY2Yy5RFS10ySMd0o53zN6i6DMyJDWgUayIneEToaLbfbCFy7e8Rx6E5iWvZd28AIcfyVsP3CBwItnWyXl1xXqbCspKlQwj_JNUy6F7IFjf_i-DigzlBaG7KNxR4mvSjQhyKjw6WJheBFVCSCjuTcT_jlS47_ma',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDd11LBJ4Te8iSIKmTm_ZWGl3RkDB_rTtvmLOvwYW4iGhdJphhxet2bWfF91z6OmzfsuCw_Q_2I_2ZiaKxjjO9v1GyhBt9IFiftuQgKyJVwRbmTLSy9rmZFjxi0spysqUKqa1LpS1iqq32Lpl2nWWS_4VajOWcOKJ9_OYc9kTyAd1n6xVDZO294QpaTmRePDjE4rhrUl42hC2o6ao49O_UMQFVEcTNL1AXpLEyhog1zr4uo5rpm5tb_',
       especificaciones: { succion: '6000 Pa HyperForce', navegacion: 'Láser LiDAR 3D', autonomia: '180 minutos', garantia: '24 meses' },
       condiciones_envio: 'Envío ExpressPrime gratis a todo México con entrega garantizada.',
       stock: 22
@@ -463,7 +463,7 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Audio',
       marca: 'SonicWave',
       precio: 1299.00,
-      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCedXv8XDlUuM-qRwg3VdijpSBsCBerIAzVaIszHMrMLBf1aurJOnCDevVS7SqHkjQRx8AIxrVulMVaxZ_aev_FU4v3TdBwAQ2WqJj11ZidI9jI57qjLAOeiAQG_wF36tjY7neuyffcrPbXyZaclPWCPqrjDAy6oAfVc8Tng6wCgJLjYXN7Zpzxv6nEB-KaYxrWrkngcjbXxYlHicKFV_eklCM8bqsxVQk39TrJ3zM8Hhas59pz5d9V',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBL9jxxCFrAocO5nCuzT5PfX44RSiQ6Nct7y1zMK4Yoq2xsYt9EO1kd5pgfKAc1JIaoNUGzVICn4dWrvHi_moybHOdm_P2H3ACaZJVkSMsFnrXaD9I1cvzVtdvNUD6Ts0yIGa8d6yV15txPZpzrhqH8m9rCeaKUwqaUofPkA_g6-QdMQYiMB1jFNsEQDSELU1TTk07MTEvcmEDGwgu0aT6sUwSOMSxx1QfyZPU411gTWBsE1QqJUl5d',
       especificaciones: { potencia: '40W RMS', resistencia: 'IP67 Sumergible', bateria: '24 horas', garantia: '12 meses' },
       condiciones_envio: 'Envío ExpressPrime gratis en 24 hrs desde CEDIS CDMX.',
       stock: 38

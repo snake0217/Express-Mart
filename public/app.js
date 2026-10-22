@@ -106,11 +106,11 @@ async function loadCatalog() {
 
   const data = await apiFetch(`/api/products?${params.toString()}`);
   document.getElementById('search-latency-pill').textContent =
-    `Tiempo de búsqueda: ${data.responseTimeMs} ms (${data.total} productos en MXN · SLA < 2000 ms ✅)`;
+    `Tiempo de búsqueda: ${data.responseTimeMs} ms (${data.total} productos en MXN · SLA < 2000 ms cumplido)`;
 
   const recBanner = document.getElementById('recommendations-banner');
   if (data.recommendations && data.recommendations.degradedMode) {
-    recBanner.textContent = `⚠️ ${data.recommendations.message}`;
+    recBanner.textContent = `Aviso de contingencia: ${data.recommendations.message}`;
     recBanner.classList.remove('hidden');
   } else {
     recBanner.classList.add('hidden');
@@ -131,23 +131,24 @@ async function loadCatalog() {
 
     card.innerHTML = `
       <div>
-        <div class="relative aspect-square rounded-xl bg-surface-container-low mb-space-sm p-4 flex items-center justify-center overflow-hidden group cursor-pointer open-detail-trigger" data-id="${p.id}">
-          <span class="absolute top-2.5 left-2.5 bg-primary text-on-primary font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold uppercase">
+        <div class="relative w-full aspect-[4/3] rounded-xl bg-surface-container-low mb-space-sm overflow-hidden group cursor-pointer open-detail-trigger" data-id="${p.id}">
+          <span class="absolute top-2.5 left-2.5 z-10 bg-primary text-on-primary font-label-xs text-label-xs px-2.5 py-0.5 rounded-full font-bold uppercase shadow-sm">
             ${p.categoria} · ${p.marca}
           </span>
-          <span class="absolute top-2.5 right-2.5 bg-surface-container-highest text-on-surface font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold">
+          <span class="absolute top-2.5 right-2.5 z-10 bg-surface-container-highest/95 backdrop-blur-sm text-on-surface font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold shadow-sm">
             ${p.sku}
           </span>
           <img
             src="${imgUrl}"
             alt="Imagen del producto ${p.nombre}"
-            class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+            class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
             onerror="this.src='/assets/logo.png'"
           />
         </div>
 
-        <div class="flex items-center gap-1.5 text-amber-500 text-xs font-bold mb-1">
-          <span>★ ${p.calificacion_promedio}</span>
+        <div class="flex items-center gap-1.5 text-amber-600 text-xs font-bold mb-1">
+          <span class="material-symbols-outlined text-[15px] text-amber-500">star</span>
+          <span>${p.calificacion_promedio} / 5.0</span>
           <span class="text-secondary font-normal">(${p.total_resenas} reseñas verificadas)</span>
         </div>
 
@@ -229,15 +230,18 @@ async function openProductDetailModal(productId) {
 
     body.innerHTML = `
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-        <div class="lg:col-span-5 bg-surface-container-low rounded-2xl p-6 flex flex-col items-center justify-center">
-          <img
-            src="${p.imagen_url || '/assets/logo.png'}"
-            alt="${p.nombre}"
-            class="max-h-64 object-contain mb-3"
-            onerror="this.src='/assets/logo.png'"
-          />
-          <span class="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold">
-            ✓ Elección Oficial ExpressMart México · ${p.sku}
+        <div class="lg:col-span-5 bg-surface-container-low rounded-2xl p-4 flex flex-col items-center justify-center">
+          <div class="w-full aspect-square rounded-xl overflow-hidden bg-white mb-3 flex items-center justify-center">
+            <img
+              src="${p.imagen_url || '/assets/logo.png'}"
+              alt="${p.nombre}"
+              class="w-full h-full object-cover object-center"
+              onerror="this.src='/assets/logo.png'"
+            />
+          </div>
+          <span class="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold flex items-center gap-1">
+            <span class="material-symbols-outlined text-[14px]">verified</span>
+            Elección Oficial ExpressMart México · ${p.sku}
           </span>
         </div>
 
@@ -291,7 +295,7 @@ async function openProductDetailModal(productId) {
                   <div class="p-3 rounded-lg bg-surface-container-low">
                     <div class="flex items-center justify-between text-xs mb-1">
                       <strong>${r.autor}</strong>
-                      <span class="text-amber-600 font-bold">${'★'.repeat(r.calificacion)} (${r.calificacion}/5) · Compra Verificada</span>
+                      <span class="text-amber-600 font-bold">Calificación: ${r.calificacion}/5 · Compra Verificada</span>
                     </div>
                     <p class="text-xs text-on-surface m-0">${r.comentario}</p>
                   </div>
@@ -307,13 +311,13 @@ async function openProductDetailModal(productId) {
           <h4 class="font-label-lg text-label-lg font-bold mb-2">Escribir Reseña Verificada (RF-08)</h4>
           <form id="detail-review-form" class="space-y-2.5">
             <div class="field">
-              <label for="rev-rating">Calificación (1 a 5 estrellas)</label>
+              <label for="rev-rating">Calificación (1 a 5)</label>
               <select id="rev-rating" required>
-                <option value="5">★★★★★ (5 - Excelente)</option>
-                <option value="4">★★★★☆ (4 - Muy bueno)</option>
-                <option value="3">★★★☆☆ (3 - Regular)</option>
-                <option value="2">★★☆☆☆ (2 - Malo)</option>
-                <option value="1">★☆☆☆☆ (1 - Pésimo)</option>
+                <option value="5">5 de 5 - Excelente</option>
+                <option value="4">4 de 5 - Muy bueno</option>
+                <option value="3">3 de 5 - Regular</option>
+                <option value="2">2 de 5 - Malo</option>
+                <option value="1">1 de 5 - Pésimo</option>
               </select>
             </div>
             <div class="field">
@@ -422,7 +426,7 @@ async function refreshCartModal() {
     if (shipMsg) {
       shipMsg.textContent =
         calc.costoEnvio === 0
-          ? '¡Felicidades! Tu pedido incluye Envío ExpressPrime GRATIS en México ($0.00 MXN)'
+          ? 'Tu pedido incluye Envío ExpressPrime GRATIS en México ($0.00 MXN)'
           : `Agrega ${formatMxn(Math.max(0, 999 - calc.subtotal))} más para obtener Envío ExpressPrime GRATIS`;
     }
     totalsBox.innerHTML = `
@@ -474,8 +478,9 @@ async function loadOrders() {
             <strong>Dirección de Entrega:</strong> ${o.direccion_envio} |
             <strong>Pago PCI DSS:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}
           </div>
-          <div class="text-sm text-tertiary font-semibold">
-            🚚 Guía Paquetería: ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía'}
+          <div class="text-sm text-tertiary font-semibold flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[18px]">local_shipping</span>
+            <span>Guía Paquetería: ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía'}</span>
           </div>
           <div class="text-xs text-secondary font-mono">
             Hash Integridad SHA-256 (RNF-09): ${o.hash_integridad}
@@ -484,7 +489,7 @@ async function loadOrders() {
             ${
               o.estado !== 'devuelto' && o.estado !== 'cancelado'
                 ? `<button type="button" class="btn btn-sm btn-outline return-order-btn" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN (LFPC)</button>`
-                : '<span class="badge badge-ok">✓ Reembolsado en MXN / Devuelto conforme a LFPC</span>'
+                : '<span class="badge badge-ok">Reembolsado en MXN / Devuelto conforme a LFPC</span>'
             }
           </div>
         </div>
@@ -859,14 +864,14 @@ document.addEventListener('DOMContentLoaded', () => {
       loadCatalog();
       resultBox.innerHTML = `
         <div class="alert alert-info flex-col items-start">
-          <div>✅ <strong>${res.message}</strong></div>
+          <div><strong>${res.message}</strong></div>
           <div>Folio: <strong>${res.order.folio}</strong> | Total: <strong>${formatMxn(res.order.total)}</strong></div>
           <div>Guía ExpressPrime: <strong>${res.order.envio.numeroGuia}</strong> (${res.order.envio.proveedorPaqueteria})</div>
           <div>Token PCI DSS: <code>${res.order.pago.tokenPci}</code> | Latencia: ${res.responseTimeMs} ms</div>
         </div>
       `;
     } catch (err) {
-      resultBox.innerHTML = `<div class="alert alert-error">❌ ${err.message}</div>`;
+      resultBox.innerHTML = `<div class="alert alert-error">Error en la transacción: ${err.message}</div>`;
     }
   });
 

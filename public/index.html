@@ -269,16 +269,16 @@
     <section id="view-catalog" class="tab-view active" aria-labelledby="heading-catalog">
       <!-- 1. HERO BANNER CAMPAÑA STITCH -->
       <div class="relative w-full max-w-[1440px] mx-auto overflow-hidden lg:rounded-b-xl">
-        <div class="relative h-[380px] lg:h-[430px] w-full bg-[#0f172a] flex items-center">
+        <div class="relative h-[420px] lg:h-[480px] w-full bg-[#0f172a] flex items-center">
           <img
             alt="Campaña Semana de la Tecnología y Hogar en ExpressMart México"
-            class="absolute inset-0 w-full h-full object-cover object-center opacity-55 mix-blend-luminosity"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6F_CIf3sBfX3I8-aX4n7p2R1T0mU9vW2yQ5zL8k9J0hG1fD2sA3pO4iU5yT6rE7wQ8aZ9xS0cV1bN2mM3lK4jH5gF6dS7aP8oI9uY0tR1eW2qA3zS4xD5cV6fB7gN8hM9jK0lL1pP2oO3iI4uU5yY6tT7rR8eE9wW0qQ"
+            class="absolute inset-0 w-full h-full object-cover object-center opacity-60"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFSmQGYoRL8sWlAuYHB08sr1wy-p5NI1Lj9JM7YSs7-kcjgaKmx5zCTh3EJ6_p0jrnaFT-v22_2Jz_yzZMPmvom0jVYxNKdVtutxz472KzFIOxN2mI4EnpUvWKYmR6MNBcTMJKl1xiBE-grpVL24g9SzH2-opIPNJLqq-3bRLt_g8qRhsNyCiEhSEq568EahrREwOIygEFdo36Raoa9ruLk_sv-bhIG35YHKeBQ0Lxtb1GtI5vBufi"
           />
           <div class="absolute inset-0 bg-gradient-to-r from-[#0f172a] via-[#0f172a]/85 to-transparent"></div>
-          <div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent"></div>
+          <div class="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-surface via-surface/75 to-transparent pointer-events-none"></div>
 
-          <div class="relative z-10 px-margin lg:px-16 max-w-2xl flex flex-col gap-space-md pb-12">
+          <div class="relative z-10 px-margin lg:px-16 max-w-2xl flex flex-col gap-space-md pb-16">
             <div class="inline-flex items-center gap-space-xs px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed w-fit">
               <span class="material-symbols-outlined text-[16px]">bolt</span>
               <span class="font-label-xs text-label-xs uppercase tracking-wider font-extrabold">Semana de la Tecnología y Hogar México</span>
@@ -301,94 +301,171 @@
           </div>
         </div>
 
-        <!-- 2. BENTO PROMO CARDS SUPERPUESTAS (4 COLUMNAS STITCH CON PRECIOS EN MXN) -->
-        <div class="relative z-20 -mt-14 lg:-mt-20 px-margin pb-space-lg">
+        <!-- 2. BENTO PROMO CARDS SUPERPUESTAS (4 COLUMNAS STITCH CON PRECIOS EN MXN E IMÁGENES ALINEADAS) -->
+        <div class="relative z-20 -mt-20 lg:-mt-28 px-margin pb-space-lg">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
-            <!-- Card 1 -->
-            <div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
+            <!-- Card 1: Ofertas Flash MXN -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
               <div>
-                <div class="flex items-center justify-between mb-space-md">
+                <div class="flex items-center justify-between mb-space-sm">
                   <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Ofertas Flash MXN</h2>
-                  <span class="px-2 py-0.5 bg-error-container text-on-error-container font-label-xs text-label-xs rounded font-bold">TERMINA HOY</span>
+                  <span class="px-2 py-0.5 bg-error-container text-on-error-container font-label-xs text-label-xs rounded font-bold">TOP AHORRO</span>
                 </div>
-                <div class="grid grid-cols-2 gap-space-sm mb-space-md">
-                  <div class="bg-surface-container-low p-2 rounded-lg text-center cursor-pointer promo-filter-trigger" data-cat="Audio">
-                    <div class="aspect-square rounded bg-white mb-1.5 flex items-center justify-center overflow-hidden p-2">
-                      <img alt="ExpressSound ANC" class="object-contain w-full h-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCedXv8XDlUuM-qRwg3VdijpSBsCBerIAzVaIszHMrMLBf1aurJOnCDevVS7SqHkjQRx8AIxrVulMVaxZ_aev_FU4v3TdBwAQ2WqJj11ZidI9jI57qjLAOeiAQG_wF36tjY7neuyffcrPbXyZaclPWCPqrjDAy6oAfVc8Tng6wCgJLjYXN7Zpzxv6nEB-KaYxrWrkngcjbXxYlHicKFV_eklCM8bqsxVQk39TrJ3zM8Hhas59pz5d9V" />
+                <div class="grid grid-cols-2 gap-space-sm">
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Audio">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5 relative">
+                      <img alt="Auriculares ANC Pro" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9x7DGUcRUPnx9tMkd8iBqtJ23_AFOqhpYkj3fWrDJlIcKI2yd36PICOhE72gaaPxS5Y9Dpqv5Q4Fb02iu4iRYffEgz5l7Y1HEe_zFPqrsqmB-khaJ4P1W9ZGk-i2lPbcAp6ueFTCKt4SAWt_iTEo2fVmbtksTh9TRylOkLWWSM-8Arg_MYNEAStON-TPpRq_1KyM1vitKx6_In4pKMAoaHDP4h2srmMUK5u70VSumliGn9nJE20hV" />
+                      <span class="absolute top-1 left-1 bg-primary text-on-primary font-label-xs text-label-xs px-1.5 py-0.5 rounded font-extrabold">-38%</span>
                     </div>
-                    <p class="font-label-xs text-label-xs text-primary font-bold">-$900 MXN</p>
-                    <p class="font-body-sm text-body-sm text-on-surface truncate">Audio ANC</p>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Auriculares ANC Pro</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$2,499.00 MXN</p>
                   </div>
-                  <div class="bg-surface-container-low p-2 rounded-lg text-center cursor-pointer promo-filter-trigger" data-cat="telefonia">
-                    <div class="aspect-square rounded bg-white mb-1.5 flex items-center justify-center overflow-hidden p-2">
-                      <img alt="Smartphone 5G" class="object-contain w-full h-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8fQhac3gOTei5-sqyOfue1vRfv0cVQTE_-CTOGfSMtY2hEgR1T1l7FzsJMKEU5EUeqs2u-62QpD5x3rCUMQsy-KU84LQAnCNKMREX5pYDqcRoZufPPoDC0fcS1Npv-rY2w1A4JlwZuaXhRNylFbTd8oKyjMykN1_kLDAF8enh8UCtwV88V8MtyObQMOvO83yErylZis9HS6cXQsDBaXk1kWeSXPk9XYitJvRWGz5kQ0I-47AfA6xg" />
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="telefonia">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5 relative">
+                      <img alt="Smartwatch AMOLED" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_I25Hzq_-crMeyOnuy1kHP4ka435D-xpmNhPWiqrP2XCM3De3JYQL-zut4nxmCLfVXkRHUBb1gXwrKhc_21sfLIK0iWYUVZJXIhMKVEMD3KoOezG5urma7XD80_PeFXRq1s17gsrpHGLRGRfYgCEz16vbXMrK1HQkapd-FQ8z-qW-PEN91cFvVe-1EgMHSnU4_clXOUgmr4eJZeWt1BBJVXTaE8qBkJYTl1yJa00eo3nJI1Zcek06" />
+                      <span class="absolute top-1 left-1 bg-primary text-on-primary font-label-xs text-label-xs px-1.5 py-0.5 rounded font-extrabold">-25%</span>
                     </div>
-                    <p class="font-label-xs text-label-xs text-primary font-bold">-$2,500 MXN</p>
-                    <p class="font-body-sm text-body-sm text-on-surface truncate">Smartphones 5G</p>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Smartwatch AMOLED</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$12,999.00 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Audio">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5 relative">
+                      <img alt="Bocina Bluetooth 360" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL9jxxCFrAocO5nCuzT5PfX44RSiQ6Nct7y1zMK4Yoq2xsYt9EO1kd5pgfKAc1JIaoNUGzVICn4dWrvHi_moybHOdm_P2H3ACaZJVkSMsFnrXaD9I1cvzVtdvNUD6Ts0yIGa8d6yV15txPZpzrhqH8m9rCeaKUwqaUofPkA_g6-QdMQYiMB1jFNsEQDSELU1TTk07MTEvcmEDGwgu0aT6sUwSOMSxx1QfyZPU411gTWBsE1QqJUl5d" />
+                      <span class="absolute top-1 left-1 bg-primary text-on-primary font-label-xs text-label-xs px-1.5 py-0.5 rounded font-extrabold">-20%</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Bocina 360° IP67</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$1,299.00 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Accesorios">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5 relative">
+                      <img alt="Teclado Mecánico RGB" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBC9qDtB-vVjPL7qLlK8A9S7mFDO3qXC3A-5fyWG1LxxaL9OFov3wGFzO91CwziLpyBBnds1vhu5Z8xptAKwyvgaDAu4Zb4H08UqqbQXyPQxJ8aj3fBSj92EXf_ZuC0UT9mlrAy-slr4bWGgSxtXnccjB9MBlmobyxBgZxWGUPBUEyBraQxXtCPevJFICyidsOeLy7EPPRdfLgKcD0Zv6kjdTV6TxvJEqXACvgUiizvv3md2m7wL7WY" />
+                      <span class="absolute top-1 left-1 bg-primary text-on-primary font-label-xs text-label-xs px-1.5 py-0.5 rounded font-extrabold">-30%</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Teclado Mecánico</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$1,350.00 MXN</p>
                   </div>
                 </div>
               </div>
-              <a href="#products-grid" class="font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1">
+              <a href="#products-grid" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold">
                 Ver todas las ofertas en pesos <span class="material-symbols-outlined text-[16px]">chevron_right</span>
               </a>
             </div>
 
-            <!-- Card 2 -->
-            <div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
+            <!-- Card 2: Renueva Hogar y Cocina -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
               <div>
-                <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-md">Renueva Hogar y Café</h2>
-                <div class="aspect-[16/10] rounded-lg bg-surface-container-low overflow-hidden mb-space-sm relative flex items-center justify-center p-3">
-                  <img alt="Cafetera Barista 20 Bares" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5Vfg8-ADEVgjdvRRjOOjucLR0A5blOqmLMPT3fIv4Be-rsyx0GWTdfXJGDkhd1tr4YwKFUamRcLp27cfqRjgJ42RLUE0IKeu6kMMRS8-doOeA8NuuP01pCIlet1lKqfR0cDZmFxfdEwn4wKCVzY5mAY5akn3yPgh2plfT2k1vj8hBUdLYAI9y0qDHfw8wKllDrSgcK5PWIflvJmIjx6nfgvSPixm6miXnhJidC1BMaQjNIGjhuSV5" />
-                  <span class="absolute bottom-2 left-2 bg-surface/90 backdrop-blur-sm px-2.5 py-1 rounded font-label-xs text-label-xs text-on-surface font-bold">Desde $1,299.00 MXN</span>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Renueva Hogar y Café</h2>
+                  <span class="bg-tertiary-fixed text-on-tertiary-fixed px-2 py-0.5 rounded font-label-xs text-label-xs font-bold">ECO HOGAR</span>
                 </div>
-                <p class="font-body-sm text-body-sm text-secondary mb-space-md">Cafeteras espresso 20 bares, robots aspiradores LiDAR y climatización inteligente.</p>
+                <div class="grid grid-cols-2 gap-space-sm">
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Hogar">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Robot Aspirador LiDAR" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDd11LBJ4Te8iSIKmTm_ZWGl3RkDB_rTtvmLOvwYW4iGhdJphhxet2bWfF91z6OmzfsuCw_Q_2I_2ZiaKxjjO9v1GyhBt9IFiftuQgKyJVwRbmTLSy9rmZFjxi0spysqUKqa1LpS1iqq32Lpl2nWWS_4VajOWcOKJ9_OYc9kTyAd1n6xVDZO294QpaTmRePDjE4rhrUl42hC2o6ao49O_UMQFVEcTNL1AXpLEyhog1zr4uo5rpm5tb_" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Robot Aspirador LiDAR</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$5,499.00 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Hogar">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Cafetera Espresso 20B" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVr-ottMVLlGk9mFLPXAIoqx_Tftu5fXahb1GNfqXLeSbM5gVOWk7TCo87ez421_n1N7BBU-qeNTlCfhzKFlfU57_Jk41UEKsXEgAe9uClKF7UBchcV2tsgZvAAZ28-A9tvZvSPo_cFGWOXczDVMHET2aRi_JB9zgHyFtz9lf_r3AqEybviaDjOqY9eWVGNyn4lXfbsHj43ez-wijgX5kdv_LX0f29pfuk9u4V0bYnXACZkW3rM2wl" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Cafetera Espresso 20B</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$4,590.00 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Hogar">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Freidora de Aire Digital" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOYsOkQ6_GBPFlVb9W1snXq3HY8VF90bi5TOvBhKvQD8oLjZXOE1ZHbTNSX95tEaAlXCZK31PcDP5xZ6rZo2wyF-W1WVBroq55aSmrT0mHgGIm_AREXr8lQHIAyrChEpSncO2Rhp5K0liyvXKoBkleZDeTp68y6SIKBkIepl6sQw7E3iyMn-rHE8Q1FZ7wAC3b9Opiif_BQWQIE_GQQzAZtANfEJp1ipBqpzAEE0PDNubDkhtlvCLT" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Freidora de Aire 5.5L</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$1,398.90 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Hogar">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Batería Sartenes Cerámica" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-g4F0nvIrkJPJkfYcsnPL1sD1A6sjHl0F6aFCdt_73Cx1pUKiI8Pgm4GYZeYzpTz7QbPfbtLM8kiGX3dbMpAz9-ZgdVU1-IAjKlTwJ2uA8cP0hxa24Q5Zmj6SGB1rT02VS-qcWhiuVuHpjGOrimHaa8qAuqIVHysstygf9l_hcpsOeiOh4hcWL1yjx3iSy4NG6ofJVZGeEg38rK3IbTOLcZm5HELBf3PznCLJXXhLmTemgq1TUKNr" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Sartenes Cerámicas x3</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$1,000.99 MXN</p>
+                  </div>
+                </div>
               </div>
-              <button type="button" class="font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 promo-filter-trigger" data-cat="Hogar">
+              <button type="button" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold promo-filter-trigger" data-cat="Hogar">
                 Filtrar Hogar y Cocina <span class="material-symbols-outlined text-[16px]">chevron_right</span>
               </button>
             </div>
 
             <!-- Card 3: ExpressPrime -->
-            <div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
+            <div class="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-surface-bright p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between relative overflow-hidden">
               <div>
-                <div class="flex items-center gap-1.5 mb-space-xs">
-                  <span class="material-symbols-outlined text-tertiary text-[22px]">verified</span>
-                  <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Ventajas ExpressPrime</h2>
+                <div class="flex items-center gap-1.5 mb-2">
+                  <span class="material-symbols-outlined text-tertiary-fixed text-[22px]">verified</span>
+                  <h2 class="font-headline-sm text-headline-sm text-surface font-bold">ExpressPrime México</h2>
                 </div>
-                <p class="font-body-sm text-body-sm text-secondary mb-space-md">Envíos gratis en 24 horas en CDMX, Guadalajara y Monterrey en miles de productos.</p>
-                <div class="space-y-2.5 mb-space-md">
-                  <div class="flex items-center gap-3 p-2.5 rounded-lg bg-surface-container-low">
-                    <span class="material-symbols-outlined text-tertiary bg-tertiary-fixed/40 p-2 rounded-lg">local_shipping</span>
+                <p class="font-body-sm text-body-sm text-surface-dim mb-space-sm">Envíos gratis en 24h en CDMX, Guadalajara y Monterrey, y devoluciones LFPC sin costo.</p>
+                <div class="relative rounded-lg overflow-hidden shadow-lg aspect-video w-full mb-space-sm">
+                  <img alt="ExpressPrime Beneficios" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcoaJzzVouDi8W6YbQUfJhvj0sZrfSPXEJjbXsfSRn1p2JGo1noulM18le-q1Yu3EUWN3stE6mCERt1LZy48lSks0k96dlv4xEcktJgqveOTBAtYa-CbT_VSCTp3UP6E3DF9dWeSomgd8otwPa3OxItFVJBmg8byBtPAkPoqTaCi_lypTv8wzFdZQIu28EOg5vCAjPRz5pE00r01rnmUqruRhJAOCz_pvoQao1BzTuPIjmFwWprbRh" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
                     <div>
-                      <p class="font-label-md text-label-md text-on-surface font-bold">Entrega Express Mismo Día</p>
-                      <p class="font-body-sm text-body-sm text-secondary">Gratis en compras desde $999.00 MXN</p>
+                      <span class="bg-primary text-on-primary font-label-xs text-label-xs px-1.5 py-0.5 rounded font-bold uppercase">Envío Gratis 24h</span>
+                      <p class="font-label-md text-label-md text-surface font-bold mt-0.5">Cobertura Nacional DHL / FedEx</p>
                     </div>
                   </div>
-                  <div class="flex items-center gap-3 p-2.5 rounded-lg bg-surface-container-low">
-                    <span class="material-symbols-outlined text-primary bg-primary-fixed/50 p-2 rounded-lg">shield_lock</span>
-                    <div>
-                      <p class="font-label-md text-label-md text-on-surface font-bold">Compra Protegida LFPC</p>
-                      <p class="font-body-sm text-body-sm text-secondary">30 días para devolución sin costo</p>
-                    </div>
+                </div>
+                <div class="space-y-1.5 text-surface-dim text-body-sm">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-tertiary-fixed text-[16px]">check_circle</span>
+                    <span>Entrega mismo día en compras desde $999 MXN</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-tertiary-fixed text-[16px]">check_circle</span>
+                    <span>Compra protegida 30 días LFPC</span>
                   </div>
                 </div>
               </div>
-              <button type="button" id="btn-prime-coupon" class="w-full py-2.5 rounded-lg bg-tertiary text-on-tertiary font-label-md text-label-md text-center hover:bg-tertiary-container transition-colors">
+              <button type="button" id="btn-prime-coupon" class="mt-space-sm w-full py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold text-center transition-colors">
                 Activar Cupón ENVIOGRATIS
               </button>
             </div>
 
-            <!-- Card 4: Setup Oficina & Gaming -->
-            <div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
+            <!-- Card 4: Setup Oficina & Teletrabajo -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between">
               <div>
-                <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-md">Cómputo &amp; Teletrabajo</h2>
-                <div class="aspect-[16/10] rounded-lg bg-surface-container-low overflow-hidden mb-space-sm relative flex items-center justify-center p-3">
-                  <img alt="Monitor Curvo 4K y Teclado Mecánico" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaWrQOCragy6pVfdZItXjcXeHKUuQNoShSMaVCWJG_EVMGQg6lxfhxImbiE3spE-R1f93zmcCgAoNpb5WQjqf-GeKj2V-bj0Pp2SV2DHf8fdivaNTPisjOT86gubftTQAvSw7p3je84Tilc4Albtz52D1WSE4mWF991BG4oTGkvHiUiOo459DQFOakeztWxxZLmicxEH0QUKkLf7xKZMufgpG24dueNpOy9S0zIp_R041lvz5RfY7I" />
-                  <span class="absolute bottom-2 right-2 bg-primary text-on-primary px-2 py-0.5 rounded font-label-xs text-label-xs font-bold">Hasta 12 MSI</span>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Cómputo &amp; Oficina</h2>
+                  <span class="bg-surface-container text-on-surface-variant px-2 py-0.5 rounded font-label-xs text-label-xs font-semibold">12 MSI</span>
                 </div>
-                <p class="font-body-sm text-body-sm text-secondary mb-space-md">Laptops ProBook M3, monitores 4K 144Hz y teclados mecánicos ISO Español.</p>
+                <div class="grid grid-cols-2 gap-space-sm">
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Computo">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Laptop ProBook Ultra 14" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTCJiWI-6-Heul2smvgxTpSo-jL8v7bDz3jlHCIgTvFooVv0glp0pD9_yUfb-Hxn0XYxAHlK-xLIosus43-09r_OJ9gG36Pb2bAc9Sy28ysb7ZJTKIyWoGx-a3fhH0vfD786wJcdJNQZjL83dOGHVC908t41RQIhO4YsmiJhKsUq3Qw7zNR5cAgPbc1EfaSbtFN4rCDccIex3egVIS6QLW-jXaRNG5TXjZsH0HKnQrgfuOjNa_xW_h" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Laptop ProBook 16GB</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$18,499.00 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Computo">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Monitor Curvo 27 144Hz" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQ1NdX8iUR_vBOTMEVF6O8It3gDpYZdPZB3hW3Dl2UcJXDNsYaM8C9TbL12y-CZbnOfB08O3svEPEWukO0j_t_MjAKSgyQz9p15m_-yg9z_pxzIYFBdF0G6XmJKpZhsiRGdxnMQKTEYyWCqU19E1aignr_kuL_oQEbFTkPcgtfKJSWnkSk9PjxbCxQDIkmST_S9gigp15pEI-LHGn8nxd2Di8IoWw98ylOtk9-I2xy4VtoLB2GpM-S" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Monitor 27" 4K 144Hz</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$6,890.00 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Accesorios">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Mouse Vertical Ergo" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCvTPotMNlnQ2u65gOSRPymRvjtzuA3xM1zLPQ8Qu3NG45Gng12DjNY7tac1PzywAceF8K2-k5_S2zCbUJMh4fgdC8LVc1513MBJMz8EEjKrZz0T7bfOVpHRnmOIt4id1dddP40-wedcOwaoB9SpvZIReyvFyJfzzDfQiAML3QxIk1bKT00cvO3NKbGm_LfmdCB6-QeKW7a4A7a6skWsCAZtLlvQS3Vr6Lj6tIi_eAvRvV-x0fGv4qe" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Mouse Vertical Ergo</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$659.95 MXN</p>
+                  </div>
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Accesorios">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-surface-container-lowest mb-1.5">
+                      <img alt="Teclado Mecánico RGB" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBC9qDtB-vVjPL7qLlK8A9S7mFDO3qXC3A-5fyWG1LxxaL9OFov3wGFzO91CwziLpyBBnds1vhu5Z8xptAKwyvgaDAu4Zb4H08UqqbQXyPQxJ8aj3fBSj92EXf_ZuC0UT9mlrAy-slr4bWGgSxtXnccjB9MBlmobyxBgZxWGUPBUEyBraQxXtCPevJFICyidsOeLy7EPPRdfLgKcD0Zv6kjdTV6TxvJEqXACvgUiizvv3md2m7wL7WY" />
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate">Teclado Mecánico RGB</p>
+                    <p class="font-label-md text-label-md text-on-surface font-bold">$1,350.00 MXN</p>
+                  </div>
+                </div>
               </div>
-              <button type="button" class="font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 promo-filter-trigger" data-cat="Computo">
+              <button type="button" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold promo-filter-trigger" data-cat="Computo">
                 Explorar Cómputo <span class="material-symbols-outlined text-[16px]">chevron_right</span>
               </button>
             </div>
@@ -402,7 +479,7 @@
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-md mb-space-md border-b border-surface-container">
             <div>
               <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary">Bolt</span>
+                <span class="material-symbols-outlined text-primary">bolt</span>
                 <h2 id="heading-catalog" class="font-headline-md text-headline-md text-on-surface font-extrabold">
                   Catálogo Oficial ExpressMart México (Precios en MXN)
                 </h2>
@@ -779,7 +856,9 @@
   <dialog id="product-detail-dialog" class="modal-dialog modal-large" aria-labelledby="detail-product-title">
     <div class="modal-header">
       <h2 id="detail-product-title" class="font-headline-sm text-headline-sm font-bold">Ficha Técnica y Reseñas Verificadas (RF-08)</h2>
-      <button type="button" id="btn-close-detail" class="btn-close" aria-label="Cerrar detalle de producto">✕</button>
+      <button type="button" id="btn-close-detail" class="btn-close flex items-center justify-center" aria-label="Cerrar detalle de producto">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
     </div>
     <div id="product-detail-body" class="modal-body"></div>
   </dialog>
@@ -793,7 +872,9 @@
         <span class="material-symbols-outlined text-inverse-primary">shield_person</span>
         <h2 id="auth-dialog-title">Portal de Acceso y Registro Seguro ExpressMart (RF-01 / RF-02)</h2>
       </div>
-      <button type="button" id="btn-close-auth" class="btn-close" aria-label="Cerrar ventana de acceso">✕</button>
+      <button type="button" id="btn-close-auth" class="btn-close flex items-center justify-center" aria-label="Cerrar ventana de acceso">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
     </div>
 
     <div class="modal-body">
@@ -802,10 +883,18 @@
           <strong>Selector Rápido de Roles para Demostración y Auditoría (RBAC + MFA Automático):</strong>
         </p>
         <div class="demo-buttons">
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="cliente@expressmart.mx" data-pass="ClientePassword123!">👤 Cliente Verificado</button>
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="vendedor@expressmart.mx" data-pass="VendedorPassword123!">🏪 Vendedor (MFA 2FA)</button>
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="admin@expressmart.mx" data-pass="AdminPassword123!">🛡️ Administrador (MFA 2FA)</button>
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="auditor@expressmart.mx" data-pass="AuditorPassword123!">📋 Auditor Líder ECTA-01</button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="cliente@expressmart.mx" data-pass="ClientePassword123!">
+            <span class="material-symbols-outlined text-[16px]">person</span> Cliente Verificado
+          </button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="vendedor@expressmart.mx" data-pass="VendedorPassword123!">
+            <span class="material-symbols-outlined text-[16px]">storefront</span> Vendedor (MFA 2FA)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="admin@expressmart.mx" data-pass="AdminPassword123!">
+            <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span> Administrador (MFA 2FA)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="auditor@expressmart.mx" data-pass="AuditorPassword123!">
+            <span class="material-symbols-outlined text-[16px]">fact_check</span> Auditor Líder ECTA-01
+          </button>
         </div>
       </div>
 
@@ -824,7 +913,7 @@
               aria-describedby="login-email-hint"
               aria-errormessage="login-email-err"
             />
-            <div id="login-email-err" class="error-msg"><span aria-hidden="true">❌</span> Ingrese un correo electrónico válido.</div>
+            <div id="login-email-err" class="error-msg">Ingrese un correo electrónico válido.</div>
           </div>
 
           <div class="field">
@@ -852,7 +941,7 @@
             <label for="reg-email">Correo electrónico</label>
             <span id="reg-email-hint" class="hint">Recibirás tus confirmaciones en MXN</span>
             <input type="email" id="reg-email" required aria-describedby="reg-email-hint" aria-errormessage="reg-email-err" />
-            <div id="reg-email-err" class="error-msg"><span aria-hidden="true">❌</span> Ingrese un correo electrónico válido.</div>
+            <div id="reg-email-err" class="error-msg">Ingrese un correo electrónico válido.</div>
           </div>
           <div class="field">
             <label for="reg-password">Contraseña segura (OWASP ASVS)</label>
@@ -865,7 +954,7 @@
               aria-describedby="reg-pass-hint"
               aria-errormessage="reg-pass-err"
             />
-            <div id="reg-pass-err" class="error-msg"><span aria-hidden="true">❌</span> Debe incluir mayúscula, minúscula, número y símbolo (mín. 8 caracteres).</div>
+            <div id="reg-pass-err" class="error-msg">Debe incluir mayúscula, minúscula, número y símbolo (mín. 8 caracteres).</div>
           </div>
           <div class="field">
             <label for="reg-direccion">Dirección de envío en México</label>
@@ -890,7 +979,9 @@
         <span class="material-symbols-outlined text-inverse-primary">shopping_bag</span>
         <h2 id="cart-dialog-title">Cesta de la Compra y Checkout Seguro en 3 Pasos (MXN · RNF-11)</h2>
       </div>
-      <button type="button" id="btn-close-cart" class="btn-close" aria-label="Cerrar carrito">✕</button>
+      <button type="button" id="btn-close-cart" class="btn-close flex items-center justify-center" aria-label="Cerrar carrito">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
     </div>
 
     <div class="modal-body">

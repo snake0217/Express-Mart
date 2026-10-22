@@ -1,14 +1,14 @@
 {
   "documento": "EV-24 Informe de Pruebas de Rendimiento, Carga y Concurrencia",
   "referenciaManual": "Apartado 24, RF-03, RNF-02, RNF-08",
-  "timestamp": "2026-10-22T07:46:55.819Z",
+  "timestamp": "2026-10-22T18:07:12.722Z",
   "pruebaCargaCheckout100Concurrentes": {
     "usuariosConcurrentes": 100,
     "transaccionesExitosas": 100,
-    "tiempoTotalLoteMs": 399,
-    "latenciaPromedioMs": 371.84,
-    "latenciaP95Ms": 387,
-    "latenciaMaximaMs": 388,
+    "tiempoTotalLoteMs": 241,
+    "latenciaPromedioMs": 228.18,
+    "latenciaP95Ms": 235,
+    "latenciaMaximaMs": 236,
     "umbralMaximoPermitidoMs": 2000,
     "cumpleRNF02": true
   },
