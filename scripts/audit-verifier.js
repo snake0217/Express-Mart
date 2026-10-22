@@ -30,6 +30,7 @@ const REQUIRED_FILES = [
   'docs/03_Seguridad_Riesgos_CalidadDatos_y_Proveedores.md',
   'docs/04_Plan_y_Actas_de_Pruebas_Integrales.md',
   'docs/05_Liberacion_Operacion_Continuidad_y_Mejora.md',
+  'docs/06_Politica_Integral_de_Base_de_Datos.md',
   'docs/evidencias/EV-24_Informe_Pruebas_Rendimiento.json',
   'docs/evidencias/EV-34_Acta_Simulacro_Recuperacion_ISO22301.json',
   'backups/expressmart-backup-latest.enc',

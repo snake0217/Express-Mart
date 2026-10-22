@@ -576,6 +576,12 @@ async function loadAuditCenter() {
       <div class="kpi-card"><div>Satisfacción Cliente (Meta ≥4.5)</div><div class="kpi-val">${k.satisfaccionClientePromedio} / 5</div></div>
     `;
 
+    const dbPolicy = await apiFetch('/api/quality/database-policy');
+    const policyEl = document.getElementById('db-policy-box');
+    if (policyEl) {
+      policyEl.textContent = JSON.stringify(dbPolicy, null, 2);
+    }
+
     if (state.token && state.user && ['administrador', 'auditor'].includes(state.user.rol)) {
       const dq = await apiFetch('/api/quality/data-audit');
       document.getElementById('data-quality-box').textContent = JSON.stringify(dq, null, 2);

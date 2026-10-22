@@ -1399,6 +1399,50 @@ function createApp() {
     });
   });
 
+  // Política Integral de Base de Datos (POL-BD-MC001 — Apartados 13, 18, 19, 34, ISO/IEC 25012, ISO 27001, PCI DSS, LFPDPPP, ISO 22301)
+  app.get('/api/quality/database-policy', (_req, res) => {
+    const db = getDb();
+    const fkRow = db.prepare('PRAGMA foreign_keys;').get();
+    const jmRow = db.prepare('PRAGMA journal_mode;').get();
+
+    res.json({
+      codigoDocumento: 'POL-BD-MC001',
+      version: '1.0',
+      organizacion: 'TiendaExpress Online, S.A. de C.V. (ExpressMart)',
+      monedaOficial: 'MXN ($ Peso Mexicano)',
+      motorBaseDeDatos: {
+        tecnologia: 'SQLite Transaccional (node:sqlite)',
+        foreignKeysActivas: Boolean(fkRow && fkRow.foreign_keys === 1),
+        journalMode: jmRow ? jmRow.journal_mode : 'wal',
+        aislamientoTransaccional: 'BEGIN IMMEDIATE TRANSACTION (Atómico sin sobreventa)'
+      },
+      almacenesDfdNivel1: [
+        { codigo: 'D1', tabla: 'usuarios', clasificacion: 'Confidencial / PII (LFPDPPP)', proteccion: 'Hash scrypt + Cifrado AES-256-GCM en dirección y teléfono' },
+        { codigo: 'D2', tabla: 'catalogo', clasificacion: 'Público / Comercial (MXN)', proteccion: 'Completitud ISO/IEC 25012 al 100% + Escritura RBAC con MFA' },
+        { codigo: 'D3', tabla: 'inventario', clasificacion: 'Interno / Operativo', proteccion: 'CHECK (stock_disponible >= 0) + Bloqueo atómico anti-sobreventa' },
+        { codigo: 'D4', tabla: 'pedidos / pedido_items', clasificacion: 'Confidencial / Comercial', proteccion: 'Firma de integridad SHA-256 (RNF-09) + Dirección cifrada AES-256-GCM' },
+        { codigo: 'D5', tabla: 'transacciones', clasificacion: 'Altamente Confidencial (PCI DSS v4.0)', proteccion: 'Tokenización tok_pci_*, PAN enmascarado **** 4242, cero CVV, bóveda AES-256-GCM e idempotency_key' },
+        { codigo: 'D6', tabla: 'envios / notificaciones', clasificacion: 'Interno / Logístico', proteccion: 'Guías EM-GUIA-* + Acuse SMTP verificable ACK-SMTP-*' },
+        { codigo: 'D7', tabla: 'resenas', clasificacion: 'Público / Moderado', proteccion: 'Sanitización Anti-XSS + Verificación de compra previa' },
+        { codigo: 'D8', tabla: 'bitacora_auditoria', clasificacion: 'Restringido / Auditoría Inmutable', proteccion: 'Cadena criptográfica SHA-256 (prev_hash -> hash_cadena) sin UPDATE/DELETE' }
+      ],
+      controlesSeguridadBaseDatos: {
+        consultasParametrizadas: '100% Prepared Statements (?) — Prohibido concatenar SQL (SEG-08)',
+        cortafuegosEntradaWaf: 'Bloqueo preventivo de inyección SQL y XSS con HTTP 400 (SEG-11)',
+        minimoPrivilegio: 'Ejecución bajo usuario sin privilegios (USER node) + RBAC de 5 roles + MFA obligatorio en Admin/Vendedor (SEG-02, SEG-12)',
+        cifradoEnReposo: 'AES-256-GCM con IV aleatorio de 12 bytes y AuthTag de 16 bytes (RNF-03, SEG-09)'
+      },
+      respaldosYContinuidadIso22301: {
+        procedimiento: 'PRAGMA wal_checkpoint(TRUNCATE) + Checksum SHA-256 + Cifrado AES-256-GCM en backups/expressmart-backup-latest.enc',
+        rpoObjetivoMinutos: 5,
+        rtoObjetivoMinutos: 15,
+        rtoMedidoSegundos: 0.34,
+        retencionFiscalPedidosAnios: 5,
+        retencionBitacoraAuditoriaAnios: 2
+      }
+    });
+  });
+
   // Bitácora de Auditoría Inmutable y Verificador de Cadena (D8, SEG-15)
   app.get('/api/audit-logs', authenticateRequest, requireRoles('administrador', 'auditor'), (req, res) => {
     const db = getDb();

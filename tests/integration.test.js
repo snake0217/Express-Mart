@@ -237,6 +237,12 @@ describe('Pruebas Funcionales y de Integración End-to-End (CP-RF-01 a CP-RF-10)
     expect(dqRes.body.dimensiones.integridad.cumple).toBe(true);
     expect(dqRes.body.dimensiones.completitud.cumple).toBe(true);
     expect(dqRes.body.dimensiones.consistencia.cumple).toBe(true);
+
+    const policyRes = await request(app).get('/api/quality/database-policy');
+    expect(policyRes.status).toBe(200);
+    expect(policyRes.body.codigoDocumento).toBe('POL-BD-MC001');
+    expect(policyRes.body.motorBaseDeDatos.foreignKeysActivas).toBe(true);
+    expect(policyRes.body.almacenesDfdNivel1).toHaveLength(8);
   });
 
   test('CP-RNF-05: Tolerancia a fallos ante caída del servicio de recomendaciones', async () => {
