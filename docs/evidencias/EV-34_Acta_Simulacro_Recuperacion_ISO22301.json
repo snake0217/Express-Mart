@@ -1,0 +1,22 @@
+{
+  "documento": "EV-34 Acta de Respaldo Cifrado y Simulacro de Recuperación ante Desastres (ISO 22301)",
+  "referenciaManual": "Apartados 34.1 y 34.2, NOR-10 (ISO 22301), SEG-14",
+  "timestamp": "2026-10-22T06:37:17.468Z",
+  "archivoRespaldo": "backups/expressmart-backup-latest.enc",
+  "cifradoEnReposo": "AES-256-GCM (enc:v1)",
+  "checksumOriginalSha256": "314aabbf348db143e0fb6a67b4919e189e56b84cba5197867242e31c3cf5fddf",
+  "checksumRestauradoSha256": "314aabbf348db143e0fb6a67b4919e189e56b84cba5197867242e31c3cf5fddf",
+  "integridadVerificada": true,
+  "registrosVerificados": {
+    "usuarios": 5,
+    "catalogo": 6,
+    "inventario": 6,
+    "bitacoraAuditoria": 1
+  },
+  "objetivosRecuperacion": {
+    "rtoObjetivoMinutos": 15,
+    "rtoRealSegundos": 0.384,
+    "rpoObjetivoMinutos": 5,
+    "cumpleRtoRpo": true
+  }
+}

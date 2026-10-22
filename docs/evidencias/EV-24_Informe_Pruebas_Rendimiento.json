@@ -1,0 +1,24 @@
+{
+  "documento": "EV-24 Informe de Pruebas de Rendimiento, Carga y Concurrencia",
+  "referenciaManual": "Apartado 24, RF-03, RNF-02, RNF-08",
+  "timestamp": "2026-10-22T06:37:16.842Z",
+  "pruebaCargaCheckout100Concurrentes": {
+    "usuariosConcurrentes": 100,
+    "transaccionesExitosas": 100,
+    "tiempoTotalLoteMs": 352,
+    "latenciaPromedioMs": 329.09,
+    "latenciaP95Ms": 345,
+    "latenciaMaximaMs": 345,
+    "umbralMaximoPermitidoMs": 2000,
+    "cumpleRNF02": true
+  },
+  "pruebaConcurrenciaUltimoArticulo": {
+    "solicitudesSimultaneas": 15,
+    "stockInicial": 1,
+    "comprasAceptadas": 1,
+    "comprasRechazadasSinStock": 14,
+    "stockFinalEnBaseDeDatos": 0,
+    "sobreventasDetectadas": 0,
+    "cumpleSinSobreventa": true
+  }
+}

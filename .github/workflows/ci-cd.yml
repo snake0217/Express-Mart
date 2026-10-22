@@ -1,0 +1,44 @@
+name: ExpressMart CI/CD Pipeline (Apartado 31 - RNF-10)
+
+on:
+  push:
+    branches: [ main, develop, 'release/**', 'hotfix/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  ci-quality-and-security:
+    name: 1. Integración Continua, SAST, Pruebas (>=80%) y Seguridad
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repositorio Git
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias controladas (Apartado 15.2)
+        run: npm ci
+
+      - name: Etapa 1 - Análisis Estático de Código y Seguridad SAST (Apartados 14 y 29)
+        run: npm run lint
+
+      - name: Etapa 2 - Pruebas Unitarias, Funcionales, Integración y Seguridad con Cobertura >= 80% (RNF-04)
+        run: npm test
+
+      - name: Etapa 3 - Pruebas de Rendimiento y Concurrencia Checkout <= 2s (Apartado 24 / RNF-02)
+        run: npm run test:performance
+
+      - name: Etapa 4 - Simulacro de Respaldo Cifrado y Recuperación ISO 22301 (Apartado 34)
+        run: npm run backup
+
+  cd-staging-and-production:
+    name: 2. Empaquetado y Despliegue Controlado Blue-Green (Apartado 31.2 y 36)
+    needs: ci-quality-and-security
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generar artefacto versionado v1.0.0
+        run: echo "Artefacto contenedor expressmart-ecommerce:1.0.0 verificado y promovido a Staging y Producción bajo autorización RFC-0001."

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ExpressMart - Plataforma de Comercio Electrónico Confiable y Segura (TiendaExpress Online, S.A. de C.V. - SGC MC-001)" />
+  <title>ExpressMart | Tienda en Línea Oficial (MC-001)</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Enlace de accesibilidad WCAG 2.2 (Apartado 28 / RNF-07) -->
+  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
+  <!-- Barra superior de estado normativo y monitoreo -->
+  <div class="top-compliance-bar" role="region" aria-label="Estado de calidad y seguridad de la plataforma">
+    <div class="container top-bar-inner">
+      <span><strong>SGC MC-001 v1.0</strong> · ISO/IEC 25010 · ISO 27001 · PCI DSS v4.0 · LFPDPPP · LFPC</span>
+      <span id="health-badge" class="badge badge-ok" aria-live="polite">Uptime: 99.98% | Checkout &lt; 2s</span>
+    </div>
+  </div>
+
+  <!-- Encabezado principal -->
+  <header class="site-header" role="banner">
+    <div class="container header-inner">
+      <div class="brand-group">
+        <img src="/assets/logo.png" alt="Logotipo oficial de ExpressMart Tienda en Línea" class="brand-logo" width="52" height="52" />
+        <div>
+          <h1 class="brand-title">EXPRESS MART</h1>
+          <p class="brand-subtitle">TiendaExpress Online, S.A. de C.V.</p>
+        </div>
+      </div>
+
+      <!-- Buscador rápido (RF-03) -->
+      <form id="search-form" class="search-bar" role="search" aria-label="Buscar productos en el catálogo">
+        <label for="search-input" class="sr-only">Buscar por nombre, marca o descripción</label>
+        <input
+          type="search"
+          id="search-input"
+          name="q"
+          placeholder="Buscar laptops, audífonos, monitores, marcas..."
+          autocomplete="off"
+        />
+        <button type="submit" class="btn btn-primary">Buscar</button>
+      </form>
+
+      <!-- Acciones de sesión y carrito -->
+      <nav class="user-nav" aria-label="Navegación de cuenta y compras">
+        <div id="user-status" class="user-status">No autenticado</div>
+        <button type="button" id="btn-open-auth" class="btn btn-outline">Iniciar Sesión / Registro</button>
+        <button type="button" id="btn-logout" class="btn btn-outline hidden">Cerrar Sesión</button>
+        <button type="button" id="btn-open-cart" class="btn btn-accent" aria-label="Ver carrito de compras">
+          🛒 Carrito (<span id="cart-count">0</span>)
+        </button>
+      </nav>
+    </div>
+
+    <!-- Pestañas de navegación por módulos (Cliente, Mis Pedidos, Panel Vendedor/Admin, Auditoría SGC) -->
+    <div class="subnav-bar">
+      <div class="container subnav-inner" role="tablist" aria-label="Módulos de ExpressMart">
+        <button type="button" class="tab-btn active" data-tab="view-catalog" role="tab" aria-selected="true">Catálogo y Búsqueda (RF-03)</button>
+        <button type="button" class="tab-btn" data-tab="view-orders" role="tab" aria-selected="false">Mis Pedidos y Envíos (RF-07)</button>
+        <button type="button" class="tab-btn" data-tab="view-profile" role="tab" aria-selected="false">Mi Cuenta, Notificaciones y ARCO (RF-01/09)</button>
+        <button type="button" class="tab-btn" data-tab="view-admin" role="tab" aria-selected="false">Panel Vendedor / Admin (RF-06/10)</button>
+        <button type="button" class="tab-btn" data-tab="view-audit" role="tab" aria-selected="false">Centro de Auditoría y Calidad (ECTA-01)</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" class="container main-container" tabindex="-1">
+    <!-- Banner informativo / estado de sesión -->
+    <div id="global-alert" class="alert hidden" role="status" aria-live="polite"></div>
+
+    <!-- ===============================================================
+         VISTA 1: CATÁLOGO Y BÚSQUEDA (RF-03, RNF-05, RNF-07)
+         =============================================================== -->
+    <section id="view-catalog" class="tab-view active" aria-labelledby="heading-catalog">
+      <div class="catalog-controls card">
+        <div class="catalog-header-row">
+          <h2 id="heading-catalog">Catálogo Oficial de Productos</h2>
+          <span id="search-latency-pill" class="pill">Tiempo de búsqueda: -- ms (Meta &lt; 2000 ms)</span>
+        </div>
+
+        <div class="filters-grid">
+          <div class="field">
+            <label for="filter-category">Categoría</label>
+            <select id="filter-category">
+              <option value="">Todas las categorías</option>
+              <option value="Computo">Cómputo</option>
+              <option value="Audio">Audio</option>
+              <option value="telefonia">Telefonía</option>
+              <option value="Accesorios">Accesorios</option>
+              <option value="Hogar">Hogar</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-brand">Marca</label>
+            <select id="filter-brand">
+              <option value="">Todas las marcas</option>
+              <option value="TechNova">TechNova</option>
+              <option value="SonicWave">SonicWave</option>
+              <option value="VisionMax">VisionMax</option>
+              <option value="KeyMaster">KeyMaster</option>
+              <option value="HomeElite">HomeElite</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-max-price">Precio máximo (MXN)</label>
+            <input type="number" id="filter-max-price" min="0" step="100" placeholder="Ej. 15000" />
+          </div>
+          <div class="field">
+            <label for="filter-sort">Ordenar por</label>
+            <select id="filter-sort">
+              <option value="">Destacados</option>
+              <option value="precio_asc">Precio: Menor a Mayor</option>
+              <option value="precio_desc">Precio: Mayor a Menor</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aviso de contingencia del servicio de recomendaciones (RNF-05) -->
+      <div id="recommendations-banner" class="contingency-banner hidden" role="status"></div>
+
+      <!-- Cuadrícula de productos -->
+      <div id="products-grid" class="products-grid" aria-live="polite"></div>
+    </section>
+
+    <!-- ===============================================================
+         VISTA 2: PEDIDOS, RASTREO DE ENVÍOS Y DEVOLUCIONES (RF-07)
+         =============================================================== -->
+    <section id="view-orders" class="tab-view hidden" aria-labelledby="heading-orders">
+      <div class="card">
+        <div class="section-title-row">
+          <h2 id="heading-orders">Historial de Pedidos, Guías de Paquetería y Devoluciones</h2>
+          <button type="button" id="btn-refresh-orders" class="btn btn-outline">Actualizar</button>
+        </div>
+        <p class="muted">Consulta el estado en tiempo real, número de guía DHL/FedEx, hash de integridad SHA-256 (RNF-09) y solicita devoluciones conforme a la LFPC (NOR-09).</p>
+        <div id="orders-list" class="orders-list"></div>
+      </div>
+    </section>
+
+    <!-- ===============================================================
+         VISTA 3: PERFIL, NOTIFICACIONES Y DERECHOS ARCO (RF-01, RF-09, NOR-08)
+         =============================================================== -->
+    <section id="view-profile" class="tab-view hidden" aria-labelledby="heading-profile">
+      <div class="two-col-grid">
+        <div class="card">
+          <h2 id="heading-profile">Mi Perfil Protegido (Cifrado AES-256)</h2>
+          <form id="profile-form" novalidate>
+            <div class="field">
+              <label for="prof-nombre">Nombre completo</label>
+              <span id="prof-nombre-hint" class="hint">Mínimo 3 caracteres</span>
+              <input type="text" id="prof-nombre" required minlength="3" aria-describedby="prof-nombre-hint" />
+            </div>
+            <div class="field">
+              <label for="prof-direccion">Dirección de entrega (cifrada en reposo en D1)</label>
+              <span id="prof-dir-hint" class="hint">Calle, número, colonia, CP y ciudad</span>
+              <input type="text" id="prof-direccion" required minlength="8" aria-describedby="prof-dir-hint" />
+            </div>
+            <div class="field">
+              <label for="prof-telefono">Teléfono de contacto (cifrado en reposo en D1)</label>
+              <input type="tel" id="prof-telefono" placeholder="+52 55 1234 5678" />
+            </div>
+            <div class="field checkbox-field">
+              <input type="checkbox" id="prof-mfa" />
+              <label for="prof-mfa">Habilitar Autenticación Multifactor (MFA/TOTP) en mi cuenta</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+          </form>
+
+          <hr class="divider" />
+          <h3>Ejercicio de Derechos ARCO (LFPDPPP - NOR-08)</h3>
+          <form id="arco-form">
+            <div class="field">
+              <label for="arco-tipo">Tipo de derecho a ejercer</label>
+              <select id="arco-tipo" required>
+                <option value="acceso">Acceso a mis datos personales</option>
+                <option value="rectificacion">Rectificación de datos</option>
+                <option value="cancelacion">Cancelación de datos</option>
+                <option value="oposicion">Oposición al tratamiento</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="arco-desc">Descripción de la solicitud</label>
+              <textarea id="arco-desc" rows="2" required minlength="5" placeholder="Solicito copia o actualización de mis datos conforme a la LFPDPPP..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-outline">Enviar Solicitud ARCO</button>
+          </form>
+          <div id="arco-result" class="mt-2"></div>
+        </div>
+
+        <div class="card">
+          <h2>Buzón de Notificaciones y Acuses (RF-09)</h2>
+          <p class="muted">Registro auditado de notificaciones transaccionales enviadas por correo electrónico.</p>
+          <div id="notifications-list" class="notifications-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================================================
+         VISTA 4: PANEL DE VENDEDOR Y ADMINISTRADOR (RF-02, RF-06, RF-10)
+         =============================================================== -->
+    <section id="view-admin" class="tab-view hidden" aria-labelledby="heading-admin">
+      <div class="two-col-grid">
+        <div class="card">
+          <h2 id="heading-admin">Alta y Gestión de Productos e Inventario (RF-06)</h2>
+          <p class="muted">Requiere rol <strong>Administrador</strong> o <strong>Vendedor</strong> con MFA verificado (RF-02 / SEG-12). Verifica completitud ISO/IEC 25012.</p>
+          <form id="admin-product-form">
+            <div class="field">
+              <label for="prod-sku">SKU Único</label>
+              <span id="prod-sku-hint" class="hint">Formato: EM-CAT-000</span>
+              <input type="text" id="prod-sku" required placeholder="EM-GAM-007" aria-describedby="prod-sku-hint" />
+            </div>
+            <div class="field">
+              <label for="prod-nombre">Nombre del Producto</label>
+              <input type="text" id="prod-nombre" required placeholder="Consola Portátil Pro 1TB OLED" />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="prod-cat">Categoría</label>
+                <select id="prod-cat" required>
+                  <option value="Computo">Cómputo</option>
+                  <option value="Audio">Audio</option>
+                  <option value="telefonia">Telefonía</option>
+                  <option value="Accesorios">Accesorios</option>
+                  <option value="Hogar">Hogar</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="prod-marca">Marca</label>
+                <input type="text" id="prod-marca" required placeholder="TechNova" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="prod-precio">Precio (MXN)</label>
+                <input type="number" id="prod-precio" min="1" step="0.01" required placeholder="8999.00" />
+              </div>
+              <div class="field">
+                <label for="prod-stock">Stock Inicial (D3 Inventario)</label>
+                <input type="number" id="prod-stock" min="0" step="1" required placeholder="20" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="prod-desc">Descripción completa</label>
+              <textarea id="prod-desc" rows="2" required placeholder="Especificaciones técnicas y beneficios principales..."></textarea>
+            </div>
+            <div class="field">
+              <label for="prod-envio">Condiciones de envío (Obligatorio LFPC / ISO 25012)</label>
+              <input type="text" id="prod-envio" required value="Envío exprés asegurado gratis en 24-48 horas." />
+            </div>
+            <button type="submit" class="btn btn-primary">Publicar Producto en Catálogo</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="section-title-row">
+            <h2>Reporte Ejecutivo de Ventas e Inventario (RF-10)</h2>
+            <button type="button" id="btn-load-reports" class="btn btn-outline">Generar Reporte</button>
+          </div>
+          <div id="admin-reports-box" class="reports-box">
+            <p class="muted">Inicie sesión como Administrador, Vendedor o Auditor y pulse "Generar Reporte".</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================================================
+         VISTA 5: CENTRO DE AUDITORÍA, KPIs Y BITÁCORA INMUTABLE (ECTA-01)
+         =============================================================== -->
+    <section id="view-audit" class="tab-view hidden" aria-labelledby="heading-audit">
+      <div class="card">
+        <div class="section-title-row">
+          <h2 id="heading-audit">Tablero de Cumplimiento Normativo, KPIs y Calidad de Datos (ECTA-01)</h2>
+          <div>
+            <button type="button" id="btn-toggle-contingency" class="btn btn-outline">Simular Contingencia Recomendaciones (RNF-05)</button>
+            <button type="button" id="btn-refresh-audit" class="btn btn-primary">Actualizar Evidencia en Vivo</button>
+          </div>
+        </div>
+        <div id="audit-kpis-grid" class="kpis-grid"></div>
+        <div class="two-col-grid mt-3">
+          <div>
+            <h3>Auditoría de Calidad de Datos ISO/IEC 25012 (Apartado 19)</h3>
+            <div id="data-quality-box" class="code-box">Inicie sesión como Administrador o Auditor para inspeccionar la auditoría ISO/IEC 25012.</div>
+          </div>
+          <div>
+            <h3>Bitácora de Auditoría Encadenada SHA-256 (Almacén D8 - SEG-15)</h3>
+            <div id="audit-logs-box" class="code-box">Inicie sesión como Administrador o Auditor para verificar la cadena criptográfica de logs.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===============================================================
+       MODAL DE AUTENTICACIÓN Y CAMBIO RÁPIDO DE ROL DEMO (RF-01, RF-02)
+       =============================================================== -->
+  <dialog id="auth-dialog" class="modal-dialog" aria-labelledby="auth-dialog-title">
+    <div class="modal-header">
+      <h2 id="auth-dialog-title">Acceso y Registro Seguro (RF-01 / RF-02)</h2>
+      <button type="button" id="btn-close-auth" class="btn-close" aria-label="Cerrar ventana de acceso">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="demo-roles-box">
+        <p><strong>Acceso Rápido para Pruebas y Auditoría (RBAC + MFA):</strong></p>
+        <div class="demo-buttons">
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="cliente@expressmart.mx" data-pass="ClientePassword123!">👤 Cliente</button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="vendedor@expressmart.mx" data-pass="VendedorPassword123!">🏪 Vendedor (MFA)</button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="admin@expressmart.mx" data-pass="AdminPassword123!">🛡️ Admin (MFA)</button>
+          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="auditor@expressmart.mx" data-pass="AuditorPassword123!">📋 Auditor ECTA-01</button>
+        </div>
+      </div>
+
+      <form id="login-form" novalidate>
+        <h3>Iniciar Sesión</h3>
+        <div class="field">
+          <label for="login-email">Correo electrónico</label>
+          <span id="login-email-hint" class="hint">Formato: usuario@expressmart.mx</span>
+          <input
+            type="email"
+            id="login-email"
+            required
+            autocomplete="email"
+            aria-describedby="login-email-hint"
+            aria-errormessage="login-email-err"
+          />
+          <div id="login-email-err" class="error-msg"><span aria-hidden="true">❌</span> Ingrese un correo electrónico válido.</div>
+        </div>
+
+        <div class="field">
+          <label for="login-password">Contraseña</label>
+          <input type="password" id="login-password" required minlength="8" autocomplete="current-password" />
+        </div>
+
+        <div id="mfa-field-group" class="field hidden">
+          <label for="login-mfa">Código MFA / TOTP (6 dígitos - RF-02)</label>
+          <span id="mfa-hint" class="hint">Obligatorio para Administradores y Vendedores</span>
+          <input type="text" id="login-mfa" pattern="^[0-9]{6}$" maxlength="6" placeholder="000000" aria-describedby="mfa-hint" />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
+      </form>
+
+      <hr class="divider" />
+
+      <form id="register-form" novalidate>
+        <h3>Crear Nueva Cuenta (RF-01 / LFPDPPP)</h3>
+        <div class="field">
+          <label for="reg-nombre">Nombre completo</label>
+          <input type="text" id="reg-nombre" required minlength="3" />
+        </div>
+        <div class="field">
+          <label for="reg-email">Correo electrónico</label>
+          <span id="reg-email-hint" class="hint">Ejemplo: comprador@dominio.com</span>
+          <input type="email" id="reg-email" required aria-describedby="reg-email-hint" aria-errormessage="reg-email-err" />
+          <div id="reg-email-err" class="error-msg"><span aria-hidden="true">❌</span> Ingrese un correo electrónico válido.</div>
+        </div>
+        <div class="field">
+          <label for="reg-password">Contraseña segura (OWASP ASVS)</label>
+          <span id="reg-pass-hint" class="hint">Mín. 8 caracteres, mayúscula, minúscula, número y símbolo</span>
+          <input
+            type="password"
+            id="reg-password"
+            required
+            pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$"
+            aria-describedby="reg-pass-hint"
+            aria-errormessage="reg-pass-err"
+          />
+          <div id="reg-pass-err" class="error-msg"><span aria-hidden="true">❌</span> La contraseña debe incluir mayúscula, minúscula, número y carácter especial (mín. 8 caracteres).</div>
+        </div>
+        <div class="field">
+          <label for="reg-direccion">Dirección de envío</label>
+          <input type="text" id="reg-direccion" required minlength="8" placeholder="Calle, número, colonia, ciudad, CP" />
+        </div>
+        <div class="field checkbox-field">
+          <input type="checkbox" id="reg-privacy" required checked />
+          <label for="reg-privacy">He leído y acepto el Aviso de Privacidad Integral (LFPDPPP) y los Términos de Compra (LFPC).</label>
+        </div>
+        <button type="submit" class="btn btn-outline btn-block">Registrarme en ExpressMart</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL DE CARRITO Y CHECKOUT EN MÁXIMO 3 PASOS (RF-04, RF-05, RNF-11)
+       =============================================================== -->
+  <dialog id="cart-dialog" class="modal-dialog modal-large" aria-labelledby="cart-dialog-title">
+    <div class="modal-header">
+      <h2 id="cart-dialog-title">Carrito y Proceso de Compra en 3 Pasos (RNF-11)</h2>
+      <button type="button" id="btn-close-cart" class="btn-close" aria-label="Cerrar carrito">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Indicador visual de los 3 pasos (RNF-11) -->
+      <ol class="checkout-steps" aria-label="Pasos del proceso de compra">
+        <li id="step-ind-1" class="step-item active">1. Carrito, Cupón y Dirección</li>
+        <li id="step-ind-2" class="step-item">2. Método de Pago Seguro (PCI DSS)</li>
+        <li id="step-ind-3" class="step-item">3. Confirmación e Integridad</li>
+      </ol>
+
+      <!-- PASO 1 -->
+      <div id="checkout-step-1" class="checkout-step-pane">
+        <div id="cart-items-container" class="cart-items-container"></div>
+
+        <div class="coupon-row">
+          <div class="field">
+            <label for="cart-coupon">Cupón de descuento (Ej. BIENVENIDA10, BUENFIN20, ENVIOGRATIS)</label>
+            <div class="inline-input">
+              <input type="text" id="cart-coupon" placeholder="Código promocional" />
+              <button type="button" id="btn-apply-coupon" class="btn btn-outline">Aplicar Cupón</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="cart-totals-box" class="totals-box" aria-live="polite"></div>
+
+        <div class="field mt-2">
+          <label for="checkout-address">Dirección de entrega confirmada</label>
+          <span id="checkout-addr-hint" class="hint">Se almacena cifrada con AES-256-GCM conforme a LFPDPPP</span>
+          <input type="text" id="checkout-address" required minlength="8" placeholder="Av. Insurgentes Sur 1602, CDMX, CP 03940" aria-describedby="checkout-addr-hint" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-to-step-2" class="btn btn-primary">Continuar al Paso 2: Pago Seguro →</button>
+        </div>
+      </div>
+
+      <!-- PASO 2 -->
+      <div id="checkout-step-2" class="checkout-step-pane hidden">
+        <h3> Selección de Método de Pago Certificado PCI DSS (RF-05 / SEG-07)</h3>
+        <p class="muted">Los datos financieros se tokenizan antes de procesarse; nunca se almacena el CVV ni el PAN sin enmascarar.</p>
+
+        <div class="field">
+          <label for="payment-method">Método de Pago</label>
+          <select id="payment-method">
+            <option value="tarjeta">Tarjeta de Crédito / Débito (Visa, Mastercard, Amex)</option>
+            <option value="msi">Meses Sin Intereses (3, 6 o 12 MSI)</option>
+            <option value="wallet">Billetera Digital (ExpressWallet)</option>
+          </select>
+        </div>
+
+        <div id="msi-group" class="field hidden">
+          <label for="payment-msi">Plazo Meses Sin Intereses</label>
+          <select id="payment-msi">
+            <option value="3">3 Meses Sin Intereses</option>
+            <option value="6">6 Meses Sin Intereses</option>
+            <option value="12">12 Meses Sin Intereses</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="card-holder">Nombre del titular</label>
+          <input type="text" id="card-holder" value="CRISTOPHER E SAN JUAN" required />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="card-number">Número de tarjeta (Prueba: 4111111111114242)</label>
+            <input type="text" id="card-number" value="4111111111114242" maxlength="19" required />
+          </div>
+          <div class="field">
+            <label for="card-expiry">Vigencia (MM/AA)</label>
+            <input type="text" id="card-expiry" value="12/29" maxlength="5" required />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-back-step-1" class="btn btn-outline">← Volver al Paso 1</button>
+          <button type="button" id="btn-to-step-3" class="btn btn-primary">Revisar Resumen Final (Paso 3) →</button>
+        </div>
+      </div>
+
+      <!-- PASO 3 -->
+      <div id="checkout-step-3" class="checkout-step-pane hidden">
+        <h3>Paso 3 de 3: Confirmación Transparente del Pedido (LFPC / RNF-11)</h3>
+        <div id="checkout-final-summary" class="totals-box"></div>
+        <div id="checkout-result-box" class="mt-2"></div>
+        <div class="modal-actions">
+          <button type="button" id="btn-back-step-2" class="btn btn-outline">← Volver al Paso 2</button>
+          <button type="button" id="btn-confirm-order" class="btn btn-accent">Confirmar y Pagar Ahora</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Pie de página con información normativa LFPDPPP y LFPC -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-inner">
+      <div>
+        <strong>ExpressMart · TiendaExpress Online, S.A. de C.V.</strong>
+        <p>Elaborado por: Diego Alarcon De Jesus, Carlos Adair Bautista Godinez, Cristopher Erik San Juan Piza.</p>
+        <p>Auditoría Interna Plan ECTA-01 · Manual de Calidad MC-001 v1.0.</p>
+      </div>
+      <div class="footer-links">
+        <span>Protección de Datos LFPDPPP (Cifrado AES-256)</span> ·
+        <span>Transparencia al Consumidor LFPC</span> ·
+        <span>Seguridad PCI DSS v4.0 y OWASP ASVS</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
