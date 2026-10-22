@@ -1,8 +1,9 @@
 /**
- * Cliente Web Interactivo ExpressMart (Apartados 9, 26, 27, 28)
- * Conecta los flujos de Catálogo (RF-03), Carrito (RF-04), Checkout 3 pasos (RNF-11 / RF-05),
- * Cuentas y MFA (RF-01 / RF-02), Pedidos y Devoluciones (RF-07), Reseñas (RF-08),
- * Notificaciones (RF-09), Reportes (RF-10) y Centro de Auditoría (ECTA-01).
+ * Cliente Web Interactivo ExpressMart - Sistema de Diseño Stitch "Aura Commerce" (Precios en MXN)
+ * Conecta los flujos de Catálogo (RF-03), Ficha de Producto y Reseñas (RF-08),
+ * Cesta y Checkout en 3 pasos (RF-04, RF-05, RNF-11), Cuentas y MFA (RF-01 / RF-02),
+ * Pedidos y Devoluciones LFPC (RF-07), Notificaciones (RF-09), Reportes (RF-10)
+ * y Centro de Auditoría ECTA-01.
  */
 
 const state = {
@@ -14,8 +15,16 @@ const state = {
   recommendationsHealthy: true
 };
 
+function formatMxn(amount) {
+  return `$${Number(amount || 0).toLocaleString('es-MX', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })} MXN`;
+}
+
 function showAlert(msg, isError = false) {
   const el = document.getElementById('global-alert');
+  if (!el) return;
   el.textContent = msg;
   el.className = `alert ${isError ? 'alert-error' : 'alert-info'}`;
   el.classList.remove('hidden');
@@ -35,27 +44,42 @@ async function apiFetch(url, options = {}) {
   return data;
 }
 
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach((b) => {
+    const isTarget = b.dataset.tab === tabId;
+    b.classList.toggle('active', isTarget);
+    b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-view').forEach((v) => {
+    v.classList.toggle('hidden', v.id !== tabId);
+  });
+
+  if (tabId === 'view-orders') loadOrders();
+  if (tabId === 'view-profile') loadProfile();
+  if (tabId === 'view-admin') loadAdminReports();
+  if (tabId === 'view-audit') loadAuditCenter();
+}
+
 function updateSessionUI() {
   const statusEl = document.getElementById('user-status');
-  const btnAuth = document.getElementById('btn-open-auth');
   const btnLogout = document.getElementById('btn-logout');
 
   if (state.user && state.token) {
-    statusEl.textContent = `${state.user.nombre} (${state.user.rol.toUpperCase()})`;
-    btnAuth.classList.add('hidden');
+    const firstName = state.user.nombre.split(' ')[0];
+    statusEl.textContent = `Hola, ${firstName} (${state.user.rol.toUpperCase()})`;
     btnLogout.classList.remove('hidden');
     const addrInput = document.getElementById('checkout-address');
     if (addrInput && state.user.direccion && !addrInput.value) {
       addrInput.value = state.user.direccion;
     }
   } else {
-    statusEl.textContent = 'Visitante';
-    btnAuth.classList.remove('hidden');
+    statusEl.textContent = 'Hola, Identifícate';
     btnLogout.classList.add('hidden');
   }
 
   const totalItems = state.cart.reduce((acc, i) => acc + i.cantidad, 0);
-  document.getElementById('cart-count').textContent = String(totalItems);
+  const countEl = document.getElementById('cart-count');
+  if (countEl) countEl.textContent = String(totalItems);
 }
 
 function saveCart() {
@@ -64,7 +88,7 @@ function saveCart() {
 }
 
 // ============================================================================
-// CATÁLOGO Y BÚSQUEDA (RF-03)
+// CATÁLOGO Y BÚSQUEDA CON TARJETAS STITCH "AURA COMMERCE" EN MXN (RF-03)
 // ============================================================================
 async function loadCatalog() {
   const q = document.getElementById('search-input').value.trim();
@@ -82,7 +106,7 @@ async function loadCatalog() {
 
   const data = await apiFetch(`/api/products?${params.toString()}`);
   document.getElementById('search-latency-pill').textContent =
-    `Tiempo de búsqueda: ${data.responseTimeMs} ms (${data.total} productos · SLA < 2000 ms ✅)`;
+    `Tiempo de búsqueda: ${data.responseTimeMs} ms (${data.total} productos en MXN · SLA < 2000 ms ✅)`;
 
   const recBanner = document.getElementById('recommendations-banner');
   if (data.recommendations && data.recommendations.degradedMode) {
@@ -96,26 +120,75 @@ async function loadCatalog() {
   grid.innerHTML = '';
 
   for (const p of data.products) {
+    const precioNum = Number(p.precio);
+    const precioAnterior = Math.round(precioNum * 1.18);
+    const mensualidadMsi = (precioNum / 12).toFixed(2);
+    const imgUrl = p.imagen_url || '/assets/logo.png';
+
     const card = document.createElement('article');
-    card.className = 'product-card';
+    card.className =
+      'bg-surface-container-lowest rounded-xl p-space-md shadow-[0_8px_24px_rgba(11,28,48,0.06)] hover:shadow-[0_14px_32px_rgba(11,28,48,0.12)] transition-all flex flex-col justify-between border border-surface-container';
+
     card.innerHTML = `
       <div>
-        <div class="product-card-header">
-          <img src="${p.imagen_url}" alt="Imagen del producto ${p.nombre}" class="product-thumb" />
-          <div>
-            <span class="badge badge-ok">${p.categoria} · ${p.marca}</span>
-            <div class="product-meta">SKU: ${p.sku} · ⭐ ${p.calificacion_promedio} (${p.total_resenas})</div>
-          </div>
+        <div class="relative aspect-square rounded-xl bg-surface-container-low mb-space-sm p-4 flex items-center justify-center overflow-hidden group cursor-pointer open-detail-trigger" data-id="${p.id}">
+          <span class="absolute top-2.5 left-2.5 bg-primary text-on-primary font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold uppercase">
+            ${p.categoria} · ${p.marca}
+          </span>
+          <span class="absolute top-2.5 right-2.5 bg-surface-container-highest text-on-surface font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold">
+            ${p.sku}
+          </span>
+          <img
+            src="${imgUrl}"
+            alt="Imagen del producto ${p.nombre}"
+            class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+            onerror="this.src='/assets/logo.png'"
+          />
         </div>
-        <h3 class="product-title">${p.nombre}</h3>
-        <p class="muted">${p.descripcion}</p>
+
+        <div class="flex items-center gap-1.5 text-amber-500 text-xs font-bold mb-1">
+          <span>★ ${p.calificacion_promedio}</span>
+          <span class="text-secondary font-normal">(${p.total_resenas} reseñas verificadas)</span>
+        </div>
+
+        <h3 class="font-headline-sm text-[16px] leading-snug text-on-surface font-bold line-clamp-2 mb-1 cursor-pointer hover:text-primary open-detail-trigger" data-id="${p.id}">
+          ${p.nombre}
+        </h3>
+        <p class="font-body-sm text-body-sm text-secondary line-clamp-2 mb-space-sm">
+          ${p.descripcion}
+        </p>
       </div>
-      <div>
-        <div class="product-price">$${Number(p.precio).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN</div>
-        <div class="product-shipping">🚚 ${p.condiciones_envio} (Stock: ${p.stock_disponible})</div>
-        <div class="inline-input">
-          <button type="button" class="btn btn-primary btn-block add-to-cart-btn" data-id="${p.id}" data-nombre="${p.nombre}" data-precio="${p.precio}">
-            Agregar al Carrito
+
+      <div class="pt-space-xs border-t border-surface-container">
+        <div class="flex items-baseline gap-2">
+          <span class="font-price-card text-price-card text-on-surface font-extrabold">${formatMxn(precioNum)}</span>
+          <span class="font-body-sm text-xs text-secondary line-through">${formatMxn(precioAnterior)}</span>
+        </div>
+        <div class="text-xs text-secondary mb-1">
+          Hasta <strong>12 MSI de $${mensualidadMsi} MXN</strong> · IVA 16% incl.
+        </div>
+        <div class="flex items-center gap-1 text-tertiary font-label-xs text-label-xs font-bold mb-space-sm">
+          <span class="material-symbols-outlined text-[15px]">verified</span>
+          <span>ExpressPrime GRATIS · Stock: ${p.stock_disponible} uds.</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            class="py-2 px-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold transition-colors open-detail-trigger"
+            data-id="${p.id}"
+          >
+            Ficha / Reseñas
+          </button>
+          <button
+            type="button"
+            class="py-2 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold transition-colors flex items-center justify-center gap-1 add-to-cart-btn"
+            data-id="${p.id}"
+            data-nombre="${p.nombre}"
+            data-precio="${p.precio}"
+          >
+            <span class="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+            Agregar
           </button>
         </div>
       </div>
@@ -135,13 +208,165 @@ async function loadCatalog() {
         state.cart.push({ productoId, nombre, precio, cantidad: 1 });
       }
       saveCart();
-      showAlert(`"${nombre}" agregado al carrito.`);
+      showAlert(`"${nombre}" agregado a tu cesta (${formatMxn(precio)}).`);
     });
+  });
+
+  grid.querySelectorAll('.open-detail-trigger').forEach((el) => {
+    el.addEventListener('click', () => openProductDetailModal(Number(el.dataset.id)));
   });
 }
 
 // ============================================================================
-// CARRITO Y CHECKOUT EN 3 PASOS (RF-04, RF-05, RNF-11)
+// MODAL DETALLE DE PRODUCTO STITCH ("EXPRESSOUND PRO 900" LAYOUT) + RESEÑAS RF-08
+// ============================================================================
+async function openProductDetailModal(productId) {
+  const dialog = document.getElementById('product-detail-dialog');
+  const body = document.getElementById('product-detail-body');
+  try {
+    const p = await apiFetch(`/api/products/${productId}`);
+    const specsEntries = Object.entries(p.especificaciones || {});
+
+    body.innerHTML = `
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+        <div class="lg:col-span-5 bg-surface-container-low rounded-2xl p-6 flex flex-col items-center justify-center">
+          <img
+            src="${p.imagen_url || '/assets/logo.png'}"
+            alt="${p.nombre}"
+            class="max-h-64 object-contain mb-3"
+            onerror="this.src='/assets/logo.png'"
+          />
+          <span class="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold">
+            ✓ Elección Oficial ExpressMart México · ${p.sku}
+          </span>
+        </div>
+
+        <div class="lg:col-span-7 space-y-3">
+          <div class="font-label-md text-label-md text-primary font-bold uppercase">${p.marca} · ${p.categoria}</div>
+          <h3 class="font-headline-md text-headline-md text-on-surface font-extrabold leading-tight">${p.nombre}</h3>
+          <p class="font-body-md text-body-md text-secondary">${p.descripcion}</p>
+
+          <div class="p-3.5 rounded-xl bg-surface-container-low flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="font-price-hero text-price-hero text-primary font-extrabold">${formatMxn(p.precio)}</div>
+              <div class="text-xs text-secondary">IVA 16% incluido · Envío: ${p.condiciones_envio}</div>
+            </div>
+            <button
+              type="button"
+              id="detail-add-cart-btn"
+              class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center gap-1.5"
+            >
+              <span class="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>
+              Añadir a la Cesta
+            </button>
+          </div>
+
+          <div class="rounded-xl bg-surface-container-low p-3">
+            <h4 class="font-label-lg text-label-lg font-bold mb-1.5">Especificaciones Técnicas (ISO/IEC 25012 Completitud 100%)</h4>
+            <div class="grid grid-cols-2 gap-1.5 text-xs">
+              ${specsEntries
+                .map(
+                  ([k, v]) =>
+                    `<div class="text-secondary capitalize">${k}:</div><div class="font-bold text-on-surface">${v}</div>`
+                )
+                .join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4 border-surface-container" />
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+        <div class="lg:col-span-7">
+          <h4 class="font-headline-sm text-headline-sm font-bold mb-2">
+            Opiniones de Clientes Verificados (${(p.reviews || []).length})
+          </h4>
+          <div class="space-y-2 max-h-56 overflow-y-auto">
+            ${
+              (p.reviews || []).length
+                ? p.reviews
+                    .map(
+                      (r) => `
+                  <div class="p-3 rounded-lg bg-surface-container-low">
+                    <div class="flex items-center justify-between text-xs mb-1">
+                      <strong>${r.autor}</strong>
+                      <span class="text-amber-600 font-bold">${'★'.repeat(r.calificacion)} (${r.calificacion}/5) · Compra Verificada</span>
+                    </div>
+                    <p class="text-xs text-on-surface m-0">${r.comentario}</p>
+                  </div>
+                `
+                    )
+                    .join('')
+                : '<p class="muted">Aún no hay reseñas para este artículo.</p>'
+            }
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-surface-container-low p-3.5 rounded-xl">
+          <h4 class="font-label-lg text-label-lg font-bold mb-2">Escribir Reseña Verificada (RF-08)</h4>
+          <form id="detail-review-form" class="space-y-2.5">
+            <div class="field">
+              <label for="rev-rating">Calificación (1 a 5 estrellas)</label>
+              <select id="rev-rating" required>
+                <option value="5">★★★★★ (5 - Excelente)</option>
+                <option value="4">★★★★☆ (4 - Muy bueno)</option>
+                <option value="3">★★★☆☆ (3 - Regular)</option>
+                <option value="2">★★☆☆☆ (2 - Malo)</option>
+                <option value="1">★☆☆☆☆ (1 - Pésimo)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="rev-comment">Comentario sobre el producto</label>
+              <textarea id="rev-comment" rows="2" required minlength="4" placeholder="Comparte tu experiencia con el producto y el envío..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Publicar Reseña</button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('detail-add-cart-btn').addEventListener('click', () => {
+      const existing = state.cart.find((i) => i.productoId === p.id);
+      if (existing) existing.cantidad += 1;
+      else state.cart.push({ productoId: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: 1 });
+      saveCart();
+      dialog.close();
+      showAlert(`"${p.nombre}" añadido a la cesta (${formatMxn(p.precio)}).`);
+    });
+
+    document.getElementById('detail-review-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.token) {
+        dialog.close();
+        document.getElementById('auth-dialog').showModal();
+        showAlert('Inicie sesión para registrar una reseña verificada.', true);
+        return;
+      }
+      try {
+        await apiFetch(`/api/products/${p.id}/reviews`, {
+          method: 'POST',
+          body: JSON.stringify({
+            calificacion: Number(document.getElementById('rev-rating').value),
+            comentario: document.getElementById('rev-comment').value
+          })
+        });
+        showAlert('Reseña verificada publicada correctamente.');
+        openProductDetailModal(p.id);
+        loadCatalog();
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    });
+
+    dialog.showModal();
+  } catch (err) {
+    showAlert(err.message, true);
+  }
+}
+
+// ============================================================================
+// CARRITO Y CHECKOUT EN 3 PASOS EN MXN (RF-04, RF-05, RNF-11)
 // ============================================================================
 function setCheckoutStep(stepNum) {
   [1, 2, 3].forEach((n) => {
@@ -153,9 +378,11 @@ function setCheckoutStep(stepNum) {
 async function refreshCartModal() {
   const container = document.getElementById('cart-items-container');
   const totalsBox = document.getElementById('cart-totals-box');
+  const shipMsg = document.getElementById('free-shipping-msg');
 
   if (state.cart.length === 0) {
-    container.innerHTML = '<p class="muted">Tu carrito está vacío. Explora el catálogo para agregar productos.</p>';
+    container.innerHTML =
+      '<p class="muted p-3 bg-surface-container-low rounded-lg">Tu cesta está vacía. Explora el catálogo en Pesos Mexicanos ($ MXN) para agregar productos.</p>';
     totalsBox.innerHTML = '';
     state.calculatedTotals = null;
     return;
@@ -164,10 +391,14 @@ async function refreshCartModal() {
   container.innerHTML = state.cart
     .map(
       (item, idx) => `
-      <div class="section-title-row" style="border-bottom:1px solid #e5e7eb;padding-bottom:0.4rem;">
-        <div><strong>${item.nombre}</strong> × ${item.cantidad}</div>
+      <div class="flex items-center justify-between py-2.5 px-3 mb-2 rounded-lg bg-surface-container-low">
         <div>
-          <button type="button" class="btn btn-sm btn-outline cart-remove-btn" data-idx="${idx}">Eliminar</button>
+          <strong class="text-on-surface">${item.nombre}</strong>
+          <div class="text-xs text-secondary">Cantidad: ${item.cantidad} × ${formatMxn(item.precio)}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-primary">${formatMxn(item.precio * item.cantidad)}</span>
+          <button type="button" class="btn btn-sm btn-outline cart-remove-btn" data-idx="${idx}">Quitar</button>
         </div>
       </div>
     `
@@ -188,12 +419,22 @@ async function refreshCartModal() {
       body: JSON.stringify({ items: state.cart, cuponCodigo: state.coupon })
     });
     state.calculatedTotals = calc;
+    if (shipMsg) {
+      shipMsg.textContent =
+        calc.costoEnvio === 0
+          ? '¡Felicidades! Tu pedido incluye Envío ExpressPrime GRATIS en México ($0.00 MXN)'
+          : `Agrega ${formatMxn(Math.max(0, 999 - calc.subtotal))} más para obtener Envío ExpressPrime GRATIS`;
+    }
     totalsBox.innerHTML = `
-      <div>Subtotal: <strong>$${calc.subtotal.toFixed(2)} MXN</strong></div>
-      <div>Descuento (${calc.cuponAplicado || 'Sin cupón'}): <strong>-$${calc.descuento.toFixed(2)} MXN</strong></div>
-      <div>IVA (16%): <strong>$${calc.impuestos.toFixed(2)} MXN</strong></div>
-      <div>Costo de Envío: <strong>$${calc.costoEnvio.toFixed(2)} MXN</strong></div>
-      <div style="font-size:1.2rem;margin-top:0.4rem;">Total a Pagar: <strong>$${calc.total.toFixed(2)} MXN</strong></div>
+      <div class="space-y-1 text-sm">
+        <div class="flex justify-between"><span>Subtotal productos:</span> <strong>${formatMxn(calc.subtotal)}</strong></div>
+        <div class="flex justify-between text-tertiary"><span>Descuento (${calc.cuponAplicado || 'Sin cupón'}):</span> <strong>-${formatMxn(calc.descuento)}</strong></div>
+        <div class="flex justify-between"><span>IVA trasladado (16% México):</span> <strong>${formatMxn(calc.impuestos)}</strong></div>
+        <div class="flex justify-between"><span>Envío ExpressPrime DHL/FedEx:</span> <strong>${calc.costoEnvio === 0 ? 'GRATIS ($0.00 MXN)' : formatMxn(calc.costoEnvio)}</strong></div>
+        <div class="flex justify-between text-lg pt-2 border-t border-surface-dim text-primary">
+          <strong>Total a Pagar (MXN):</strong> <strong>${formatMxn(calc.total)}</strong>
+        </div>
+      </div>
     `;
   } catch (err) {
     totalsBox.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
@@ -201,36 +442,49 @@ async function refreshCartModal() {
 }
 
 // ============================================================================
-// PEDIDOS, PERFIL, ADMIN Y AUDITORÍA
+// PEDIDOS, PERFIL, ADMIN Y AUDITORÍA EN MXN
 // ============================================================================
 async function loadOrders() {
   const box = document.getElementById('orders-list');
   if (!state.token) {
-    box.innerHTML = '<p class="muted">Inicie sesión para consultar sus pedidos y rastreo de envíos.</p>';
+    box.innerHTML =
+      '<p class="muted p-4 rounded-xl bg-surface-container-low">Inicie sesión para consultar sus pedidos en MXN, guías DHL/FedEx y gestionar devoluciones LFPC.</p>';
     return;
   }
   try {
     const data = await apiFetch('/api/orders');
     if (!data.orders.length) {
-      box.innerHTML = '<p class="muted">Aún no hay pedidos registrados.</p>';
+      box.innerHTML = '<p class="muted p-4 rounded-xl bg-surface-container-low">Aún no tienes pedidos registrados.</p>';
       return;
     }
     box.innerHTML = data.orders
       .map(
         (o) => `
-        <div class="card" style="background:#f8fafc;">
-          <div class="section-title-row">
-            <strong>Folio: ${o.folio} · Estado: ${o.estado.toUpperCase()}</strong>
-            <span class="pill">Total: $${Number(o.total).toFixed(2)} MXN</span>
+        <div class="p-space-lg rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-surface-dim">
+            <div>
+              <span class="font-label-xs text-label-xs uppercase text-secondary block">Folio Oficial ExpressMart</span>
+              <strong class="font-headline-sm text-headline-sm text-on-surface">${o.folio} · Estado: ${o.estado.toUpperCase()}</strong>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-primary text-on-primary font-label-md text-label-md font-bold">
+              Total: ${formatMxn(o.total)}
+            </span>
           </div>
-          <div class="muted">Dirección: ${o.direccion_envio} | Pago: ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}</div>
-          <div class="muted">Guía de envío: <strong>${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} - ${o.envio.estado_envio})` : 'N/A'}</strong></div>
-          <div class="muted" style="font-size:0.76rem;">Hash Integridad SHA-256 (RNF-09): ${o.hash_integridad}</div>
-          <div class="mt-2">
+          <div class="text-sm text-on-surface">
+            <strong>Dirección de Entrega:</strong> ${o.direccion_envio} |
+            <strong>Pago PCI DSS:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}
+          </div>
+          <div class="text-sm text-tertiary font-semibold">
+            🚚 Guía Paquetería: ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía'}
+          </div>
+          <div class="text-xs text-secondary font-mono">
+            Hash Integridad SHA-256 (RNF-09): ${o.hash_integridad}
+          </div>
+          <div class="pt-1">
             ${
               o.estado !== 'devuelto' && o.estado !== 'cancelado'
-                ? `<button type="button" class="btn btn-sm btn-outline return-order-btn" data-id="${o.id}">Solicitar Devolución y Reembolso (LFPC)</button>`
-                : '<span class="badge badge-ok">Reembolsado / Devuelto</span>'
+                ? `<button type="button" class="btn btn-sm btn-outline return-order-btn" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN (LFPC)</button>`
+                : '<span class="badge badge-ok">✓ Reembolsado en MXN / Devuelto conforme a LFPC</span>'
             }
           </div>
         </div>
@@ -243,9 +497,9 @@ async function loadOrders() {
         try {
           await apiFetch(`/api/orders/${btn.dataset.id}/return`, {
             method: 'POST',
-            body: JSON.stringify({ motivo: 'Devolución en línea conforme a LFPC' })
+            body: JSON.stringify({ motivo: 'Devolución en línea sin costo conforme a LFPC México' })
           });
-          showAlert('Devolución procesada y reembolso emitido.');
+          showAlert('Devolución autorizada y reembolso en MXN procesado.');
           loadOrders();
         } catch (err) {
           showAlert(err.message, true);
@@ -270,9 +524,12 @@ async function loadProfile() {
     notifList.innerHTML = (data.notifications || [])
       .map(
         (n) => `
-        <div style="border-bottom:1px solid #e5e7eb;padding:0.5rem 0;">
-          <strong>${n.asunto}</strong> <span class="badge badge-ok">${n.acuse_recibo}</span>
-          <div class="muted">${n.mensaje}</div>
+        <div class="p-3 rounded-lg bg-surface-container-low border border-surface-container">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <strong class="text-xs text-on-surface">${n.asunto}</strong>
+            <span class="badge badge-ok">${n.acuse_recibo}</span>
+          </div>
+          <div class="text-xs text-secondary">${n.mensaje}</div>
         </div>
       `
       )
@@ -287,13 +544,13 @@ async function loadAdminReports() {
   try {
     const rep = await apiFetch('/api/reports/summary');
     box.innerHTML = `
-      <div class="kpis-grid">
-        <div class="kpi-card"><div>Pedidos Totales</div><div class="kpi-val">${rep.ventas.totalPedidos}</div></div>
-        <div class="kpi-card"><div>Ingresos Activos</div><div class="kpi-val">$${rep.ventas.ingresosTotalesMxn} MXN</div></div>
-        <div class="kpi-card"><div>Ticket Promedio</div><div class="kpi-val">$${rep.ventas.ticketPromedioMxn} MXN</div></div>
-        <div class="kpi-card"><div>Productos Activos</div><div class="kpi-val">${rep.inventario.totalProductosActivos}</div></div>
+      <div class="kpis-grid mb-3">
+        <div class="kpi-card"><div>Pedidos Activos</div><div class="kpi-val">${rep.ventas.totalPedidos}</div></div>
+        <div class="kpi-card"><div>Ingresos (MXN)</div><div class="kpi-val">${formatMxn(rep.ventas.ingresosTotalesMxn)}</div></div>
+        <div class="kpi-card"><div>Ticket Promedio</div><div class="kpi-val">${formatMxn(rep.ventas.ticketPromedioMxn)}</div></div>
+        <div class="kpi-card"><div>SKUs en Catálogo</div><div class="kpi-val">${rep.inventario.totalProductosActivos}</div></div>
       </div>
-      <h4 class="mt-2">Estado de Inventario en Almacén D3</h4>
+      <h4 class="font-label-lg text-label-lg font-bold mb-1">Conciliación de Inventario en Almacén D3 (CEDIS CDMX Norte)</h4>
       <pre class="code-box">${JSON.stringify(rep.inventario.detalleInventario, null, 2)}</pre>
     `;
   } catch (err) {
@@ -339,32 +596,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Navegación por pestañas
   document.querySelectorAll('.tab-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach((b) => {
-        b.classList.remove('active');
-        b.setAttribute('aria-selected', 'false');
-      });
-      document.querySelectorAll('.tab-view').forEach((v) => v.classList.add('hidden'));
-      btn.classList.add('active');
-      btn.setAttribute('aria-selected', 'true');
-      const target = document.getElementById(btn.dataset.tab);
-      target.classList.remove('hidden');
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
 
-      if (btn.dataset.tab === 'view-orders') loadOrders();
-      if (btn.dataset.tab === 'view-profile') loadProfile();
-      if (btn.dataset.tab === 'view-admin') loadAdminReports();
-      if (btn.dataset.tab === 'view-audit') loadAuditCenter();
+  // Accesos rápidos del header Stitch
+  const btnHeaderOrders = document.getElementById('btn-header-orders');
+  if (btnHeaderOrders) {
+    btnHeaderOrders.addEventListener('click', () => switchTab('view-orders'));
+  }
+
+  const brandHome = document.getElementById('brand-home-link');
+  if (brandHome) {
+    brandHome.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchTab('view-catalog');
+    });
+  }
+
+  // Selector de departamento en el buscador compuesto Stitch
+  const deptSelect = document.getElementById('header-dept-select');
+  if (deptSelect) {
+    deptSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      const label = e.target.options[e.target.selectedIndex].text;
+      document.getElementById('header-dept-label').textContent = label;
+      document.getElementById('filter-category').value = val;
+      switchTab('view-catalog');
+      loadCatalog();
+    });
+  }
+
+  // Botones de tarjetas promocionales Stitch
+  document.querySelectorAll('.promo-filter-trigger').forEach((el) => {
+    el.addEventListener('click', () => {
+      document.getElementById('filter-category').value = el.dataset.cat || '';
+      loadCatalog();
+      document.getElementById('products-grid').scrollIntoView({ behavior: 'smooth' });
     });
   });
+
+  // Botones de cupones promocionales en Hero y ExpressPrime
+  const heroCouponBtn = document.getElementById('btn-hero-coupon');
+  if (heroCouponBtn) {
+    heroCouponBtn.addEventListener('click', () => {
+      state.coupon = 'BIENVENIDA10';
+      document.getElementById('cart-coupon').value = 'BIENVENIDA10';
+      showAlert('Cupón BIENVENIDA10 (-10% en MXN) activado para tu compra.');
+    });
+  }
+
+  const primeCouponBtn = document.getElementById('btn-prime-coupon');
+  if (primeCouponBtn) {
+    primeCouponBtn.addEventListener('click', () => {
+      state.coupon = 'ENVIOGRATIS';
+      document.getElementById('cart-coupon').value = 'ENVIOGRATIS';
+      showAlert('Cupón ENVIOGRATIS ExpressPrime activado en tu cesta.');
+    });
+  }
 
   // Filtros de búsqueda
   document.getElementById('search-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    switchTab('view-catalog');
     loadCatalog();
   });
   ['filter-category', 'filter-brand', 'filter-max-price', 'filter-sort'].forEach((id) => {
     document.getElementById(id).addEventListener('change', loadCatalog);
   });
+
+  // Modal Detalle de Producto
+  const detailDialog = document.getElementById('product-detail-dialog');
+  document.getElementById('btn-close-detail').addEventListener('click', () => detailDialog.close());
 
   // Modal de Autenticación
   const authDialog = document.getElementById('auth-dialog');
@@ -432,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('em_user', JSON.stringify(state.user));
       updateSessionUI();
       authDialog.close();
-      showAlert(`Bienvenido ${state.user.nombre}`);
+      showAlert(`Bienvenido a ExpressMart México, ${state.user.nombre}`);
     } catch (err) {
       showAlert(err.message, true);
     }
@@ -497,13 +799,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-to-step-2').addEventListener('click', () => {
     if (!state.cart.length) {
-      showAlert('Agregue al menos un artículo al carrito.', true);
+      showAlert('Agregue al menos un artículo a la cesta.', true);
       return;
     }
     if (!state.token) {
       cartDialog.close();
       authDialog.showModal();
-      showAlert('Inicie sesión antes de continuar al pago.', true);
+      showAlert('Inicie sesión antes de continuar al pago seguro.', true);
       return;
     }
     setCheckoutStep(2);
@@ -518,13 +820,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const addr = document.getElementById('checkout-address').value.trim();
     const method = document.getElementById('payment-method').value;
     summaryEl.innerHTML = `
-      <div><strong>Dirección de Entrega:</strong> ${addr}</div>
-      <div><strong>Método de Pago:</strong> ${method.toUpperCase()}</div>
-      <div><strong>Subtotal:</strong> $${state.calculatedTotals.subtotal.toFixed(2)} MXN</div>
-      <div><strong>Descuento:</strong> -$${state.calculatedTotals.descuento.toFixed(2)} MXN</div>
-      <div><strong>IVA (16%):</strong> $${state.calculatedTotals.impuestos.toFixed(2)} MXN</div>
-      <div><strong>Envío:</strong> $${state.calculatedTotals.costoEnvio.toFixed(2)} MXN</div>
-      <div style="font-size:1.25rem;margin-top:0.5rem;"><strong>Total Confirmado: $${state.calculatedTotals.total.toFixed(2)} MXN</strong></div>
+      <div class="space-y-1 text-sm">
+        <div><strong>Dirección de Entrega en México:</strong> ${addr}</div>
+        <div><strong>Método de Pago Certificado PCI DSS:</strong> ${method.toUpperCase()}</div>
+        <div><strong>Subtotal:</strong> ${formatMxn(state.calculatedTotals.subtotal)}</div>
+        <div><strong>Descuento:</strong> -${formatMxn(state.calculatedTotals.descuento)}</div>
+        <div><strong>IVA (16%):</strong> ${formatMxn(state.calculatedTotals.impuestos)}</div>
+        <div><strong>Envío ExpressPrime:</strong> ${formatMxn(state.calculatedTotals.costoEnvio)}</div>
+        <div class="text-lg pt-2 border-t border-surface-dim text-primary">
+          <strong>Total Confirmado a Pagar: ${formatMxn(state.calculatedTotals.total)}</strong>
+        </div>
+      </div>
     `;
     document.getElementById('checkout-result-box').innerHTML = '';
     setCheckoutStep(3);
@@ -552,10 +858,11 @@ document.addEventListener('DOMContentLoaded', () => {
       saveCart();
       loadCatalog();
       resultBox.innerHTML = `
-        <div class="alert alert-info">
-          ✅ <strong>${res.message}</strong><br/>
-          Folio: <strong>${res.order.folio}</strong> | Guía DHL: <strong>${res.order.envio.numeroGuia}</strong><br/>
-          Token PCI DSS: <code>${res.order.pago.tokenPci}</code> | Tiempo respuesta: ${res.responseTimeMs} ms
+        <div class="alert alert-info flex-col items-start">
+          <div>✅ <strong>${res.message}</strong></div>
+          <div>Folio: <strong>${res.order.folio}</strong> | Total: <strong>${formatMxn(res.order.total)}</strong></div>
+          <div>Guía ExpressPrime: <strong>${res.order.envio.numeroGuia}</strong> (${res.order.envio.proveedorPaqueteria})</div>
+          <div>Token PCI DSS: <code>${res.order.pago.tokenPci}</code> | Latencia: ${res.responseTimeMs} ms</div>
         </div>
       `;
     } catch (err) {
@@ -596,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       });
       document.getElementById('arco-result').innerHTML =
-        `<div class="alert alert-info">Folio ARCO: <strong>${res.folio}</strong> — ${res.respuesta}</div>`;
+        `<div class="alert alert-info">Folio ARCO LFPDPPP: <strong>${res.folio}</strong> — ${res.respuesta}</div>`;
     } catch (err) {
       showAlert(err.message, true);
     }
@@ -616,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
           stock: Number(document.getElementById('prod-stock').value),
           descripcion: document.getElementById('prod-desc').value,
           condiciones_envio: document.getElementById('prod-envio').value,
-          especificaciones: { origen: 'Panel Administrativo', certificadoCalidad: 'ISO-25012' }
+          especificaciones: { origen: 'Panel Administrativo ExpressMart México', certificadoCalidad: 'ISO-25012' }
         })
       });
       showAlert(res.message);

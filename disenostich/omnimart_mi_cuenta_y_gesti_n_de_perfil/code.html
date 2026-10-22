@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>ExpressMart Marketplace - Gestión de Cuenta y Pedidos</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-dim":"#cbdbf5","on-tertiary":"#ffffff","on-secondary-container":"#5c647a","surface-bright":"#f8f9ff","surface-container-highest":"#d3e4fe","background":"#f8f9ff","on-surface":"#0b1c30","on-tertiary-fixed-variant":"#005137","outline-variant":"#e2bfb2","inverse-surface":"#213145","on-secondary-fixed":"#131b2e","tertiary-fixed-dim":"#68dba9","primary":"#a33900","primary-container":"#cc4900","inverse-primary":"#ffb599","outline":"#8e7166","surface-tint":"#a73a00","surface":"#f8f9ff","tertiary":"#006948","secondary-container":"#dae2fd","surface-variant":"#d3e4fe","on-primary-fixed-variant":"#7f2b00","on-background":"#0b1c30","inverse-on-surface":"#eaf1ff","on-error":"#ffffff","surface-container-low":"#eff4ff","surface-container-lowest":"#ffffff","error":"#ba1a1a","on-secondary":"#ffffff","primary-fixed":"#ffdbce","tertiary-container":"#00855d","secondary-fixed-dim":"#bec6e0","primary-fixed-dim":"#ffb599","tertiary-fixed":"#85f8c4","surface-container":"#e5eeff","on-primary-fixed":"#370e00","on-primary-container":"#fffbff","error-container":"#ffdad6","on-tertiary-container":"#f5fff7","secondary-fixed":"#dae2fd","on-primary":"#ffffff","on-surface-variant":"#5a4138","surface-container-high":"#dce9ff","on-error-container":"#93000a","on-secondary-fixed-variant":"#3f465c","secondary":"#565e74","on-tertiary-fixed":"#002114"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-md":"1rem","gutter-mobile":"0.75rem","space-xs":"0.25rem","margin-mobile":"1rem","space-xl":"2.5rem","gutter":"1.25rem","margin":"1.5rem","space-lg":"1.5rem","space-sm":"0.5rem"},"fontFamily":{"headline-lg-mobile":["Plus Jakarta Sans"],"label-lg":["Inter"],"body-md":["Inter"],"headline-md":["Plus Jakarta Sans"],"price-hero":["Plus Jakarta Sans"],"price-card":["Plus Jakarta Sans"],"body-lg":["Inter"],"label-md":["Inter"],"headline-sm":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"display-hero":["Plus Jakarta Sans"],"label-xs":["Inter"],"body-sm":["Inter"],"display-hero-mobile":["Plus Jakarta Sans"]},"fontSize":{"headline-lg-mobile":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"700"}],"label-lg":["14px",{"lineHeight":"20px","letterSpacing":"0.01em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"700"}],"price-hero":["28px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"800"}],"price-card":["20px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.015em","fontWeight":"600"}],"headline-sm":["18px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"700"}],"display-hero":["48px",{"lineHeight":"56px","letterSpacing":"-0.025em","fontWeight":"800"}],"label-xs":["10px",{"lineHeight":"12px","letterSpacing":"0.04em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"display-hero-mobile":["30px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"800"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 w-full z-50 bg-[#0f172a] shadow-[0_4px_20px_rgba(0,0,0,0.18)]"><div class="h-28 flex flex-col justify-between"><div class="h-16 max-w-[1440px] w-full mx-auto px-margin flex items-center gap-space-lg"><div class="flex items-center gap-space-md shrink-0"><a class="flex items-center gap-space-sm p-1 rounded hover:outline hover:outline-1 hover:outline-outline-variant transition-all" data-path="home" href="#"><img alt="ExpressMart Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMxtDYE8BXPG94dTz2qdywa6MGLPWhVRBQjlfwD9j1XLFr9JZ1lyoSvDjxxQ8QBrXAESbXPOkPvLVC4ZEZqnc599PbhtGU3IQKTujS8FZNeNKfv8Y7Crrs1k8fMnSMz3XOOlT2n7OBxmulb_Canx1BiZsuB8D2r8amR5NBCf3QTwu3WN7NBLkN1mwg1TgmqJGiGivaMCHNsD_bWOW97gYv4CO0iBD7ruG39F62ATYPi_rtk8528FJj"/><span class="font-headline-sm text-headline-sm text-surface tracking-tight font-extrabold">ExpressMart</span></a><button class="hidden xl:flex items-center gap-1.5 px-space-sm py-1 rounded text-left hover:outline hover:outline-1 hover:outline-outline-variant transition-all" type="button"><span class="material-symbols-outlined text-inverse-primary text-[20px] leading-none">location_on</span><div class="flex flex-col leading-tight"><span class="font-label-xs text-label-xs text-surface-dim">Entregar en</span><span class="font-label-md text-label-md text-surface font-bold">CDMX 03940</span></div></button></div><div class="flex-1 max-w-3xl flex items-center h-10 rounded-lg overflow-hidden bg-surface-container-lowest focus-within:ring-2 focus-within:ring-primary shadow-sm"><div class="relative flex items-center h-full bg-surface-container-high px-space-sm text-on-surface hover:bg-surface-container transition-colors cursor-pointer shrink-0 border-r border-surface-dim"><span class="font-label-xs text-label-xs font-semibold pr-4">Todos los departamentos</span><span class="material-symbols-outlined text-on-surface-variant text-[16px] absolute right-1 pointer-events-none">arrow_drop_down</span><select class="absolute inset-0 opacity-0 cursor-pointer w-full"><option>Todos los departamentos</option><option>Ofertas del Día</option><option>Supermercado</option><option>Electrónica</option><option>Moda</option><option>Hogar y Cocina</option></select></div><div class="flex-1 h-full relative"><input class="w-full h-full px-space-md font-body-md text-body-md text-on-surface placeholder-secondary focus:outline-none bg-transparent" placeholder="Buscar en ExpressMart..." type="text"/></div><button aria-label="Buscar" class="h-full w-12 bg-primary hover:bg-primary-container text-on-primary flex items-center justify-center transition-colors shrink-0" type="button"><span class="material-symbols-outlined text-[22px]">search</span></button></div><div class="flex items-center gap-space-md shrink-0"><button class="hidden lg:flex items-center gap-1 px-space-sm py-1 rounded hover:outline hover:outline-1 hover:outline-outline-variant transition-all" type="button"><span class="font-label-md text-label-md text-surface font-bold uppercase tracking-wider">MX</span><span class="font-label-xs text-label-xs text-surface-dim">/ MXN</span><span class="material-symbols-outlined text-surface-dim text-[16px]">arrow_drop_down</span></button><a class="flex flex-col px-space-sm py-1 rounded text-left hover:outline hover:outline-1 hover:outline-outline-variant transition-all leading-tight" data-path="cuenta" href="#"><span class="font-label-xs text-label-xs text-surface-dim">Hola, Sofía</span><span class="font-label-md text-label-md text-surface font-bold flex items-center">Cuenta y Listas <span class="material-symbols-outlined text-[16px] ml-0.5">arrow_drop_down</span></span></a><a class="hidden md:flex flex-col px-space-sm py-1 rounded text-left outline outline-1 outline-outline-variant bg-[#1e293b]/60 transition-all leading-tight" data-path="pedidos" href="#"><span class="font-label-xs text-label-xs text-surface-dim">Devoluciones</span><span class="font-label-md text-label-md text-surface font-bold">&amp; Pedidos</span></a><a class="flex items-center gap-1.5 px-space-sm py-1.5 rounded hover:outline hover:outline-1 hover:outline-outline-variant transition-all relative" data-path="carrito" href="#"><div class="relative flex items-center"><span class="material-symbols-outlined text-surface text-[32px]">shopping_cart</span><span class="absolute -top-1 right-1 bg-primary text-on-primary font-headline-sm text-[11px] font-extrabold h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center">3</span></div><span class="hidden xl:inline font-label-md text-label-md text-surface font-bold self-end mb-0.5">Cesta</span></a><div class="pl-space-xs"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBw0kOeHKbKpK-PvX_XfNpwgFC-jOsyg186MUB6XiJP_VEhXIafaUx_WelLNX16fg-QvOAnZl633P5JeD0WQTlkljVoZM04myy2Xv_YGS4y7fmOYK-0u1JQbqJ_p1os1kHAVNbhdRpw8uRyRDEKgdsMpvj6OACvHSRPloXKdpVT6aXVhaaZ1tvtqSsqpJlYhzS8G1GaPydeT5adJ0bELkiNKE3uLNHnDTgvCTvK2bZVXX0x_AoAz1Mx"/></div></div></div><nav class="h-12 bg-[#1e293b] flex items-center text-surface-bright font-label-md text-label-md shadow-inner" data-active-classes="bg-[#0f172a] text-surface font-bold rounded"><div class="max-w-[1440px] w-full mx-auto px-margin flex items-center gap-space-lg overflow-x-auto"><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="pedidos" href="#">Mis Pedidos</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="cuenta" href="#">Mi Cuenta</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="devoluciones-y-reembolsos" href="#">Devoluciones y Reembolsos</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="direcciones" href="#">Direcciones de Entrega</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="metodos-de-pago" href="#">Métodos de Pago</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="listas-de-deseos" href="#">Listas de Deseos</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0" data-path="suscripciones-expressprime" href="#">ExpressPrime</a><a class="text-surface-dim hover:text-surface transition-colors py-1 px-space-sm rounded shrink-0 ml-auto" data-path="servicio-al-cliente" href="#">Servicio de Atención al Cliente</a></div></nav></div></header><main class="w-full pt-28 bg-surface min-h-[calc(100vh-160px)]"><div class="flex flex-col w-full">
+<!-- Sub-navigation Breadcrumbs & Context Strip -->
+<section class="w-full bg-surface-container-low/70 py-space-sm">
+<div class="max-w-[1440px] w-full mx-auto px-margin flex flex-wrap items-center justify-between gap-space-sm">
+<nav aria-label="Migas de pan" class="flex items-center gap-space-xs font-label-md text-label-md text-secondary">
+<a class="hover:text-primary transition-colors flex items-center gap-1" data-path="home" href="#">
+<span class="material-symbols-outlined text-[16px]">home</span>
+<span>Inicio</span>
+</a>
+<span class="text-surface-dim font-bold">/</span>
+<a class="hover:text-primary transition-colors font-medium" data-path="cuenta" href="#">Mi Cuenta</a>
+<span class="text-surface-dim font-bold">/</span>
+<span class="text-on-surface font-bold text-primary">Ajustes y Configuración de Perfil</span>
+</nav>
+<div class="flex items-center gap-space-md">
+<span class="font-label-xs text-label-xs text-secondary uppercase tracking-wider flex items-center gap-1.5 bg-surface-container-high px-2.5 py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+          Conexión segura 256-bit SSL
+        </span>
+</div>
+</div>
+</section>
+<!-- Main Container -->
+<div class="max-w-[1440px] w-full mx-auto px-margin py-space-lg flex flex-col gap-space-lg">
+<!-- USER PROFILE HERO CARD -->
+<section class="w-full bg-surface-container-lowest rounded-xl p-space-md md:p-space-lg shadow-sm relative overflow-hidden">
+<!-- Ambient decorative gradient -->
+<div class="absolute -right-20 -top-24 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none"></div>
+<div class="absolute -left-16 -bottom-20 w-64 h-64 rounded-full bg-tertiary/5 blur-2xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<!-- User Identity Block -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-space-md">
+<div class="relative group">
+<div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md ring-4 ring-surface-container-high relative">
+<img alt="Foto de perfil de Sofía Martínez" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Editorial close-up portrait of Sofia Martinez, a cheerful 30-year-old Spanish professional woman with natural soft lighting, warm skin tones, dark hair, wearing a sleek slate blazer, sharp focus, photography studio quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBowt9xdyW585XcwHo7wunmQtSqluJFdcXU2-hjhpYPIiduHw08EJWPV-E-CltE17PKzj3RvPyk30vvzzjNW_6z0UOE0hbL0JNsMw0TyX4dnpH0Pp55VAC-CwkCd3En1O64Tbdjww_GttreGuaA11LUVjMb3EwMr46_snrPtuffYsu3CrHURMriziOt4ujOHkn3aRKqD3YLyrv7R_jGsITGcB7zsnVhesuTTYjfVvflU0BcpfcqsGvu"/>
+</div>
+<button class="absolute bottom-0 right-0 p-1.5 bg-primary hover:bg-primary-container text-on-primary rounded-full shadow-md transition-all hover:scale-110 flex items-center justify-center" title="Cambiar foto de perfil" type="button">
+<span class="material-symbols-outlined text-[16px]">photo_camera</span>
+</button>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-2">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Sofía Martínez</h1>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                Verificada
+              </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-fixed font-label-xs text-label-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+                Miembro ExpressPrime VIP
+              </span>
+</div>
+<div class="flex flex-wrap items-center gap-x-space-md gap-y-1 font-body-sm text-body-sm text-secondary">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">mail</span>
+                sofia.martinez@email.com
+              </span>
+<span class="hidden sm:inline text-surface-dim">•</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">call</span>
+                +52 55 1234 5678
+              </span>
+<span class="hidden sm:inline text-surface-dim">•</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">calendar_today</span>
+                Cliente desde noviembre 2022
+              </span>
+</div>
+</div>
+</div>
+<!-- Quick Summary & Actions -->
+<div class="flex flex-wrap items-center gap-space-md pt-space-sm lg:pt-0 lg:border-l lg:border-surface-dim lg:pl-space-lg">
+<!-- ExpressPoints Micro Widget -->
+<div class="bg-surface-container-low px-space-md py-space-sm rounded-lg flex items-center gap-space-sm min-w-[210px]">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[24px]">monetization_on</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-extrabold leading-none">112 <span class="font-label-md text-label-md text-primary font-bold">ExpressPoints</span></span>
+<span class="font-label-xs text-label-xs text-secondary mt-0.5">$296.80 MXN canjeables</span>
+</div>
+</div>
+<!-- ExpressPrime Status -->
+<div class="bg-surface-container-low px-space-md py-space-sm rounded-lg flex items-center gap-space-sm min-w-[230px]">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">workspace_premium</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-bold">Suscripción Activa</span>
+<span class="font-label-xs text-label-xs text-secondary mt-0.5">Renovación: 15 nov 2025</span>
+</div>
+</div>
+<!-- Quick Action Button -->
+<button class="px-space-md py-2.5 bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 shrink-0" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+<span>Gestionar ExpressPrime</span>
+</button>
+</div>
+</div>
+</section>
+<!-- MAIN TWO-COLUMN DASHBOARD LAYOUT -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+<!-- LEFT PRIMARY RAIL (SECTIONS 1, 2, 3) -->
+<main class="lg:col-span-8 flex flex-col gap-space-xl">
+<!-- ========================================== -->
+<!-- SECCIÓN 1: PERFIL Y SEGURIDAD PERSONAL    -->
+<!-- ========================================== -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md" id="seccion-perfil">
+<div class="flex items-center justify-between pb-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="p-2 rounded-lg bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[24px]">manage_accounts</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Perfil y Seguridad Personal</h2>
+<p class="font-body-sm text-body-sm text-secondary">Actualiza tus credenciales, información de contacto y métodos de autenticación.</p>
+</div>
+</div>
+<span class="font-label-xs text-label-xs font-semibold px-2 py-1 bg-surface-container text-on-surface-variant rounded">Nivel 2 de seguridad</span>
+</div>
+<!-- Editable Profile Form -->
+<form class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-2">
+<!-- Full Name -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="full_name">Nombre completo</label>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg focus:outline-none focus:bg-surface-container transition-all" id="full_name" type="text" value="Sofía Martínez Gómez"/>
+<span class="material-symbols-outlined absolute right-3 text-secondary text-[20px] pointer-events-none">person</span>
+</div>
+</div>
+<!-- Email Address with Verified Badge -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="email">Correo electrónico</label>
+<span class="text-tertiary font-label-xs text-label-xs font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Verificado
+                </span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg focus:outline-none focus:bg-surface-container transition-all" id="email" type="email" value="sofia.martinez@email.com"/>
+<span class="material-symbols-outlined absolute right-3 text-secondary text-[20px] pointer-events-none">mail</span>
+</div>
+</div>
+<!-- Mobile Phone with SMS status -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="phone">Teléfono móvil</label>
+<span class="text-tertiary font-label-xs text-label-xs font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">sms</span> SMS Activo
+                </span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3.5 py-2.5 rounded-lg focus:outline-none focus:bg-surface-container transition-all" id="phone" type="tel" value="+52 55 1234 5678"/>
+<span class="material-symbols-outlined absolute right-3 text-secondary text-[20px] pointer-events-none">smartphone</span>
+</div>
+</div>
+<!-- Preferred Language & Currency Group -->
+<div class="grid grid-cols-2 gap-space-sm">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="language">Idioma preferido</label>
+<select class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3 py-2.5 rounded-lg focus:outline-none focus:bg-surface-container transition-all cursor-pointer" id="language">
+<option selected="">Español (ES)</option>
+<option>English (UK)</option>
+<option>Français (FR)</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="currency">Moneda</label>
+<select class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md px-3 py-2.5 rounded-lg focus:outline-none focus:bg-surface-container transition-all cursor-pointer" id="currency">
+<option selected="">MXN ($)</option>
+<option>USD ($)</option>
+<option>GBP (£)</option>
+</select>
+</div>
+</div>
+<!-- Form Save Action -->
+<div class="md:col-span-2 flex items-center justify-between pt-2">
+<span class="font-body-sm text-body-sm text-tertiary flex items-center gap-1 opacity-0 transition-opacity" id="save-status">
+<span class="material-symbols-outlined text-[18px]">done</span> Cambios guardados correctamente
+              </span>
+<button class="px-space-lg py-2.5 bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold rounded-lg shadow-sm hover:shadow transition-all" onclick="const s=document.getElementById('save-status'); s.classList.remove('opacity-0'); setTimeout(()=&gt;s.classList.add('opacity-0'), 3000);" type="button">
+                Guardar cambios de perfil
+              </button>
+</div>
+</form>
+<!-- Security & Access Cards Sub-grid -->
+<div class="mt-space-md pt-space-md bg-surface-container-low/50 rounded-lg p-space-md flex flex-col gap-space-md">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]">shield_lock</span>
+              Seguridad y Verificación de Acceso
+            </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- Password Card -->
+<div class="bg-surface-container-lowest p-space-md rounded-lg flex flex-col justify-between gap-space-sm shadow-sm">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary font-medium">Contraseña de acceso</span>
+<span class="font-label-xs text-label-xs text-tertiary bg-tertiary-fixed px-2 py-0.5 rounded-full font-bold">Robusta</span>
+</div>
+<p class="font-headline-sm text-headline-sm tracking-widest text-on-surface my-1">••••••••••••</p>
+<p class="font-body-sm text-body-sm text-secondary">Actualizada hace 3 meses</p>
+</div>
+<button class="w-full py-2 px-space-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold rounded transition-colors text-center" type="button">
+                  Cambiar contraseña
+                </button>
+</div>
+<!-- Two-Factor Authentication Card -->
+<div class="bg-surface-container-lowest p-space-md rounded-lg flex flex-col justify-between gap-space-sm shadow-sm">
+<div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary font-medium">Verificación en dos pasos (2FA)</span>
+<span class="font-label-xs text-label-xs text-tertiary bg-tertiary-fixed px-2 py-0.5 rounded-full font-bold">Activo</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface font-bold mt-1">SMS &amp; App Autenticadora</p>
+<p class="font-body-sm text-body-sm text-secondary">Google Authenticator vinculado al +34 612 *** 678</p>
+</div>
+<button class="w-full py-2 px-space-sm bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold rounded transition-colors text-center" type="button">
+                  Gestionar 2FA y Llaves de seguridad
+                </button>
+</div>
+</div>
+<!-- Active Sessions List -->
+<div class="bg-surface-container-lowest p-space-md rounded-lg shadow-sm">
+<span class="font-label-md text-label-md text-on-surface font-bold block mb-space-sm">Sesiones y dispositivos conectados actualmente</span>
+<div class="flex flex-col divide-y divide-surface-dim">
+<!-- Device 1 -->
+<div class="flex items-center justify-between py-2.5">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[24px]">laptop_mac</span>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">MacBook Pro 16" · Chrome</p>
+<p class="font-body-sm text-body-sm text-secondary">Ciudad de México, México · <span class="text-tertiary font-semibold">Sesión actual activa</span></p>
+</div>
+</div>
+<span class="material-symbols-outlined text-tertiary text-[20px]" title="Dispositivo seguro">verified_user</span>
+</div>
+<!-- Device 2 -->
+<div class="flex items-center justify-between py-2.5">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[24px]">phone_iphone</span>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">iPhone 15 Pro · App ExpressMart</p>
+<p class="font-body-sm text-body-sm text-secondary">Ciudad de México, México · Activo hace 42 minutos</p>
+</div>
+</div>
+<button class="font-label-xs text-label-xs text-error hover:underline font-bold" type="button">Cerrar sesión</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- SECCIÓN 2: DIRECCIONES DE ENTREGA GUARDADAS-->
+<!-- ========================================== -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md" id="seccion-direcciones">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="p-2 rounded-lg bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[24px]">pin_drop</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Direcciones de Entrega Guardadas</h2>
+<p class="font-body-sm text-body-sm text-secondary">Libreta de direcciones para envíos a domicilio, oficina y taquillas OmniPoint.</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-2">
+<button class="px-space-md py-2 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px]">add_location_alt</span>
+<span>+ Añadir dirección</span>
+</button>
+<button class="px-space-md py-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold rounded-lg transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px] text-tertiary">inventory_2</span>
+<span>Buscar Locker 24/7</span>
+</button>
+</div>
+</div>
+<!-- Address Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter pt-2">
+<!-- TARJETA 1: CASA (PREDETERMINADA) -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-white to-surface-container-low/30">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">home</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Casa</span>
+</div>
+<span class="font-label-xs text-label-xs font-extrabold uppercase px-2.5 py-1 rounded bg-tertiary-fixed text-on-tertiary-fixed-variant tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check</span> PREDETERMINADA
+                  </span>
+</div>
+<div class="mt-1">
+<p class="font-label-lg text-label-lg text-on-surface font-bold">Sofía Martínez</p>
+<p class="font-body-md text-body-md text-on-surface">Av. Insurgentes Sur 1602, 4º B</p>
+<p class="font-body-md text-body-md text-on-surface">03940 CDMX, España</p>
+<p class="font-body-sm text-body-sm text-secondary mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">call</span> +52 55 1234 5678
+                  </p>
+</div>
+<!-- Delivery Note Callout -->
+<div class="bg-surface-container p-2.5 rounded-lg mt-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">info</span>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">
+<span class="font-semibold">Instrucciones:</span> Llamar al telefonillo 4B, conserjería disponible de 08:00 a 15:00 si no responde.
+                  </p>
+</div>
+</div>
+<!-- Address Actions -->
+<div class="flex items-center justify-between pt-space-md mt-space-md bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<button class="font-label-md text-label-md font-bold text-primary hover:underline" type="button">Editar</button>
+<span class="text-surface-dim">|</span>
+<button class="font-label-md text-label-md font-semibold text-secondary hover:text-on-surface" type="button">Instrucciones</button>
+</div>
+<span class="font-label-xs text-label-xs text-secondary italic">No eliminable (por defecto)</span>
+</div>
+</div>
+<!-- TARJETA 2: OFICINA / TRABAJO -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between bg-gradient-to-b from-white to-surface-container-low/10">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[20px]">apartment</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Oficina / Trabajo</span>
+</div>
+<span class="font-label-xs text-label-xs text-secondary font-semibold bg-surface-container px-2 py-0.5 rounded">Laboral</span>
+</div>
+<div class="mt-1">
+<p class="font-label-lg text-label-lg text-on-surface font-bold">Sofía Martínez</p>
+<p class="font-body-md text-body-md text-on-surface">Paseo de la Castellana 110, Planta 7</p>
+<p class="font-body-md text-body-md text-on-surface">28046 Ciudad de México, México</p>
+<p class="font-body-sm text-body-sm text-secondary mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">call</span> +52 55 1234 5678
+                  </p>
+</div>
+<!-- Delivery Schedule Callout -->
+<div class="bg-surface-container-low p-2.5 rounded-lg mt-2 flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px] shrink-0 mt-0.5">schedule</span>
+<p class="font-body-sm text-body-sm text-secondary leading-tight">
+<span class="font-semibold text-on-surface">Horario preferido:</span> Lunes a Viernes de 09:00 a 18:00 (Recepción en planta baja).
+                  </p>
+</div>
+</div>
+<!-- Address Actions -->
+<div class="flex items-center justify-between pt-space-md mt-space-md bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<button class="font-label-md text-label-md font-bold text-primary hover:underline" type="button">Editar</button>
+<span class="text-surface-dim">|</span>
+<button class="font-label-md text-label-md font-semibold text-error hover:underline" type="button">Eliminar</button>
+</div>
+<button class="font-label-xs text-label-xs text-secondary hover:text-primary font-bold hover:underline" type="button">
+                  Marcar como predeterminada
+                </button>
+</div>
+</div>
+<!-- TARJETA 3: OMNIPOINT LOCKER RECOGIDA (FULL WIDTH) -->
+<div class="md:col-span-2 bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-space-md bg-gradient-to-r from-surface-container-lowest via-surface-container-low/20 to-surface-container-lowest">
+<div class="flex items-start gap-space-md">
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[28px]">lock</span>
+</div>
+<div class="flex flex-col">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">OmniPoint Locker · Metro Callao</span>
+<span class="font-label-xs text-label-xs font-bold uppercase bg-tertiary text-on-tertiary px-2 py-0.5 rounded-full">Taquilla 24/7</span>
+<span class="font-label-xs text-label-xs bg-surface-container text-secondary px-2 py-0.5 rounded">Código: #OM-ES-MAD-042</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface mt-1">Plaza del Callao s/n (Acceso vestíbulo Línea 3/5), 03940 CDMX</p>
+<p class="font-body-sm text-body-sm text-secondary mt-0.5 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary">bolt</span> Recogida express sin contacto con código QR o Bluetooth desde la App.
+                  </p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm shrink-0">
+<button class="px-space-md py-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold rounded-lg transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px]">qr_code_2</span>
+<span>Ver pase QR</span>
+</button>
+<button class="p-2 text-secondary hover:text-error transition-colors" title="Eliminar locker frecuente" type="button">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- SECCIÓN 3: MÉTODOS DE PAGO Y FACTURACIÓN  -->
+<!-- ========================================== -->
+<section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md" id="seccion-pagos">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="p-2 rounded-lg bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[24px]">credit_card</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">Métodos de Pago y Facturación</h2>
+<p class="font-body-sm text-body-sm text-secondary">Tarjetas guardadas, pasarelas instantáneas y configuración de facturas con IVA.</p>
+</div>
+</div>
+<button class="px-space-md py-2 bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5 shrink-0" type="button">
+<span class="material-symbols-outlined text-[18px]">add_card</span>
+<span>+ Añadir método de pago</span>
+</button>
+</div>
+<!-- Cards Sub-grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-2">
+<!-- TARJETA 1: VISA DÉBITO (PREDETERMINADA) -->
+<div class="bg-gradient-to-br from-[#0f172a] to-[#1e293b] text-surface-bright rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden min-h-[190px]">
+<!-- Subtle decorative chip & wave -->
+<div class="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/5 pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md font-extrabold tracking-wider italic text-surface">VISA</span>
+<span class="font-label-xs text-label-xs uppercase bg-white/20 text-surface px-2 py-0.5 rounded">Débito</span>
+</div>
+<span class="font-label-xs text-label-xs font-extrabold uppercase px-2 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed-variant tracking-wider">
+                  PREDETERMINADA
+                </span>
+</div>
+<div class="my-3">
+<p class="font-headline-sm text-headline-sm tracking-widest text-surface">•••• •••• •••• 4289</p>
+<div class="flex items-center justify-between mt-2">
+<div>
+<span class="font-label-xs text-label-xs text-surface-dim uppercase block">Titular</span>
+<span class="font-label-md text-label-md text-surface font-semibold">SOFÍA MARTÍNEZ</span>
+</div>
+<div>
+<span class="font-label-xs text-label-xs text-surface-dim uppercase block">Caduca</span>
+<span class="font-label-md text-label-md text-surface font-semibold">08/2027</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-white/10 text-surface-dim">
+<span class="font-label-xs text-label-xs">Facturación: Gran Vía 42, CDMX</span>
+<div class="flex items-center gap-2">
+<button class="text-surface hover:text-primary-fixed font-label-xs text-label-xs font-bold" type="button">Editar</button>
+<span>•</span>
+<button class="text-surface-dim hover:text-surface font-label-xs text-label-xs" type="button">CVV seguro</button>
+</div>
+</div>
+</div>
+<!-- TARJETA 2: MASTERCARD CRÉDITO -->
+<div class="bg-gradient-to-br from-[#213145] to-[#2a3c54] text-surface-bright rounded-xl p-space-md shadow-md flex flex-col justify-between relative overflow-hidden min-h-[190px]">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2">
+<!-- Mastercard style circles -->
+<div class="flex items-center -space-x-2">
+<div class="w-6 h-6 rounded-full bg-[#eb001b] opacity-90"></div>
+<div class="w-6 h-6 rounded-full bg-[#f79e1b] opacity-80"></div>
+</div>
+<span class="font-label-xs text-label-xs uppercase bg-white/20 text-surface px-2 py-0.5 rounded">Crédito</span>
+</div>
+<button class="font-label-xs text-label-xs bg-white/10 hover:bg-white/20 text-surface px-2 py-0.5 rounded transition-colors font-semibold" type="button">
+                  Hacer predeterminada
+                </button>
+</div>
+<div class="my-3">
+<p class="font-headline-sm text-headline-sm tracking-widest text-surface">•••• •••• •••• 9104</p>
+<div class="flex items-center justify-between mt-2">
+<div>
+<span class="font-label-xs text-label-xs text-surface-dim uppercase block">Titular</span>
+<span class="font-label-md text-label-md text-surface font-semibold">SOFÍA MARTÍNEZ GÓMEZ</span>
+</div>
+<div>
+<span class="font-label-xs text-label-xs text-surface-dim uppercase block">Caduca</span>
+<span class="font-label-md text-label-md text-surface font-semibold">11/2026</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-white/10 text-surface-dim">
+<span class="font-label-xs text-label-xs">Facturación: Castellana 110, CDMX</span>
+<div class="flex items-center gap-2">
+<button class="text-surface hover:text-primary-fixed font-label-xs text-label-xs font-bold" type="button">Editar</button>
+<span>•</span>
+<button class="text-red-300 hover:text-white font-label-xs text-label-xs" type="button">Eliminar</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Métodos Digitales y Cuentas Vinculadas -->
+<div class="mt-space-sm bg-surface-container-low rounded-xl p-space-md flex flex-col gap-space-md">
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">Métodos Digitales y Monederos ExpressMart</span>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
+<!-- SPEI / CoDi -->
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-[#009aa6]/10 flex items-center justify-center font-headline-sm text-headline-sm font-extrabold text-[#009aa6]">
+                    bz
+                  </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">SPEI / CoDi Express</p>
+<p class="font-body-sm text-body-sm text-secondary">+52 55 1234 5678</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-tertiary text-[20px]">check_circle</span>
+</div>
+<!-- PayPal Express -->
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-[#003087]/10 flex items-center justify-center font-headline-sm text-headline-sm font-extrabold text-[#003087]">
+                    P
+                  </div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">PayPal</p>
+<p class="font-body-sm text-body-sm text-secondary">sofia.m***@email.com</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-tertiary text-[20px]">check_circle</span>
+</div>
+<!-- ExpressPay Wallet Balance -->
+<div class="bg-surface-container-lowest p-space-sm rounded-lg flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">Saldo ExpressPay</p>
+<p class="font-body-sm text-body-sm text-primary font-bold">$296.80 MXN disponibles</p>
+</div>
+</div>
+<button class="font-label-xs text-label-xs text-primary font-bold hover:underline" type="button">Recargar</button>
+</div>
+</div>
+</div>
+<!-- Facturación Oficial e IVA -->
+<div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[24px]">receipt_long</span>
+<div>
+<p class="font-label-md text-label-md text-on-surface font-bold">Facturación Automática para Empresas y Autónomos</p>
+<p class="font-body-sm text-body-sm text-secondary">NIF guardado: ES-54892147K. Generar facturas desglosadas con IVA automáticamente en cada pedido.</p>
+</div>
+</div>
+<button class="px-space-md py-2 bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold rounded transition-colors shrink-0" type="button">
+              Configurar NIF / CIF
+            </button>
+</div>
+</section>
+</main>
+<!-- RIGHT COMPLEMENTARY RAIL: PREFERENCES, GDPR & SHORTCUTS -->
+<aside class="lg:col-span-4 flex flex-col gap-space-lg">
+<!-- ExpressPrime VIP Card -->
+<div class="bg-gradient-to-br from-inverse-surface to-[#0f172a] text-surface-bright rounded-xl p-space-lg shadow-md relative overflow-hidden">
+<div class="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-primary/20 blur-2xl pointer-events-none"></div>
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-fixed text-[28px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="font-headline-sm text-headline-sm text-surface font-bold">ExpressPrime Club</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold uppercase">
+              Activo
+            </span>
+</div>
+<p class="font-body-md text-body-md text-surface-dim leading-relaxed">
+            Tienes acceso ilimitado a <span class="text-surface font-semibold">Envío Express Gratis en 24h</span>, ofertas exclusivas flash y reproducciones en OmniStream.
+          </p>
+<div class="my-space-md bg-white/10 rounded-lg p-space-sm flex items-center justify-between">
+<div>
+<span class="font-label-xs text-label-xs text-surface-dim uppercase block">Ahorro acumulado 2025</span>
+<span class="font-price-card text-price-card text-surface font-extrabold">$3,690.50 MXN</span>
+</div>
+<span class="font-label-xs text-label-xs text-tertiary-fixed font-bold bg-tertiary-container/50 px-2 py-1 rounded">28 envíos gratis</span>
+</div>
+<a class="block w-full py-2.5 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold rounded-lg text-center transition-colors shadow" data-path="suscripciones-expressprime" href="#">
+            Ver todas las ventajas de mi membresía
+          </a>
+</div>
+<!-- Notificaciones y Alertas -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="p-2 rounded-lg bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Preferencias de Alertas</h3>
+</div>
+<div class="flex flex-col gap-space-sm">
+<!-- Toggle 1 -->
+<label class="flex items-center justify-between cursor-pointer p-2 rounded hover:bg-surface-container-low transition-colors">
+<div class="flex flex-col pr-2">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Seguimiento por SMS</span>
+<span class="font-body-sm text-body-sm text-secondary">Avisos en tiempo real cuando el repartidor esté a 30 minutos.</span>
+</div>
+<input checked="" class="w-5 h-5 accent-primary cursor-pointer rounded" type="checkbox"/>
+</label>
+<!-- Toggle 2 -->
+<label class="flex items-center justify-between cursor-pointer p-2 rounded hover:bg-surface-container-low transition-colors">
+<div class="flex flex-col pr-2">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Ofertas personalizadas</span>
+<span class="font-body-sm text-body-sm text-secondary">Descuentos basados en tu lista de deseos e historial.</span>
+</div>
+<input checked="" class="w-5 h-5 accent-primary cursor-pointer rounded" type="checkbox"/>
+</label>
+<!-- Toggle 3 -->
+<label class="flex items-center justify-between cursor-pointer p-2 rounded hover:bg-surface-container-low transition-colors">
+<div class="flex flex-col pr-2">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Alertas de reposición de stock</span>
+<span class="font-body-sm text-body-sm text-secondary">Notificar de inmediato cuando un producto vuelva a estar disponible.</span>
+</div>
+<input class="w-5 h-5 accent-primary cursor-pointer rounded" type="checkbox"/>
+</label>
+</div>
+</div>
+<!-- Privacidad, GDPR y Gestión de Cuenta -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="p-2 rounded-lg bg-surface-container text-secondary">
+<span class="material-symbols-outlined text-[20px]">policy</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Privacidad y Datos (GDPR)</h3>
+</div>
+<p class="font-body-sm text-body-sm text-secondary leading-normal">
+            En ExpressMart garantizamos el control total de tus datos personales con cifrado de punto a punto conforme a la normativa europea.
+          </p>
+<div class="flex flex-col gap-2">
+<button class="w-full py-2 px-3 bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md font-semibold rounded flex items-center justify-between transition-colors" type="button">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">download</span>
+                Descargar copia de mis datos
+              </span>
+<span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+</button>
+<button class="w-full py-2 px-3 bg-surface-container-low hover:bg-surface-container text-on-surface font-label-md text-label-md font-semibold rounded flex items-center justify-between transition-colors" type="button">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-secondary">cookie</span>
+                Configuración de Cookies
+              </span>
+<span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+</button>
+<button class="w-full py-2 px-3 bg-surface-container-low hover:bg-error-container text-error font-label-md text-label-md font-semibold rounded flex items-center justify-between transition-colors mt-2" type="button">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">no_accounts</span>
+                Desactivar o solicitar borrado de cuenta
+              </span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Atencion al cliente Direct Help -->
+<div class="bg-surface-container-low rounded-xl p-space-md flex items-center gap-space-md">
+<div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[22px]">support_agent</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-label-md text-on-surface font-bold">¿Necesitas ayuda con tu cuenta?</p>
+<p class="font-body-sm text-body-sm text-secondary">Atención prioritaria 24/7 para miembros ExpressPrime.</p>
+</div>
+<a class="font-label-xs text-label-xs font-bold text-primary hover:underline shrink-0" data-path="servicio-al-cliente" href="#">Contactar</a>
+</div>
+</aside>
+</div>
+</div>
+</div></main><footer class="w-full bg-[#1e293b] text-surface-dim font-body-md text-body-md mt-space-xl"><a class="block w-full py-3 bg-[#2a374a] text-center font-label-md text-label-md text-surface hover:bg-[#34445c] transition-colors" href="#">Subir al inicio</a><div class="max-w-[1440px] mx-auto px-margin py-space-xl grid grid-cols-2 md:grid-cols-4 gap-gutter"><div class="flex flex-col gap-space-sm"><h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Conócenos</h3><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="sobre-expressmart" href="#">Sobre ExpressMart</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="trabaja-con-nosotros" href="#">Trabaja con nosotros</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="prensa" href="#">Sala de prensa</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="sostenibilidad" href="#">Sostenibilidad en ExpressMart</a></div><div class="flex flex-col gap-space-sm"><h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Gana dinero con nosotros</h3><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="vender-en-expressmart" href="#">Vender en ExpressMart</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="programa-de-afiliados" href="#">Programa de afiliados</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="logistica-expressmart" href="#">Logística y envíos de ExpressMart</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="publicidad" href="#">Anuncia tus productos</a></div><div class="flex flex-col gap-space-sm"><h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Métodos de pago</h3><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="tarjetas-expressmart" href="#">Tarjetas y métodos aceptados</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="pago-a-plazos" href="#">Pago en cuotas</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="cheques-regalo" href="#">Cheques y tarjetas regalo</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="recarga-saldo" href="#">Recarga online</a></div><div class="flex flex-col gap-space-sm"><h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Déjanos ayudarte</h3><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="suscripciones-expressprime" href="#">ExpressPrime y Envío Express</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="pedidos" href="#">Devolver o reemplazar productos</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="servicio-al-cliente" href="#">Centro de ayuda y contacto</a><a class="text-surface-dim hover:text-surface transition-colors text-body-sm font-body-sm" data-path="seguridad" href="#">Seguridad y compras seguras</a></div></div><div class="bg-[#0f172a] py-space-lg"><div class="max-w-[1440px] mx-auto px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-md"><img alt="ExpressMart Logo" class="h-6 w-auto object-contain opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMxtDYE8BXPG94dTz2qdywa6MGLPWhVRBQjlfwD9j1XLFr9JZ1lyoSvDjxxQ8QBrXAESbXPOkPvLVC4ZEZqnc599PbhtGU3IQKTujS8FZNeNKfv8Y7Crrs1k8fMnSMz3XOOlT2n7OBxmulb_Canx1BiZsuB8D2r8amR5NBCf3QTwu3WN7NBLkN1mwg1TgmqJGiGivaMCHNsD_bWOW97gYv4CO0iBD7ruG39F62ATYPi_rtk8528FJj"/><div class="flex items-center gap-space-sm"><button class="px-space-sm py-1 rounded bg-[#1e293b] text-surface font-label-xs text-label-xs flex items-center gap-1 hover:bg-[#2a374a] transition-colors" type="button"><span class="material-symbols-outlined text-[14px]">language</span>Español</button><button class="px-space-sm py-1 rounded bg-[#1e293b] text-surface font-label-xs text-label-xs flex items-center gap-1 hover:bg-[#2a374a] transition-colors" type="button"><span class="material-symbols-outlined text-[14px]">payments</span>MXN - Peso Mexicano</button></div></div><p class="font-body-sm text-body-sm text-surface-dim text-center md:text-right">© 2025 ExpressMart Marketplace, Inc. o sus afiliados. Condiciones de uso y Aviso de privacidad.</p></div></div></footer></body></html>

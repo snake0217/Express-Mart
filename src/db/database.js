@@ -370,7 +370,7 @@ function seedDatabaseIfEmpty(db) {
   const vendedorRow = db.prepare("SELECT id FROM usuarios WHERE rol = 'vendedor' LIMIT 1").get();
   const vendedorId = vendedorRow ? vendedorRow.id : 1;
 
-  // Catálogo inicial con completitud 100% conforme a ISO/IEC 25012 (Apartado 19)
+  // Catálogo inicial con completitud 100% conforme a ISO/IEC 25012 (Apartado 19) y diseño Stitch Aura Commerce en MXN
   const initialProducts = [
     {
       sku: 'EM-LAP-001',
@@ -379,70 +379,94 @@ function seedDatabaseIfEmpty(db) {
       categoria: 'Computo',
       marca: 'TechNova',
       precio: 18499.00,
-      imagen_url: '/assets/logo.png',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA6F_CIf3sBfX3I8-aX4n7p2R1T0mU9vW2yQ5zL8k9J0hG1fD2sA3pO4iU5yT6rE7wQ8aZ9xS0cV1bN2mM3lK4jH5gF6dS7aP8oI9uY0tR1eW2qA3zS4xD5cV6fB7gN8hM9jK0lL1pP2oO3iI4uU5yY6tT7rR8eE9wW0qQ',
       especificaciones: { procesador: 'Octa-Core 3.8GHz', ram: '16 GB LPDDR5', almacenamiento: '512 GB NVMe SSD', garantia: '12 meses directo' },
-      condiciones_envio: 'Envío exprés asegurado gratis (24 a 48 hrs) vía DHL/FedEx con firma de recibido.',
+      condiciones_envio: 'Envío ExpressPrime gratis (24 a 48 hrs) a todo México vía DHL/FedEx con firma de recibido.',
       stock: 25
     },
     {
       sku: 'EM-AUD-002',
-      nombre: 'Audífonos Inalámbricos NoiseCancelling Studio ANC',
-      descripcion: 'Cancelación activa de ruido híbrida de 45dB, audio espacial de alta resolución y hasta 40 horas de autonomía continua.',
+      nombre: 'ExpressSound Pro 900 - Audífonos Inalámbricos ANC Híbrido 65h',
+      descripcion: 'Cancelación activa de ruido híbrida de 45dB, audio espacial Hi-Res LDAC, conexión multipunto Bluetooth 5.4 y hasta 65 horas de autonomía.',
       categoria: 'Audio',
       marca: 'SonicWave',
       precio: 2499.00,
-      imagen_url: '/assets/logo.png',
-      especificaciones: { conectividad: 'Bluetooth 5.3 + USB-C', bateria: '40 horas', peso: '250g', garantia: '12 meses' },
-      condiciones_envio: 'Envío gratis a todo México en pedidos mayores a $999 MXN. Entrega en 1-3 días hábiles.',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCedXv8XDlUuM-qRwg3VdijpSBsCBerIAzVaIszHMrMLBf1aurJOnCDevVS7SqHkjQRx8AIxrVulMVaxZ_aev_FU4v3TdBwAQ2WqJj11ZidI9jI57qjLAOeiAQG_wF36tjY7neuyffcrPbXyZaclPWCPqrjDAy6oAfVc8Tng6wCgJLjYXN7Zpzxv6nEB-KaYxrWrkngcjbXxYlHicKFV_eklCM8bqsxVQk39TrJ3zM8Hhas59pz5d9V',
+      especificaciones: { conectividad: 'Bluetooth 5.4 + 3.5mm + USB-C', bateria: '65 horas', peso: '250g', garantia: '12 meses' },
+      condiciones_envio: 'Envío ExpressPrime GRATIS en pedidos mayores a $599 MXN. Llega mañana en CDMX.',
       stock: 60
     },
     {
       sku: 'EM-MON-003',
-      nombre: 'Monitor Curvo 27" 4K UHD 144Hz IPS HDR400',
+      nombre: 'Monitor Curvo UltraWide 27" 4K UHD 144Hz IPS HDR400',
       descripcion: 'Monitor profesional con calibración de color de fábrica Delta E < 2, puerto USB-C 90W Power Delivery y tasa de refresco de 144Hz.',
       categoria: 'Computo',
       marca: 'VisionMax',
       precio: 6890.00,
-      imagen_url: '/assets/logo.png',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCaWrQOCragy6pVfdZItXjcXeHKUuQNoShSMaVCWJG_EVMGQg6lxfhxImbiE3spE-R1f93zmcCgAoNpb5WQjqf-GeKj2V-bj0Pp2SV2DHf8fdivaNTPisjOT86gubftTQAvSw7p3je84Tilc4Albtz52D1WSE4mWF991BG4oTGkvHiUiOo459DQFOakeztWxxZLmicxEH0QUKkLf7xKZMufgpG24dueNpOy9S0zIp_R041lvz5RfY7I',
       especificaciones: { resolucion: '3840x2160 4K', panel: 'IPS 144Hz 1ms', puertos: '2x HDMI 2.1, 1x DP 1.4, USB-C 90W', garantia: '24 meses' },
-      condiciones_envio: 'Envío asegurado sin costo con empaque de doble protección.',
+      condiciones_envio: 'Envío asegurado ExpressPrime sin costo con empaque de doble protección.',
       stock: 18
     },
     {
       sku: 'EM-SMT-004',
-      nombre: 'Smartphone GalaxyNova S26 5G 256GB AMOLED',
-      descripcion: ' Cámara triple de 108MP con estabilización óptica, pantalla AMOLED de 120Hz, resistencia IP68 y carga rápida de 65W.',
+      nombre: 'Smartphone GalaxyNova S26 5G 256GB AMOLED + Smartwatch Titanium',
+      descripcion: 'Cámara triple de 108MP con estabilización óptica, pantalla AMOLED de 120Hz, resistencia IP68 y carga rápida de 65W.',
       categoria: 'telefonia',
       marca: 'TechNova',
       precio: 12999.00,
-      imagen_url: '/assets/logo.png',
-      especificaciones: { pantalla: '6.7" Dynamic AMOLED 120Hz', almacenamiento: '256 GB', ram: '12 GB', red: '5G Liberado' },
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA8fQhac3gOTei5-sqyOfue1vRfv0cVQTE_-CTOGfSMtY2hEgR1T1l7FzsJMKEU5EUeqs2u-62QpD5x3rCUMQsy-KU84LQAnCNKMREX5pYDqcRoZufPPoDC0fcS1Npv-rY2w1A4JlwZuaXhRNylFbTd8oKyjMykN1_kLDAF8enh8UCtwV88V8MtyObQMOvO83yErylZis9HS6cXQsDBaXk1kWeSXPk9XYitJvRWGz5kQ0I-47AfA6xg',
+      especificaciones: { pantalla: '6.7" Dynamic AMOLED 120Hz', almacenamiento: '256 GB', ram: '12 GB', red: '5G Telcel/AT&T/Movistar Liberado' },
       condiciones_envio: 'Envío exprés gratis con seguro contra robo o extravío incluido.',
       stock: 32
     },
     {
       sku: 'EM-ACC-005',
-      nombre: 'Teclado Mecánico Inalámbrico RGB Hot-Swap Español',
+      nombre: 'Teclado Mecánico Inalámbrico RGB Hot-Swap Español + Mouse Pro',
       descripcion: 'Distribución ISO Español con tecla Ñ, switches táctiles silenciosos, chasis de aluminio y conexión triple (Bluetooth, 2.4GHz, USB-C).',
       categoria: 'Accesorios',
       marca: 'KeyMaster',
       precio: 1350.00,
-      imagen_url: '/assets/logo.png',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnxVf7d84wGa_-gbuxTT7knFYR5vDRFEa5M4p2pa8k1StzC_DaECoNZkpgUmhkm_m-wtx91Q-2bzVyUJgnjqvy0VT_zFR6Va1nHG0kds8EUoOzDkzztVxyrPxO-w7jY30ub2TQkOMdpRov4N77dWhu6GZ9pZyWd2YqM4cKYrHJ9QczvSGukE-6NdlGeEI_Qwz2keFrgiEhSgFtDc9OvrlYRr3invz7frWoKa9Snk5xUAUBgBP3pc_R',
       especificaciones: { switches: 'Táctil Silencioso Hot-Swap', idioma: 'Español Latinoamérica', bateria: '4000 mAh', garantia: '12 meses' },
-      condiciones_envio: 'Envío gratis en compras mayores a $999 MXN; despacho el mismo día.',
+      condiciones_envio: 'Envío gratis en compras mayores a $599 MXN; despacho el mismo día desde CEDIS CDMX.',
       stock: 45
     },
     {
       sku: 'EM-HOG-006',
-      nombre: 'Cafetera Espresso Automática Barista Pro 19 Bares',
-      descripcion: 'Sistema de extracción profesional de 19 bares con molino cónico integrado y espumador de leche térmico en acero inoxidable.',
+      nombre: 'Cafetera Espresso Automática Barista Pro 20 Bares Acero Inox',
+      descripcion: 'Sistema de extracción profesional de 20 bares con molino cónico integrado, manómetro analógico y espumador de leche térmico en acero inoxidable.',
       categoria: 'Hogar',
       marca: 'HomeElite',
       precio: 4590.00,
-      imagen_url: '/assets/logo.png',
-      especificaciones: { presion: '19 Bares Italian Pump', capacidad: '2.0 Litros', potencia: '1450W', garantia: '12 meses' },
-      condiciones_envio: 'Envío terrestre asegurado sin costo en 2 a 4 días hábiles.',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB5Vfg8-ADEVgjdvRRjOOjucLR0A5blOqmLMPT3fIv4Be-rsyx0GWTdfXJGDkhd1tr4YwKFUamRcLp27cfqRjgJ42RLUE0IKeu6kMMRS8-doOeA8NuuP01pCIlet1lKqfR0cDZmFxfdEwn4wKCVzY5mAY5akn3yPgh2plfT2k1vj8hBUdLYAI9y0qDHfw8wKllDrSgcK5PWIflvJmIjx6nfgvSPixm6miXnhJidC1BMaQjNIGjhuSV5',
+      especificaciones: { presion: '20 Bares Italian Pump', capacidad: '2.0 Litros', potencia: '1450W', garantia: '12 meses en México' },
+      condiciones_envio: 'Envío terrestre asegurado sin costo en 24 a 48 horas hábiles.',
       stock: 15
+    },
+    {
+      sku: 'EM-HOG-007',
+      nombre: 'Robot Aspirador y Friegasuelos Inteligente LiDAR 6000Pa Autovaciado',
+      descripcion: 'Navegación láser LiDAR 360°, mapeo multicapa inteligente para casa o departamento, control por app y base de autovaciado automático.',
+      categoria: 'Hogar',
+      marca: 'HomeElite',
+      precio: 5499.00,
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDIyY5M3xYf-XYlv7orH01sd3-GIM5P1lfu0iGsfCtqyG1JQsL2EAjOOLZP4yRT9UKipxwAPskMPtUnTgePkrE-UY2Yy5RFS10ySMd0o53zN6i6DMyJDWgUayIneEToaLbfbCFy7e8Rx6E5iWvZd28AIcfyVsP3CBwItnWyXl1xXqbCspKlQwj_JNUy6F7IFjf_i-DigzlBaG7KNxR4mvSjQhyKjw6WJheBFVCSCjuTcT_jlS47_ma',
+      especificaciones: { succion: '6000 Pa HyperForce', navegacion: 'Láser LiDAR 3D', autonomia: '180 minutos', garantia: '24 meses' },
+      condiciones_envio: 'Envío ExpressPrime gratis a todo México con entrega garantizada.',
+      stock: 22
+    },
+    {
+      sku: 'EM-AUD-008',
+      nombre: 'Bocina Inteligente Bluetooth 360° BassBoost Impermeable IP67',
+      descripcion: 'Sonido envolvente de 360 grados con radiadores pasivos duales, resistencia total al agua y polvo IP67 y 24 horas de batería continua.',
+      categoria: 'Audio',
+      marca: 'SonicWave',
+      precio: 1299.00,
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCedXv8XDlUuM-qRwg3VdijpSBsCBerIAzVaIszHMrMLBf1aurJOnCDevVS7SqHkjQRx8AIxrVulMVaxZ_aev_FU4v3TdBwAQ2WqJj11ZidI9jI57qjLAOeiAQG_wF36tjY7neuyffcrPbXyZaclPWCPqrjDAy6oAfVc8Tng6wCgJLjYXN7Zpzxv6nEB-KaYxrWrkngcjbXxYlHicKFV_eklCM8bqsxVQk39TrJ3zM8Hhas59pz5d9V',
+      especificaciones: { potencia: '40W RMS', resistencia: 'IP67 Sumergible', bateria: '24 horas', garantia: '12 meses' },
+      condiciones_envio: 'Envío ExpressPrime gratis en 24 hrs desde CEDIS CDMX.',
+      stock: 38
     }
   ];
 
