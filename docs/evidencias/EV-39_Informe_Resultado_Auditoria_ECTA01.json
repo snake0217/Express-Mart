@@ -9,8 +9,8 @@
     "Uriel Guadarrama Estrada (Auditor - Configuración, Despliegue, Operación y Continuidad)"
   ],
   "verificacionArtefactos": {
-    "archivosRequeridos": 30,
-    "archivosPresentes": 30,
+    "archivosRequeridos": 41,
+    "archivosPresentes": 41,
     "archivosFaltantes": []
   },
   "resumenPorSeccion": [
