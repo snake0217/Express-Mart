@@ -39,6 +39,8 @@ const REQUIRED_FILES = [
   'docs/06_Politica_Integral_de_Base_de_Datos.docx',
   'docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.md',
   'docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.docx',
+  'docs/08_Manual_Uso_Git_y_Ramas.md',
+  'docs/08_Manual_Uso_Git_y_Ramas.docx',
   'docs/00_README_General_ExpressMart.docx',
   'docs/evidencias/EV-24_Informe_Pruebas_Rendimiento.json',
   'docs/evidencias/EV-34_Acta_Simulacro_Recuperacion_ISO22301.json',
@@ -47,6 +49,7 @@ const REQUIRED_FILES = [
   'Plan_de_auditoria_copia_buena.docx',
   'Politica_Integral_de_Base_de_Datos_ExpressMart.docx',
   'Manual_Instalacion_BaseDatos_y_Uso_ExpressMart.docx',
+  'Manual_Uso_Git_y_Ramas_ExpressMart.docx',
   'Registros-Operativos-ExpressMart.xlsx'
 ];
 

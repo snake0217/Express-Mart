@@ -78,3 +78,7 @@ npm run audit:verify
   - [`docs/03_Seguridad_Riesgos_CalidadDatos_y_Proveedores.md`](./docs/03_Seguridad_Riesgos_CalidadDatos_y_Proveedores.md)
   - [`docs/04_Plan_y_Actas_de_Pruebas_Integrales.md`](./docs/04_Plan_y_Actas_de_Pruebas_Integrales.md)
   - [`docs/05_Liberacion_Operacion_Continuidad_y_Mejora.md`](./docs/05_Liberacion_Operacion_Continuidad_y_Mejora.md)
+  - [`docs/06_Politica_Integral_de_Base_de_Datos.md`](./docs/06_Politica_Integral_de_Base_de_Datos.md) (`POL-BD-MC001`)
+  - [`docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.md`](./docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.md) (`MAN-INST-MC001`)
+  - [`docs/08_Manual_Uso_Git_y_Ramas.md`](./docs/08_Manual_Uso_Git_y_Ramas.md) (`MAN-GIT-MC001`)
+

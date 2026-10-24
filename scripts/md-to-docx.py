@@ -217,6 +217,11 @@ def main():
     if politica_bd_md.exists():
         convert_md_to_docx(politica_bd_md, root / 'Politica_Integral_de_Base_de_Datos_ExpressMart.docx')
 
+    manual_git_md = docs_dir / '08_Manual_Uso_Git_y_Ramas.md'
+    if manual_git_md.exists():
+        convert_md_to_docx(manual_git_md, root / 'Manual_Uso_Git_y_Ramas_ExpressMart.docx')
+
 
 if __name__ == '__main__':
     main()
+
