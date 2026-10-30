@@ -1090,7 +1090,12 @@ function createApp() {
         `).all(req.user.id);
 
     const enriched = orders.map((o) => {
-      const items = db.prepare('SELECT * FROM pedido_items WHERE pedido_id = ?').all(o.id);
+      const items = db.prepare(`
+        SELECT pi.*, COALESCE(c.imagen_url, '/assets/logo.png') as imagen_url, c.categoria, c.marca, c.sku
+        FROM pedido_items pi
+        LEFT JOIN catalogo c ON c.id = pi.producto_id
+        WHERE pi.pedido_id = ?
+      `).all(o.id);
       const envio = db.prepare('SELECT * FROM envios WHERE pedido_id = ?').get(o.id);
       const pago = db.prepare('SELECT referencia_pasarela, proveedor_pasarela, metodo_pago, meses_sin_intereses, monto, tarjeta_enmascarada, token_pci, estado, created_at FROM transacciones WHERE pedido_id = ?').get(o.id);
       return {

@@ -931,42 +931,166 @@ async function loadOrders() {
   }
   try {
     const data = await apiFetch('/api/orders');
-    if (!data.orders.length) {
-      box.innerHTML = '<p class="muted p-4 rounded-xl bg-surface-container-low">Aún no tienes pedidos registrados.</p>';
+    if (!data.orders || !data.orders.length) {
+      box.innerHTML = `
+        <div class="p-8 rounded-2xl bg-surface-container-low text-center border border-dashed border-surface-container">
+          <span class="material-symbols-outlined text-[48px] text-secondary mb-2 block">receipt_long</span>
+          <p class="font-bold text-on-surface text-base">Aún no tienes pedidos registrados</p>
+          <p class="text-xs text-secondary mt-1 mb-4">Explora nuestro catálogo de productos en MXN y realiza tu primera compra con envío ExpressPrime gratis.</p>
+          <button type="button" class="btn-nav-catalog px-5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs transition-colors cursor-pointer">
+            Ir al Catálogo de Productos
+          </button>
+        </div>
+      `;
+      box.querySelector('.btn-nav-catalog')?.addEventListener('click', () => switchTab('view-catalog'));
       return;
     }
+
     box.innerHTML = data.orders
-      .map(
-        (o) => `
-        <div class="p-space-lg rounded-xl bg-surface-container-low border border-surface-container-highest flex flex-col gap-2">
-          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-surface-dim">
-            <div>
-              <span class="font-label-xs text-label-xs uppercase text-secondary block">Folio Oficial ExpressMart</span>
-              <strong class="font-headline-sm text-headline-sm text-on-surface">${o.folio} · Estado: ${o.estado.toUpperCase()}</strong>
+      .map((o) => {
+        const itemsHtml = (o.items || [])
+          .map((item) => {
+            const imgUrl = item.imagen_url || '/assets/logo.png';
+            const unitPrice = Number(item.precio_unitario || item.precio || 0);
+            const subtotal = Number(item.subtotal || unitPrice * item.cantidad);
+            return `
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest border border-surface-container hover:border-primary/40 transition-all">
+              <div class="relative w-16 h-16 rounded-lg bg-white p-1 border border-surface-dim shrink-0 overflow-hidden cursor-pointer order-item-view-trigger" data-prod-id="${item.producto_id}" title="Ver ficha técnica">
+                <img
+                  src="${imgUrl}"
+                  alt="${item.nombre_producto}"
+                  class="w-full h-full object-contain hover:scale-105 transition-transform"
+                  onerror="this.src='/assets/logo.png'"
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  ${item.categoria ? `<span class="px-2 py-0.2 rounded bg-surface-container-high text-on-surface font-label-xs text-[10px] font-bold uppercase">${item.categoria}</span>` : ''}
+                  ${item.marca ? `<span class="text-secondary text-xs">${item.marca}</span>` : ''}
+                  ${item.sku ? `<span class="text-secondary text-[11px] font-mono">(${item.sku})</span>` : ''}
+                </div>
+                <h4
+                  class="font-headline-sm text-sm text-on-surface font-bold truncate cursor-pointer hover:text-primary transition-colors order-item-view-trigger"
+                  data-prod-id="${item.producto_id}"
+                  title="Ver ficha técnica"
+                >
+                  ${item.nombre_producto}
+                </h4>
+                <div class="flex items-center gap-2 text-xs text-secondary mt-1">
+                  <span>Cantidad: <strong class="text-on-surface">${item.cantidad} ${item.cantidad === 1 ? 'unidad' : 'unidades'}</strong></span>
+                  <span>·</span>
+                  <span>Precio unitario: <strong class="text-on-surface">${formatMxn(unitPrice)}</strong></span>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="font-label-xs text-secondary text-[11px] block">Subtotal</span>
+                <span class="font-bold text-on-surface text-sm">${formatMxn(subtotal)}</span>
+                <button
+                  type="button"
+                  class="mt-1 px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-[11px] font-bold flex items-center gap-1 transition-colors order-item-view-trigger cursor-pointer ml-auto"
+                  data-prod-id="${item.producto_id}"
+                >
+                  <span class="material-symbols-outlined text-[14px]">visibility</span>
+                  Ver Producto
+                </button>
+              </div>
             </div>
-            <span class="px-3 py-1 rounded-full bg-primary text-on-primary font-label-md text-label-md font-bold">
-              Total: ${formatMxn(o.total)}
+          `;
+          })
+          .join('');
+
+        const estadoColor =
+          o.estado === 'entregado'
+            ? 'bg-tertiary-fixed text-on-tertiary-fixed font-bold'
+            : o.estado === 'devuelto' || o.estado === 'cancelado'
+            ? 'bg-error-container text-on-error-container font-bold'
+            : 'bg-primary-fixed text-on-primary-fixed font-bold';
+
+        return `
+        <div class="p-space-lg rounded-2xl bg-surface-container-low border border-surface-container flex flex-col gap-3 shadow-sm">
+          <!-- Encabezado del Pedido -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-surface-container">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-label-xs text-label-xs uppercase text-secondary font-bold">Folio:</span>
+                <strong class="font-headline-sm text-headline-sm text-on-surface">${o.folio}</strong>
+                <span class="px-2.5 py-0.5 rounded-full text-xs uppercase ${estadoColor}">
+                  ${o.estado.toUpperCase()}
+                </span>
+              </div>
+              <div class="text-xs text-secondary mt-0.5">
+                Fecha: ${o.created_at ? o.created_at.split('T')[0] : 'Reciente'} · Compra protegida por garantía oficial ExpressMart LFPC
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-label-xs text-secondary text-xs block">Total Pagado en MXN</span>
+              <span class="font-headline-sm text-lg text-primary font-extrabold">${formatMxn(o.total)}</span>
+            </div>
+          </div>
+
+          <!-- Detalles de los Productos Comprados -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-label-sm text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-primary">inventory_2</span>
+                Detalles del Producto (${o.items ? o.items.length : 0} ${o.items && o.items.length === 1 ? 'artículo' : 'artículos'}):
+              </span>
+              <span class="text-xs text-tertiary font-bold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">verified</span>
+                Envío ExpressPrime
+              </span>
+            </div>
+            <div class="space-y-2">
+              ${itemsHtml || '<p class="text-xs text-secondary italic">No se encontraron artículos registrados para este pedido.</p>'}
+            </div>
+          </div>
+
+          <!-- Datos de Envío y Pago -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-surface-container text-xs text-on-surface">
+            <div class="p-2.5 rounded-lg bg-surface-container-lowest border border-surface-container space-y-1">
+              <div class="text-secondary font-bold uppercase text-[10px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">local_shipping</span>
+                Información de Logística y Envío:
+              </div>
+              <div><strong>Guía ExpressPrime:</strong> ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía en CEDIS'}</div>
+              <div class="text-secondary truncate"><strong>Dirección:</strong> ${o.direccion_envio}</div>
+            </div>
+            <div class="p-2.5 rounded-lg bg-surface-container-lowest border border-surface-container space-y-1">
+              <div class="text-secondary font-bold uppercase text-[10px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">credit_card</span>
+                Método de Pago Seguro (PCI DSS):
+              </div>
+              <div><strong>Transacción:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}</div>
+              <div class="text-secondary"><strong>IVA Trasladado:</strong> 16% incluido en el total pagado</div>
+            </div>
+          </div>
+
+          <!-- Botón de Devolución -->
+          <div class="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-surface-container">
+            <span class="text-xs text-secondary">
+              Garantía legal de 30 días para devoluciones sin costo conforme a la LFPC.
             </span>
-          </div>
-          <div class="text-sm text-on-surface">
-            <strong>Dirección de Entrega:</strong> ${o.direccion_envio} |
-            <strong>Pago:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}
-          </div>
-          <div class="text-sm text-tertiary font-semibold flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[18px]">local_shipping</span>
-            <span>Guía de Envío: ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía'}</span>
-          </div>
-          <div class="pt-1">
-            ${
-              o.estado !== 'devuelto' && o.estado !== 'cancelado'
-                ? `<button type="button" class="btn btn-sm btn-outline return-order-btn" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
-                : '<span class="badge badge-ok">Reembolsado en MXN / Devuelto conforme a LFPC</span>'
-            }
+            <div>
+              ${
+                o.estado !== 'devuelto' && o.estado !== 'cancelado'
+                  ? `<button type="button" class="btn btn-sm btn-outline return-order-btn cursor-pointer" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
+                  : '<span class="badge badge-ok">Reembolsado en MXN / Devuelto conforme a LFPC</span>'
+              }
+            </div>
           </div>
         </div>
-      `
-      )
+      `;
+      })
       .join('');
+
+    box.querySelectorAll('.order-item-view-trigger').forEach((el) => {
+      el.addEventListener('click', () => {
+        const prodId = Number(el.dataset.prodId);
+        if (prodId) {
+          openProductDetailPage(prodId);
+        }
+      });
+    });
 
     box.querySelectorAll('.return-order-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -1871,6 +1995,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('admin-product-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+      const imgVal = document.getElementById('prod-imagen')?.value?.trim();
       const res = await apiFetch('/api/products', {
         method: 'POST',
         body: JSON.stringify({
@@ -1880,12 +2005,14 @@ document.addEventListener('DOMContentLoaded', () => {
           marca: document.getElementById('prod-marca').value,
           precio: Number(document.getElementById('prod-precio').value),
           stock: Number(document.getElementById('prod-stock').value),
+          imagen_url: imgVal || '/assets/logo.png',
           descripcion: document.getElementById('prod-desc').value,
           condiciones_envio: document.getElementById('prod-envio').value,
           especificaciones: { origen: 'Panel Oficial ExpressMart México' }
         })
       });
       showAlert(res.message);
+      document.getElementById('admin-product-form').reset();
       loadCatalog();
       loadAdminReports();
     } catch (err) {

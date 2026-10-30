@@ -461,7 +461,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Hogar',
       marca: 'HomeElite',
       precio: 2299.00,
-      imagen_url: 'https://images.unsplash.com/photo-1585695123982-b195a0084361?auto=format&fit=crop&w=800&q=80',
+      imagen_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBOYsOkQ6_GBPFlVb9W1snXq3HY8VF90bi5TOvBhKvQD8oLjZXOE1ZHbTNSX95tEaAlXCZK31PcDP5xZ6rZo2wyF-W1WVBroq55aSmrT0mHgGIm_AREXr8lQHIAyrChEpSncO2Rhp5K0liyvXKoBkleZDeTp68y6SIKBkIepl6sQw7E3iyMn-rHE8Q1FZ7wAC3b9Opiif_BQWQIE_GQQzAZtANfEJp1ipBqpzAEE0PDNubDkhtlvCLT',
       especificaciones: { capacidad: '8.0 Litros (2x 4.0L)', potencia: '1800 Watts', funciones: '10 programas automáticos + Deshidratar', garantia: '12 meses' },
       condiciones_envio: 'Envío terrestre sin costo con entrega estimada en 24 a 48 horas.',
       stock: 35
@@ -485,7 +485,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Accesorios',
       marca: 'KeyMaster',
       precio: 3890.00,
-      imagen_url: 'https://images.unsplash.com/photo-1580481077197-3f2944b23752?auto=format&fit=crop&w=800&q=80',
+      imagen_url: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=800&q=80',
       especificaciones: { material: 'Malla mesh transpirable + Aluminio', soporte: 'Hasta 150 kg', certificacion: 'BIFMA / ANSI', garantia: '36 meses' },
       condiciones_envio: 'Envío especializado con caja reforzada y manual de ensamble rápido.',
       stock: 19
@@ -792,6 +792,13 @@ function syncCatalogAndReviews(db) {
       insertInv.run(productId, p.stock, now, now);
     } else {
       productId = existing.id;
+      db.prepare('UPDATE catalogo SET imagen_url = ?, precio = ?, nombre = ?, descripcion = ? WHERE id = ?').run(
+        p.imagen_url,
+        p.precio,
+        p.nombre,
+        p.descripcion.trim(),
+        productId
+      );
     }
 
     const revCount = db.prepare('SELECT COUNT(*) as total FROM resenas WHERE producto_id = ?').get(productId).total;
