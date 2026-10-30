@@ -189,7 +189,7 @@
 
           <button type="button" id="btn-open-auth" class="flex items-center gap-2 px-space-sm py-1 rounded text-left hover:outline hover:outline-1 hover:outline-outline-variant transition-all leading-tight">
             <div id="header-avatar-circle" class="w-8 h-8 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center shrink-0 border border-slate-600">
-              <img id="header-avatar-img" src="" alt="Avatar" class="w-full h-full object-cover hidden" />
+              <img id="header-avatar-img" alt="Avatar" class="w-full h-full object-cover hidden" />
               <span id="header-avatar-icon" class="material-symbols-outlined text-[20px] text-surface-dim">person</span>
             </div>
             <div class="flex flex-col">
@@ -851,7 +851,7 @@
           <!-- Avatar con selector de foto -->
           <div class="relative group">
             <div id="profile-avatar-box" class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary-container text-on-primary flex items-center justify-center font-headline-lg text-headline-lg font-extrabold shadow-md border-2 border-surface-container cursor-pointer">
-              <img id="profile-avatar-img" src="" alt="Foto de perfil" class="w-full h-full object-cover hidden" />
+              <img id="profile-avatar-img" alt="Foto de perfil" class="w-full h-full object-cover hidden" />
               <span id="profile-avatar-initials">EM</span>
             </div>
             <button type="button" id="btn-trigger-photo" class="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity text-[10px] font-bold cursor-pointer" title="Cambiar foto de perfil">
@@ -966,25 +966,12 @@
                 <span class="material-symbols-outlined text-primary">favorite</span>
                 Mis Listas de Deseos (MXN)
               </h3>
-              <span class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold">
-                Ahorro activo -$1,200.00 MXN
+              <span id="profile-wishlist-badge" class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold">
+                0 listas
               </span>
             </div>
-            <div class="space-y-2 text-body-sm">
-              <div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
-                <div>
-                  <p class="font-bold text-on-surface">Setup Oficina &amp; Desarrollo CDMX</p>
-                  <p class="text-secondary text-xs">3 artículos · Monitoreo de precios en MXN</p>
-                </div>
-                <span class="font-bold text-primary">$26,739.00 MXN</span>
-              </div>
-              <div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
-                <div>
-                  <p class="font-bold text-on-surface">Hogar Inteligente &amp; Café</p>
-                  <p class="text-secondary text-xs">2 artículos · Envío ExpressPrime Gratis</p>
-                </div>
-                <span class="font-bold text-primary">$10,089.00 MXN</span>
-              </div>
+            <div id="profile-wishlists-container" class="space-y-2 text-body-sm">
+              <!-- Se renderiza dinámicamente según el usuario logueado -->
             </div>
           </div>
 
@@ -1205,7 +1192,12 @@
 
           <div class="field">
             <label for="login-password">Contraseña</label>
-            <input type="password" id="login-password" required minlength="8" autocomplete="current-password" />
+            <div class="relative flex items-center">
+              <input type="password" id="login-password" required minlength="8" autocomplete="current-password" class="w-full pr-10" />
+              <button type="button" class="btn-toggle-password absolute right-2.5 text-secondary hover:text-on-surface p-1 transition-colors flex items-center justify-center cursor-pointer" data-target="login-password" aria-label="Mostrar u ocultar contraseña" title="Mostrar u ocultar contraseña">
+                <span class="material-symbols-outlined text-[20px]">visibility</span>
+              </button>
+            </div>
           </div>
 
           <div id="mfa-field-group" class="field hidden">
@@ -1233,14 +1225,20 @@
           <div class="field">
             <label for="reg-password">Contraseña segura</label>
             <span id="reg-pass-hint" class="hint">Mín. 8 caracteres, mayúscula, minúscula, número y símbolo</span>
-            <input
-              type="password"
-              id="reg-password"
-              required
-              pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$"
-              aria-describedby="reg-pass-hint"
-              aria-errormessage="reg-pass-err"
-            />
+            <div class="relative flex items-center">
+              <input
+                type="password"
+                id="reg-password"
+                required
+                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$"
+                aria-describedby="reg-pass-hint"
+                aria-errormessage="reg-pass-err"
+                class="w-full pr-10"
+              />
+              <button type="button" class="btn-toggle-password absolute right-2.5 text-secondary hover:text-on-surface p-1 transition-colors flex items-center justify-center cursor-pointer" data-target="reg-password" aria-label="Mostrar u ocultar contraseña" title="Mostrar u ocultar contraseña">
+                <span class="material-symbols-outlined text-[20px]">visibility</span>
+              </button>
+            </div>
             <div id="reg-pass-err" class="error-msg">Debe incluir mayúscula, minúscula, número y símbolo (mín. 8 caracteres).</div>
           </div>
           <div class="field">
@@ -1376,6 +1374,58 @@
       </div>
     </div>
   </dialog>
+
+  <!-- ===============================================================
+       MODAL DE CONFIRMACIÓN PARA SALIR / CERRAR SESIÓN
+       =============================================================== -->
+  <dialog id="logout-confirm-dialog" class="modal-dialog max-w-md" aria-labelledby="logout-dialog-title">
+    <div class="modal-header border-b border-surface-container pb-3 flex items-center justify-between">
+      <div class="flex items-center gap-2 text-on-surface font-bold">
+        <span class="material-symbols-outlined text-error text-[24px]">logout</span>
+        <h2 id="logout-dialog-title" class="font-headline-sm text-headline-sm">Cerrar Sesión</h2>
+      </div>
+      <button type="button" id="btn-close-logout-dialog" class="btn-close flex items-center justify-center" aria-label="Cerrar ventana">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    <div class="modal-body py-4">
+      <p class="font-body-md text-body-md text-on-surface font-bold mb-1.5">
+        ¿Estás seguro de que deseas salir?
+      </p>
+      <p class="font-body-sm text-body-sm text-secondary">
+        Tu sesión se cerrará de forma segura y tus claves de acceso serán revocadas. Podrás volver a ingresar en cualquier momento.
+      </p>
+    </div>
+    <div class="modal-actions flex items-center justify-end gap-3 pt-3 border-t border-surface-container">
+      <button type="button" id="btn-cancel-logout" class="px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-semibold transition-colors">
+        Cancelar
+      </button>
+      <button type="button" id="btn-confirm-logout" class="px-4 py-2 rounded-lg bg-error hover:opacity-90 text-on-error font-label-md text-label-md font-bold transition-opacity flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[18px]">logout</span>
+        <span>Sí, Cerrar Sesión</span>
+      </button>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
+       OVERLAY CENTRADO DE CARGA SIMULADA (LOGIN Y REGISTRO)
+       =============================================================== -->
+  <div id="auth-loading-overlay" class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4" role="status" aria-live="polite">
+    <div class="bg-surface-container-lowest rounded-2xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center space-y-4 border border-surface-container transform transition-all scale-100">
+      <div id="auth-loading-spinner" class="w-14 h-14 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      <div id="auth-loading-success-icon" class="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center hidden">
+        <span class="material-symbols-outlined text-[36px]">check_circle</span>
+      </div>
+      <div>
+        <h3 id="auth-loading-title" class="font-headline-sm text-headline-sm text-on-surface font-extrabold mb-1">
+          Iniciando sesión...
+        </h3>
+        <p id="auth-loading-desc" class="font-body-sm text-body-sm text-secondary">
+          Verificando credenciales de acceso seguro...
+        </p>
+      </div>
+    </div>
+  </div>
 
   <!-- ===============================================================
        FOOTER GLOBAL STITCH "AURA COMMERCE" ADAPTADO A EXPRESSMART MÉXICO

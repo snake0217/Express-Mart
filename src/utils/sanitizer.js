@@ -41,6 +41,17 @@ function sanitizeObject(obj) {
       // No escapar contraseñas pero sí validar su longitud
       if (k.toLowerCase().includes('password') || k === 'contrasena') {
         out[k] = typeof v === 'string' ? v.slice(0, 128) : v;
+      } else if (['fotoperfil', 'foto_perfil', 'avatar', 'imagen_url'].includes(k.toLowerCase())) {
+        // Permitir URLs y Data URLs de imagen de hasta 8MB sin truncar a 500 caracteres ni romper el base64
+        if (typeof v === 'string') {
+          if (v.startsWith('data:image/') || v.startsWith('http://') || v.startsWith('https://') || v === '') {
+            out[k] = v.slice(0, 8 * 1024 * 1024);
+          } else {
+            out[k] = sanitizeString(v);
+          }
+        } else {
+          out[k] = v;
+        }
       } else {
         out[k] = sanitizeObject(v);
       }

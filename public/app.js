@@ -122,19 +122,107 @@ function switchTab(tabId) {
   if (tabId === 'view-audit') loadAuditCenter();
 }
 
+function renderProfileWishlists(user) {
+  const container = document.getElementById('profile-wishlists-container');
+  const badge = document.getElementById('profile-wishlist-badge');
+  if (!container) return;
+
+  if (!user || !user.id) {
+    container.innerHTML = `
+      <div class="p-6 rounded-xl bg-surface-container-low text-center border border-dashed border-surface-dim">
+        <span class="material-symbols-outlined text-[36px] text-secondary mb-2 block">favorite_border</span>
+        <p class="font-bold text-sm text-on-surface">Inicia sesión para ver tu lista de deseos</p>
+      </div>
+    `;
+    if (badge) badge.textContent = '0 listas';
+    return;
+  }
+
+  const storageKey = `em_wishlists_${user.id}`;
+  let wishlists = null;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw !== null) {
+      wishlists = JSON.parse(raw);
+    }
+  } catch (_) {
+    wishlists = null;
+  }
+
+  // Cuentas de demostración iniciales mantienen listas de ejemplo
+  // Cualquier usuario nuevo registrado comienza con lista completamente vacía
+  if (wishlists === null) {
+    if (user.email === 'cliente@expressmart.mx') {
+      wishlists = [
+        {
+          titulo: 'Setup Oficina & Desarrollo CDMX',
+          detalle: '3 artículos · Monitoreo de precios en MXN',
+          precio: 26739
+        },
+        {
+          titulo: 'Hogar Inteligente & Café',
+          detalle: '2 artículos · Envío ExpressPrime Gratis',
+          precio: 10089
+        }
+      ];
+      localStorage.setItem(storageKey, JSON.stringify(wishlists));
+    } else {
+      wishlists = [];
+      localStorage.setItem(storageKey, JSON.stringify([]));
+    }
+  }
+
+  if (!wishlists || wishlists.length === 0) {
+    container.innerHTML = `
+      <div class="p-6 rounded-xl bg-surface-container-low text-center border border-dashed border-surface-dim">
+        <span class="material-symbols-outlined text-[36px] text-secondary mb-2 block">favorite_border</span>
+        <p class="font-bold text-sm text-on-surface">Tu lista de deseos está vacía</p>
+        <p class="text-xs text-secondary mt-1">Explora el catálogo y guarda tus artículos favoritos para recibir alertas de precio y ofertas.</p>
+      </div>
+    `;
+    if (badge) {
+      badge.textContent = '0 listas';
+      badge.className = 'px-2 py-0.5 rounded-full bg-surface-container-high text-secondary font-label-xs text-label-xs font-semibold';
+    }
+  } else {
+    container.innerHTML = wishlists
+      .map(
+        (w) => `
+        <div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
+          <div>
+            <p class="font-bold text-on-surface">${w.titulo}</p>
+            <p class="text-secondary text-xs">${w.detalle}</p>
+          </div>
+          <span class="font-bold text-primary">${formatMxn(w.precio)}</span>
+        </div>
+      `
+      )
+      .join('');
+    if (badge) {
+      badge.textContent = `${wishlists.length} ${wishlists.length === 1 ? 'lista' : 'listas'}`;
+      badge.className = 'px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold';
+    }
+  }
+}
+
 function updateProfilePhotoUI(fotoUrl) {
   const avatarImg = document.getElementById('profile-avatar-img');
   const avatarInitials = document.getElementById('profile-avatar-initials');
   const btnRemove = document.getElementById('btn-remove-photo');
   if (!avatarImg || !avatarInitials) return;
 
-  if (fotoUrl) {
+  if (fotoUrl && String(fotoUrl).trim()) {
+    avatarImg.onerror = () => {
+      avatarImg.classList.add('hidden');
+      avatarInitials.classList.remove('hidden');
+    };
     avatarImg.src = fotoUrl;
     avatarImg.classList.remove('hidden');
     avatarInitials.classList.add('hidden');
     if (btnRemove) btnRemove.classList.remove('hidden');
   } else {
-    avatarImg.src = '';
+    avatarImg.onerror = null;
+    avatarImg.removeAttribute('src');
     avatarImg.classList.add('hidden');
     avatarInitials.classList.remove('hidden');
     const name = state.user?.nombre || 'EM';
@@ -162,10 +250,16 @@ function updateSessionUI() {
     btnLogout.classList.remove('hidden');
 
     if (state.user.fotoPerfil && headerAvatarImg) {
+      headerAvatarImg.onerror = () => {
+        headerAvatarImg.classList.add('hidden');
+        if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
+      };
       headerAvatarImg.src = state.user.fotoPerfil;
       headerAvatarImg.classList.remove('hidden');
       if (headerAvatarIcon) headerAvatarIcon.classList.add('hidden');
     } else if (headerAvatarImg) {
+      headerAvatarImg.onerror = null;
+      headerAvatarImg.removeAttribute('src');
       headerAvatarImg.classList.add('hidden');
       if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
     }
@@ -183,7 +277,11 @@ function updateSessionUI() {
   } else {
     statusEl.textContent = 'Hola, Identifícate';
     btnLogout.classList.add('hidden');
-    if (headerAvatarImg) headerAvatarImg.classList.add('hidden');
+    if (headerAvatarImg) {
+      headerAvatarImg.onerror = null;
+      headerAvatarImg.removeAttribute('src');
+      headerAvatarImg.classList.add('hidden');
+    }
     if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
     if (auditTabBtn) auditTabBtn.classList.add('hidden');
   }
@@ -193,6 +291,7 @@ function updateSessionUI() {
   if (countEl) countEl.textContent = String(totalItems);
 
   updateProfilePhotoUI(state.user?.fotoPerfil || '');
+  renderProfileWishlists(state.user);
 }
 
 function saveCart() {
@@ -987,18 +1086,79 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('btn-close-auth').addEventListener('click', () => authDialog.close());
 
+  // Función auxiliar para simular carga y mensajes centrados en Login y Registro
+  async function simulateAuthLoading({ title, desc, successTitle, durationMs = 850 }) {
+    const overlay = document.getElementById('auth-loading-overlay');
+    const titleEl = document.getElementById('auth-loading-title');
+    const descEl = document.getElementById('auth-loading-desc');
+    const spinner = document.getElementById('auth-loading-spinner');
+    const successIcon = document.getElementById('auth-loading-success-icon');
+
+    if (!overlay) return;
+    if (titleEl) titleEl.textContent = title || 'Iniciando sesión...';
+    if (descEl) descEl.textContent = desc || 'Verificando credenciales de acceso seguro...';
+    if (spinner) spinner.classList.remove('hidden');
+    if (successIcon) successIcon.classList.add('hidden');
+    overlay.classList.remove('hidden');
+
+    await new Promise((resolve) => setTimeout(resolve, durationMs));
+
+    if (successTitle) {
+      if (titleEl) titleEl.textContent = successTitle;
+      if (spinner) spinner.classList.add('hidden');
+      if (successIcon) successIcon.classList.remove('hidden');
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    overlay.classList.add('hidden');
+  }
+
+  // Alternador para ver u ocultar contraseña en campos de autenticación
+  document.querySelectorAll('.btn-toggle-password').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.dataset.target;
+      const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (!input || !icon) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility_off';
+        btn.setAttribute('aria-label', 'Ocultar contraseña');
+        btn.setAttribute('title', 'Ocultar contraseña');
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility';
+        btn.setAttribute('aria-label', 'Mostrar contraseña');
+        btn.setAttribute('title', 'Mostrar contraseña');
+      }
+    });
+  });
+
   // Botones de acceso rápido para demostración de roles
   document.querySelectorAll('.demo-login-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       document.getElementById('login-email').value = btn.dataset.email;
       document.getElementById('login-password').value = btn.dataset.pass;
       document.getElementById('login-mfa').value = '';
+
       try {
+        const loadingPromise = simulateAuthLoading({
+          title: 'Iniciando sesión...',
+          desc: `Accediendo con credenciales de ${btn.textContent.trim()}...`,
+          successTitle: '¡Acceso Concedido!',
+          durationMs: 700
+        });
+
         const res = await apiFetch('/api/auth/login', {
           method: 'POST',
           body: JSON.stringify({ email: btn.dataset.email, password: btn.dataset.pass })
         });
+
         if (res.mfaRequired) {
+          const overlay = document.getElementById('auth-loading-overlay');
+          if (overlay) overlay.classList.add('hidden');
           document.getElementById('mfa-field-group').classList.remove('hidden');
           document.getElementById('login-mfa').value = res.demoHintCode || '';
           const verified = await apiFetch('/api/auth/login', {
@@ -1015,12 +1175,17 @@ document.addEventListener('DOMContentLoaded', () => {
           state.token = res.token;
           state.user = res.user;
         }
+
+        await loadingPromise;
+
         localStorage.setItem('em_token', state.token);
         localStorage.setItem('em_user', JSON.stringify(state.user));
         updateSessionUI();
         authDialog.close();
         showAlert(`Sesión iniciada como ${state.user.nombre} (${state.user.rol.toUpperCase()})`);
       } catch (err) {
+        const overlay = document.getElementById('auth-loading-overlay');
+        if (overlay) overlay.classList.add('hidden');
         showAlert(err.message, true);
       }
     });
@@ -1031,17 +1196,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     const mfaCode = document.getElementById('login-mfa').value.trim();
+
     try {
+      const loadingPromise = simulateAuthLoading({
+        title: 'Iniciando sesión...',
+        desc: 'Verificando credenciales con cifrado seguro...',
+        successTitle: '¡Bienvenido a ExpressMart!',
+        durationMs: 850
+      });
+
       const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password, mfaCode: mfaCode || undefined })
       });
+
       if (res.mfaRequired) {
+        const overlay = document.getElementById('auth-loading-overlay');
+        if (overlay) overlay.classList.add('hidden');
         document.getElementById('mfa-field-group').classList.remove('hidden');
         document.getElementById('login-mfa').value = res.demoHintCode || '';
         showAlert(`Ingrese el código de verificación de 6 dígitos (Código TOTP de prueba: ${res.demoHintCode})`);
         return;
       }
+
+      await loadingPromise;
+
       state.token = res.token;
       state.user = res.user;
       localStorage.setItem('em_token', state.token);
@@ -1049,7 +1228,14 @@ document.addEventListener('DOMContentLoaded', () => {
       updateSessionUI();
       authDialog.close();
       showAlert(`Bienvenido a ExpressMart México, ${state.user.nombre}`);
+      showToast({
+        title: `¡Hola, ${state.user.nombre.split(' ')[0]}!`,
+        message: 'Sesión iniciada correctamente',
+        imageUrl: state.user.fotoPerfil || '/assets/logo.png'
+      });
     } catch (err) {
+      const overlay = document.getElementById('auth-loading-overlay');
+      if (overlay) overlay.classList.add('hidden');
       showAlert(err.message, true);
     }
   });
@@ -1057,6 +1243,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+      const loadingPromise = simulateAuthLoading({
+        title: 'Creación de cuenta exitosa',
+        desc: 'Configurando tu perfil y cifrado de datos en ExpressMart...',
+        successTitle: '¡Cuenta creada con éxito!',
+        durationMs: 950
+      });
+
       const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
@@ -1067,23 +1260,65 @@ document.addEventListener('DOMContentLoaded', () => {
           consentimientoPrivacidad: document.getElementById('reg-privacy').checked
         })
       });
+
+      await loadingPromise;
+
       state.token = res.token;
       state.user = res.user;
       localStorage.setItem('em_token', state.token);
       localStorage.setItem('em_user', JSON.stringify(state.user));
+
+      // Garantizar que la lista de deseos de una cuenta nueva esté 100% vacía
+      localStorage.setItem(`em_wishlists_${res.user.id}`, JSON.stringify([]));
+
       updateSessionUI();
       authDialog.close();
       showAlert('Cuenta creada y sesión iniciada correctamente.');
+      showToast({
+        title: `¡Bienvenido(a), ${state.user.nombre.split(' ')[0]}!`,
+        message: 'Creación de cuenta exitosa',
+        imageUrl: '/assets/logo.png'
+      });
     } catch (err) {
+      const overlay = document.getElementById('auth-loading-overlay');
+      if (overlay) overlay.classList.add('hidden');
       showAlert(err.message, true);
     }
   });
 
-  document.getElementById('btn-logout').addEventListener('click', async () => {
+  // Modal de Confirmación para Salir / Cerrar Sesión
+  const logoutConfirmDialog = document.getElementById('logout-confirm-dialog');
+  const btnCancelLogout = document.getElementById('btn-cancel-logout');
+  const btnCloseLogoutDialog = document.getElementById('btn-close-logout-dialog');
+  const btnConfirmLogout = document.getElementById('btn-confirm-logout');
+
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    if (logoutConfirmDialog) {
+      logoutConfirmDialog.showModal();
+    } else {
+      executeLogout();
+    }
+  });
+
+  if (btnCancelLogout) {
+    btnCancelLogout.addEventListener('click', () => logoutConfirmDialog.close());
+  }
+  if (btnCloseLogoutDialog) {
+    btnCloseLogoutDialog.addEventListener('click', () => logoutConfirmDialog.close());
+  }
+
+  if (btnConfirmLogout) {
+    btnConfirmLogout.addEventListener('click', async () => {
+      logoutConfirmDialog.close();
+      await executeLogout();
+    });
+  }
+
+  async function executeLogout() {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' });
     } catch (_) {
-      // Continuar limpieza local
+      // Continuar limpieza local de sesión
     }
     state.token = '';
     state.user = null;
@@ -1092,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSessionUI();
     switchTab('view-catalog');
     showAlert('Sesión cerrada de forma segura.');
-  });
+  }
 
   // Modal de Carrito y Checkout en 3 pasos
   const cartDialog = document.getElementById('cart-dialog');
@@ -1303,6 +1538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             body: JSON.stringify({ fotoPerfil: dataUrl })
           });
           state.user = res.user;
+          state.user.fotoPerfil = dataUrl;
           localStorage.setItem('em_user', JSON.stringify(state.user));
           updateSessionUI();
           updateProfilePhotoUI(dataUrl);
@@ -1323,6 +1559,7 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ fotoPerfil: '' })
         });
         state.user = res.user;
+        state.user.fotoPerfil = '';
         localStorage.setItem('em_user', JSON.stringify(state.user));
         updateSessionUI();
         updateProfilePhotoUI('');
@@ -1343,13 +1580,19 @@ document.addEventListener('DOMContentLoaded', () => {
           nombre: document.getElementById('prof-nombre').value,
           direccion: document.getElementById('prof-direccion').value,
           telefono: document.getElementById('prof-telefono').value,
-          enableMfa: document.getElementById('prof-mfa').checked
+          enableMfa: document.getElementById('prof-mfa').checked,
+          fotoPerfil: state.user?.fotoPerfil || ''
         })
       });
       state.user = res.user;
       localStorage.setItem('em_user', JSON.stringify(state.user));
       updateSessionUI();
-      showAlert(res.message);
+      showAlert('¡Tus cambios se guardaron correctamente!');
+      showToast({
+        title: 'Perfil actualizado',
+        message: '¡Cambios guardados correctamente!',
+        imageUrl: state.user?.fotoPerfil || '/assets/logo.png'
+      });
     } catch (err) {
       showAlert(err.message, true);
     }

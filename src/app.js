@@ -273,6 +273,7 @@ function createApp() {
         email: email.trim().toLowerCase(),
         nombre: nombre.trim(),
         rol: assignedRole,
+        fotoPerfil: '',
         mfaEnabled: Boolean(mfaEnabled),
         mfaSecret: mfaEnabled ? mfaSecret : undefined
       }

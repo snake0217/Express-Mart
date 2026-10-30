@@ -114,9 +114,19 @@ function rateLimitMiddleware(req, res, next) {
  * Inspección y sanitización de entradas contra XSS e Inyección SQL (SEG-08, SEG-11, OWASP Top 10)
  */
 function inputFirewallMiddleware(req, res, next) {
+  const bodyForInspection =
+    req.body && typeof req.body === 'object'
+      ? Object.fromEntries(
+          Object.entries(req.body).map(([k, v]) => [
+            k,
+            ['fotoperfil', 'foto_perfil', 'avatar', 'imagen_url'].includes(k.toLowerCase()) ? '' : v
+          ])
+        )
+      : req.body || {};
+
   const rawCheckTargets = [
     JSON.stringify(req.query || {}),
-    JSON.stringify(req.body || {}),
+    JSON.stringify(bodyForInspection),
     req.originalUrl || ''
   ];
 

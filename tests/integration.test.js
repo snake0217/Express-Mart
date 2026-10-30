@@ -49,6 +49,27 @@ describe('Pruebas Funcionales y de Integración End-to-End (CP-RF-01 a CP-RF-10)
     expect(updateRes.status).toBe(200);
     expect(updateRes.body.user.direccion).toBe('Calle Madero 15, Centro Histórico, CDMX');
 
+    // Carga de foto de perfil y persistencia al guardar cambios subsecuentes
+    const photoDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const photoRes = await request(app)
+      .put('/api/auth/profile')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({ fotoPerfil: photoDataUrl });
+    expect(photoRes.status).toBe(200);
+    expect(photoRes.body.user.fotoPerfil).toBe(photoDataUrl);
+
+    // Guardar formulario de perfil preservando la foto existente
+    const formSaveRes = await request(app)
+      .put('/api/auth/profile')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        nombre: 'María Fernanda López con Foto',
+        direccion: 'Calle Madero 20, Centro, CDMX',
+        fotoPerfil: photoDataUrl
+      });
+    expect(formSaveRes.status).toBe(200);
+    expect(formSaveRes.body.user.fotoPerfil).toBe(photoDataUrl);
+
     // Solicitud de Derechos ARCO (NOR-08)
     const arcoRes = await request(app)
       .post('/api/privacy/arco')

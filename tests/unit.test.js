@@ -137,6 +137,14 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
     expect(cleanObj.password).toBe('<script>no-alterar-password</script>');
     expect(cleanObj.lista[0]).toBe('&lt;i&gt;item&lt;/i&gt;');
 
+    const longBase64 = 'data:image/png;base64,' + 'A'.repeat(1500);
+    const photoObj = sanitizeObject({
+      fotoPerfil: longBase64,
+      avatar: 'https://lh3.googleusercontent.com/test.png'
+    });
+    expect(photoObj.fotoPerfil).toBe(longBase64);
+    expect(photoObj.avatar).toBe('https://lh3.googleusercontent.com/test.png');
+
     expect(isValidEmail('cliente@expressmart.mx')).toBe(true);
     expect(isValidEmail('correo-invalido')).toBe(false);
     expect(isPositiveNumber(150)).toBe(true);
