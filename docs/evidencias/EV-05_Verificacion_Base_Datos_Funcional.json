@@ -1,0 +1,68 @@
+{
+  "codigoEvidencia": "EV-05",
+  "titulo": "Informe de Verificación Funcional e Integral de Base de Datos SQLite",
+  "hallazgoAtendido": "H-05 (Revisión Primer Sprint)",
+  "normativaReferencia": [
+    "MC-001 §11.3",
+    "MC-001 §18.2",
+    "POL-BD-MC001",
+    "ISO/IEC 25012"
+  ],
+  "fechaEjecucion": "2026-10-30T01:02:38.488Z",
+  "resultado": "CONFORME (100% OPERATIVA)",
+  "motor": "SQLite (node:sqlite) v3",
+  "parametrosMotor": {
+    "journalMode": "wal",
+    "foreignKeysEnabled": true,
+    "integrityCheck": "ok"
+  },
+  "tablasVerificadas": 12,
+  "conteoRegistrosPorTabla": {
+    "usuarios": 5,
+    "sesiones": 1,
+    "catalogo": 8,
+    "inventario": 8,
+    "carrito_items": 0,
+    "cupones": 4,
+    "pedidos": 0,
+    "pedido_items": 0,
+    "transacciones": 0,
+    "envios": 0,
+    "resenas": 2,
+    "bitacora_auditoria": 5
+  },
+  "pruebasEjecutadas": [
+    {
+      "prueba": "PRAGMA journal_mode = WAL",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "PRAGMA foreign_keys = ON",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "PRAGMA integrity_check",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "Existencia de 12 tablas D1..D8",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "Transacción ACID con COMMIT",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "Transacción ACID con ROLLBACK ante error",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "Cifrado en reposo AES-256-GCM",
+      "resultado": "PASÓ"
+    },
+    {
+      "prueba": "Cadena de auditoría criptográfica SHA-256",
+      "resultado": "PASÓ"
+    }
+  ]
+}

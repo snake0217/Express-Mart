@@ -221,7 +221,12 @@ def main():
     if manual_git_md.exists():
         convert_md_to_docx(manual_git_md, root / 'Manual_Uso_Git_y_Ramas_ExpressMart.docx')
 
+    acta_cierre_md = docs_dir / '10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md'
+    if acta_cierre_md.exists():
+        convert_md_to_docx(acta_cierre_md, root / 'Acta_Cierre_Hallazgos_Primer_Sprint_ExpressMart.docx')
+
 
 if __name__ == '__main__':
     main()
+
 

@@ -44,17 +44,60 @@ const ENVIRONMENTS = {
   }
 };
 
+const INSECURE_DEFAULT_KEYS = [
+  'expressmart-dev-32byte-secret-key!',
+  'expressmart-session-hmac-secret-2026',
+  'secret',
+  'password',
+  '123456',
+  'changeme',
+  'default-secret'
+];
+
+function validateSecrets(env, encryptionKey, sessionSecret) {
+  const isProductionLike = env === 'production' || env === 'staging';
+
+  if (isProductionLike) {
+    if (!encryptionKey || INSECURE_DEFAULT_KEYS.includes(encryptionKey) || encryptionKey.length < 32) {
+      throw new Error(
+        'Fallo de Seguridad (MC-001 §15.2, §18.2 / Hallazgo H-04): En ambientes de producción y staging es estrictamente obligatorio configurar una clave SECRET_ENCRYPTION_KEY robusta (>= 32 caracteres) provista por un gestor de secretos (Vault / AWS Secrets Manager). Se prohíben valores fijos o por defecto en código.'
+      );
+    }
+    if (!sessionSecret || INSECURE_DEFAULT_KEYS.includes(sessionSecret) || sessionSecret.length < 32) {
+      throw new Error(
+        'Fallo de Seguridad (MC-001 §15.2, §18.2 / Hallazgo H-04): En ambientes de producción y staging es estrictamente obligatorio configurar una clave SESSION_SECRET robusta (>= 32 caracteres) provista por un gestor de secretos. Se prohíben valores fijos o por defecto en código.'
+      );
+    }
+  } else if (env === 'development') {
+    if (!process.env.SECRET_ENCRYPTION_KEY || !process.env.SESSION_SECRET) {
+      if (!process.env.SUPPRESS_DEV_SECRET_WARNING) {
+        console.warn(
+          '[AVISO SEGURIDAD MC-001 §15.2]: Usando claves de desarrollo provisionales. En ambientes productivos es mandatorio inyectar secretos criptográficos vía variables de entorno.'
+        );
+      }
+    }
+  }
+}
+
 function getConfig() {
   const env = process.env.NODE_ENV || 'development';
   const envProfile = ENVIRONMENTS[env] || ENVIRONMENTS.development;
+
+  const rawEncryptionKey = process.env.SECRET_ENCRYPTION_KEY;
+  const rawSessionSecret = process.env.SESSION_SECRET;
+
+  const encryptionKey = rawEncryptionKey || (env === 'production' || env === 'staging' ? '' : 'expressmart-dev-32byte-secret-key!');
+  const sessionSecret = rawSessionSecret || (env === 'production' || env === 'staging' ? '' : 'expressmart-session-hmac-secret-2026');
+
+  validateSecrets(env, encryptionKey, sessionSecret);
 
   return {
     env,
     version: process.env.APP_VERSION || '1.0.0',
     port: Number(process.env.PORT || 3000),
     dbPath: process.env.DB_PATH || (env === 'test' ? ':memory:' : path.join(__dirname, '../../data/expressmart.sqlite')),
-    encryptionKey: process.env.SECRET_ENCRYPTION_KEY || 'expressmart-dev-32byte-secret-key!',
-    sessionSecret: process.env.SESSION_SECRET || 'expressmart-session-hmac-secret-2026',
+    encryptionKey,
+    sessionSecret,
     sessionTtlMinutes: Number(process.env.SESSION_TTL_MINUTES || 30),
     paymentGateway: {
       provider: process.env.PAYMENT_GATEWAY_PROVIDER || 'ExpressPay PCI-DSS v4.0 Certified',
@@ -79,5 +122,8 @@ function getConfig() {
 
 module.exports = {
   ENVIRONMENTS,
-  getConfig
+  getConfig,
+  validateSecrets,
+  INSECURE_DEFAULT_KEYS
 };
+

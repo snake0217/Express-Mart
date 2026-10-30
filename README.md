@@ -81,4 +81,9 @@ npm run audit:verify
   - [`docs/06_Politica_Integral_de_Base_de_Datos.md`](./docs/06_Politica_Integral_de_Base_de_Datos.md) (`POL-BD-MC001`)
   - [`docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.md`](./docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.md) (`MAN-INST-MC001`)
   - [`docs/08_Manual_Uso_Git_y_Ramas.md`](./docs/08_Manual_Uso_Git_y_Ramas.md) (`MAN-GIT-MC001`)
+  - [`docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.md`](./docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.md) (`DOC-SCRUM-SPRINT01`)
+  - [`docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md`](./docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md) (`ACTA-CIERRE-SPRINT01`)
+  - [`docs/openapi.json`](./docs/openapi.json) / [`docs/openapi.yaml`](./docs/openapi.yaml) (Contratos OpenAPI 3.0)
+  - [`Revision_Primer_Sprint_Express_Mart_CERRADA.docx`](./Revision_Primer_Sprint_Express_Mart_CERRADA.docx) (Revisión Auditada y Cerrada al 100%)
+
 

@@ -229,5 +229,65 @@ describe('Pruebas de Seguridad - Controles SEG-01 a SEG-18 (OWASP ASVS / Top 10 
         .send({ tipo: 'invalido', descripcion: 'test' })).status
     ).toBe(400);
   });
+
+  test('H-04: Prohibición estricta de secretos predeterminados o ausentes en producción/staging (MC-001 §15.2)', () => {
+    const { validateSecrets } = require('../src/config/env');
+
+    // Clave ausente en producción -> lanza error
+    expect(() => validateSecrets('production', '', '')).toThrow(/Fallo de Seguridad/);
+
+    // Clave por defecto en producción -> lanza error
+    expect(() =>
+      validateSecrets('production', 'expressmart-dev-32byte-secret-key!', 'expressmart-session-hmac-secret-2026')
+    ).toThrow(/Fallo de Seguridad/);
+
+    // Clave demasiado corta (< 32 caracteres) en producción -> lanza error
+    expect(() =>
+      validateSecrets('production', 'clave_corta_123', 'otra_clave_corta_123')
+    ).toThrow(/Fallo de Seguridad/);
+
+    // Claves seguras de 32+ caracteres provistas externamente -> pasa validación
+    expect(() =>
+      validateSecrets(
+        'production',
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'
+      )
+    ).not.toThrow();
+  });
+
+  test('H-06: Vencimiento de sesión por TTL (SEG-03) y rechazo automático HTTP 401', async () => {
+    const db = getDb();
+
+    // Crear sesión para cliente de prueba
+    const user = db.prepare('SELECT id FROM usuarios WHERE email = ?').get('cliente@expressmart.mx');
+    const { createSession } = require('../src/middleware/security');
+    const { tokenId } = createSession(db, {
+      usuarioId: user.id,
+      rol: 'cliente',
+      mfaVerificado: 1
+    });
+
+    // Validar que la sesión activa permite consultar el perfil
+    const activeRes = await request(app)
+      .get('/api/auth/profile')
+      .set('Authorization', `Bearer ${tokenId}`);
+    expect(activeRes.status).toBe(200);
+
+    // Forzar expiración de la sesión en base de datos (expira_en en el pasado)
+    db.prepare('UPDATE sesiones SET expira_en = ? WHERE token_id = ?').run(Date.now() - 5000, tokenId);
+
+    // La solicitud con sesión expirada debe ser rechazada con 401
+    const expiredRes = await request(app)
+      .get('/api/auth/profile')
+      .set('Authorization', `Bearer ${tokenId}`);
+    expect(expiredRes.status).toBe(401);
+    expect(expiredRes.body.error).toMatch(/expirado por seguridad/i);
+
+    // Verificar en la BD que quedó marcada como revocada
+    const updatedSess = db.prepare('SELECT revocada FROM sesiones WHERE token_id = ?').get(tokenId);
+    expect(updatedSess.revocada).toBe(1);
+  });
 });
+
 

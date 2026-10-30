@@ -12,6 +12,8 @@
     "test:security": "node --experimental-vm-modules node_modules/.bin/jest tests/security.test.js",
     "test:performance": "node scripts/performance-test.js",
     "lint": "node scripts/static-analysis.js",
+    "db:verify": "node scripts/verify-db-functional.js",
+    "ci:verify": "npm run lint && npm test && npm run test:performance && npm run db:verify && npm run backup && npm run audit:verify",
     "backup": "node scripts/backup-restore.js --backup",
     "restore:verify": "node scripts/backup-restore.js --verify",
     "audit:verify": "node scripts/audit-verifier.js"

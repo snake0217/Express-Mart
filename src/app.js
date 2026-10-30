@@ -120,6 +120,17 @@ function createApp() {
     });
   });
 
+  // Contratos de API Formales OpenAPI 3.0 (MC-001 §11.3 y §13 / Hallazgo H-02)
+  app.get('/api/docs/openapi.json', (req, res) => {
+    const fs = require('node:fs');
+    const openapiPath = path.join(__dirname, '../docs/openapi.json');
+    if (fs.existsSync(openapiPath)) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(fs.readFileSync(openapiPath, 'utf8'));
+    }
+    return res.status(404).json({ error: 'Especificación OpenAPI no encontrada.' });
+  });
+
   app.get('/api/metrics', (req, res) => {
     const db = getDb();
     const ordersCount = db.prepare('SELECT COUNT(*) as total FROM pedidos').get().total;

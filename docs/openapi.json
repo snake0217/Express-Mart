@@ -1,0 +1,290 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ExpressMart E-Commerce API",
+    "description": "Especificación formal de contratos iniciales de API REST para la plataforma ExpressMart conforme al Manual de Calidad MC-001 (Apartados 11.3, 13 y 14) y Plan de Auditoría ECTA-01.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Equipo de Desarrollo ExpressMart",
+      "email": "soporte@expressmart.mx",
+      "url": "https://github.com/snake0217/Express-Mart"
+    },
+    "license": {
+      "name": "Proprietary - TiendaExpress Online S.A. de C.V."
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor de Desarrollo Local"
+    },
+    {
+      "url": "https://staging.expressmart.mx",
+      "description": "Ambiente de Staging (Preproducción)"
+    },
+    {
+      "url": "https://expressmart.mx",
+      "description": "Ambiente de Producción"
+    }
+  ],
+  "tags": [
+    { "name": "Monitoreo y Salud", "description": "Endpoints de diagnóstico, telemetría y KPIs" },
+    { "name": "Autenticación y Sesiones", "description": "Gestión de cuentas, inicio de sesión, MFA y control de sesiones (Proceso 1 DFD)" },
+    { "name": "Catálogo e Inventario", "description": "Búsqueda, visualización y administración de productos (Proceso 2 DFD)" },
+    { "name": "Carrito y Checkout", "description": "Cálculo del lado servidor y procesamiento atómico de órdenes en 3 pasos (Proceso 3 y 4 DFD)" },
+    { "name": "Pedidos y Devoluciones", "description": "Seguimiento logístico, guías y devoluciones bajo LFPC (Proceso 5 DFD)" },
+    { "name": "Auditoría y Calidad", "description": "Verificación ISO 25012 y bitácora SHA-256 (Proceso 6 DFD)" }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Monitoreo y Salud"],
+        "summary": "Verificar estado de salud y banderas de configuración",
+        "description": "Retorna el estado de disponibilidad del servicio, perfil de ambiente activo, versión y metas RTO/RPO.",
+        "responses": {
+          "200": {
+            "description": "Servidor operando con normalidad",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "UP" },
+                    "service": { "type": "string", "example": "ExpressMart E-Commerce Platform" },
+                    "version": { "type": "string", "example": "1.0.0" },
+                    "environment": { "type": "string", "example": "development" },
+                    "rtoMinutes": { "type": "integer", "example": 15 },
+                    "rpoMinutes": { "type": "integer", "example": 5 },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "tags": ["Monitoreo y Salud"],
+        "summary": "Obtener KPIs de calidad y telemetría operativa",
+        "responses": {
+          "200": {
+            "description": "Métricas consolidadas de rendimiento, disponibilidad y seguridad"
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Autenticación y Sesiones"],
+        "summary": "Registro de nuevo usuario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "nombre", "consentimientoPrivacidad"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "nuevo.cliente@expressmart.mx" },
+                  "password": { "type": "string", "format": "password", "example": "PasswordFuerte123!" },
+                  "nombre": { "type": "string", "example": "Juan Pérez" },
+                  "direccion": { "type": "string", "example": "Av. Insurgentes 123, CDMX" },
+                  "telefono": { "type": "string", "example": "5512345678" },
+                  "consentimientoPrivacidad": { "type": "boolean", "example": true },
+                  "rol": { "type": "string", "enum": ["cliente", "vendedor"], "default": "cliente" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Usuario registrado exitosamente" },
+          "400": { "description": "Datos inválidos o contraseña no cumple fortaleza OWASP" },
+          "409": { "description": "El correo electrónico ya existe" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Autenticación y Sesiones"],
+        "summary": "Iniciar sesión (con soporte MFA y protección anti-fuerza bruta)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "cliente@expressmart.mx" },
+                  "password": { "type": "string", "format": "password", "example": "ClientePassword123!" },
+                  "mfaCode": { "type": "string", "example": "123456", "description": "Código TOTP de 6 dígitos si el usuario tiene MFA activo" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Sesión creada exitosamente" },
+          "401": { "description": "Credenciales inválidas o código MFA incorrecto" },
+          "423": { "description": "Cuenta bloqueada temporalmente por 5 intentos fallidos (SEG-01)" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Autenticación y Sesiones"],
+        "summary": "Cerrar sesión y revocar token inmediatamente",
+        "security": [{ "BearerAuth": [] }, { "XSessionToken": [] }],
+        "responses": {
+          "200": { "description": "Sesión revocada exitosamente" },
+          "401": { "description": "No autorizado" }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "tags": ["Catálogo e Inventario"],
+        "summary": "Listar productos con filtros y búsqueda optimizada (< 2s)",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Término de búsqueda por nombre, marca o descripción" },
+          { "name": "categoria", "in": "query", "schema": { "type": "string" }, "description": "Filtro por categoría" },
+          { "name": "minPrecio", "in": "query", "schema": { "type": "number" }, "description": "Precio mínimo en MXN" },
+          { "name": "maxPrecio", "in": "query", "schema": { "type": "number" }, "description": "Precio máximo en MXN" },
+          { "name": "orden", "in": "query", "schema": { "type": "string", "enum": ["destacados", "precio_asc", "precio_desc", "recientes"] } }
+        ],
+        "responses": {
+          "200": { "description": "Lista de productos filtrados en formato JSON" }
+        }
+      },
+      "post": {
+        "tags": ["Catálogo e Inventario"],
+        "summary": "Crear nuevo producto (Requiere rol administrador o vendedor con MFA)",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "201": { "description": "Producto creado" },
+          "400": { "description": "Faltan campos obligatorios" },
+          "403": { "description": "Permisos insuficientes" }
+        }
+      }
+    },
+    "/api/cart/calculate": {
+      "post": {
+        "tags": ["Carrito y Checkout"],
+        "summary": "Cálculo seguro del lado servidor para items, IVA (16%), envío y cupones",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["productoId", "cantidad"],
+                      "properties": {
+                        "productoId": { "type": "integer", "example": 1 },
+                        "cantidad": { "type": "integer", "minimum": 1, "example": 2 }
+                      }
+                    }
+                  },
+                  "cupon": { "type": "string", "example": "BIENVENIDO10" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Totales calculados con desglose transparente LFPC" },
+          "400": { "description": "Cantidad negativa o inválida" }
+        }
+      }
+    },
+    "/api/checkout": {
+      "post": {
+        "tags": ["Carrito y Checkout"],
+        "summary": "Procesar orden de compra en 3 pasos con idempotencia y tokenización PCI DSS",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items", "direccionEnvio", "metodoPago", "idempotencyKey"],
+                "properties": {
+                  "items": { "type": "array" },
+                  "direccionEnvio": { "type": "string" },
+                  "metodoPago": { "type": "string", "enum": ["tarjeta", "paypal", "transferencia"] },
+                  "idempotencyKey": { "type": "string", "description": "Identificador único anti-replay" },
+                  "cupon": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Pedido confirmado con guía de envío y firma SHA-256" },
+          "409": { "description": "Transacción duplicada o stock insuficiente" }
+        }
+      }
+    },
+    "/api/orders": {
+      "get": {
+        "tags": ["Pedidos y Devoluciones"],
+        "summary": "Consultar historial de pedidos del usuario autenticado",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Historial de pedidos" }
+        }
+      }
+    },
+    "/api/orders/{id}/return": {
+      "post": {
+        "tags": ["Pedidos y Devoluciones"],
+        "summary": "Solicitar devolución amparada en Ley Federal de Protección al Consumidor (LFPC)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Devolución aprobada y stock reintegrado" },
+          "403": { "description": "No autorizado para devolver este pedido" },
+          "404": { "description": "Pedido no encontrado" }
+        }
+      }
+    },
+    "/api/audit-logs": {
+      "get": {
+        "tags": ["Auditoría y Calidad"],
+        "summary": "Consultar bitácora de auditoría D8 y validar integridad criptográfica de la cadena",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Registros de bitácora y estado de verificación hash SHA-256" },
+          "403": { "description": "Requiere rol auditor o administrador" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "em_sess_<token>_<hmac>",
+        "description": "Token de sesión emitido al iniciar sesión"
+      },
+      "XSessionToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Session-Token",
+        "description": "Cabecera alternativa para el token de sesión"
+      }
+    }
+  }
+}

@@ -41,7 +41,15 @@ const REQUIRED_FILES = [
   'docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.docx',
   'docs/08_Manual_Uso_Git_y_Ramas.md',
   'docs/08_Manual_Uso_Git_y_Ramas.docx',
+  'docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.md',
+  'docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.docx',
+  'docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md',
+  'docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.docx',
+  'docs/openapi.json',
+  'docs/openapi.yaml',
   'docs/00_README_General_ExpressMart.docx',
+  'docs/evidencias/EV-05_Verificacion_Base_Datos_Funcional.json',
+  'docs/evidencias/EV-18_Pruebas_Autenticacion_Sesiones_FuerzaBruta.json',
   'docs/evidencias/EV-24_Informe_Pruebas_Rendimiento.json',
   'docs/evidencias/EV-34_Acta_Simulacro_Recuperacion_ISO22301.json',
   'backups/expressmart-backup-latest.enc',
@@ -50,6 +58,9 @@ const REQUIRED_FILES = [
   'Politica_Integral_de_Base_de_Datos_ExpressMart.docx',
   'Manual_Instalacion_BaseDatos_y_Uso_ExpressMart.docx',
   'Manual_Uso_Git_y_Ramas_ExpressMart.docx',
+  'Revision_Primer_Sprint_Express_Mart_23-10-2026.docx',
+  'Revision_Primer_Sprint_Express_Mart_CERRADA.docx',
+  'Acta_Cierre_Hallazgos_Primer_Sprint_ExpressMart.docx',
   'Registros-Operativos-ExpressMart.xlsx'
 ];
 
