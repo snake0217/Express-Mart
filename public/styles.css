@@ -1,7 +1,8 @@
 /* ==========================================================================
    ExpressMart - Sistema de Diseño "Aura Commerce" (Stitch) + Accesibilidad WCAG 2.2
-   Paleta Oficial Stitch:
-   - Header oscuro: #0f172a y #1e293b
+   Paleta Oficial con Azul Corporativo ExpressMart (Logo Oficial #1d4e9a):
+   - Header oscuro: #0c1e3d (Navy Profundo) y #123580 (Azul Logo)
+   - Brand Blue: #1d4e9a / #163e8a / #2563bf
    - Primary (Terracotta/Naranja Cálido): #a33900 / #cc4900
    - Tertiary (Verde Esmeralda ExpressPrime): #006948 / #00855d
    - Surface: #f8f9ff / #eff4ff / #e5eeff / #dce9ff
@@ -25,8 +26,10 @@
   --tertiary-fixed: #85f8c4;
   --error: #ba1a1a;
   --error-container: #ffdad6;
-  --header-dark: #0f172a;
-  --header-sub: #1e293b;
+  --header-dark: #0c1e3d;
+  --header-sub: #123580;
+  --brand-blue: #1d4e9a;
+  --brand-blue-hover: #2563bf;
 }
 
 *,

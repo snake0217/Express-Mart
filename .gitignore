@@ -6,6 +6,7 @@ coverage/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.db
 data/
 
 # Variables de entorno y secretos locales
