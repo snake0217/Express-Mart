@@ -16,7 +16,9 @@
     "ci:verify": "npm run lint && npm test && npm run test:performance && npm run db:verify && npm run backup && npm run audit:verify",
     "backup": "node scripts/backup-restore.js --backup",
     "restore:verify": "node scripts/backup-restore.js --verify",
-    "audit:verify": "node scripts/audit-verifier.js"
+    "audit:verify": "node scripts/audit-verifier.js",
+    "db:console": "node scripts/db-console.js",
+    "db:query": "node scripts/db-console.js"
   },
   "keywords": [
     "ecommerce",

@@ -35,7 +35,8 @@ const REQUIRED_FILES = [
   'scripts/backup-restore.js',
   'scripts/static-analysis.js',
   'scripts/verify-auth-sessions.js',
-  'scripts/verify-db-functional.js'
+  'scripts/verify-db-functional.js',
+  'scripts/db-console.js'
 ];
 
 function verifyAuditCompliance() {
