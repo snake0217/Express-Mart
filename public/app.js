@@ -120,11 +120,11 @@ function switchTab(tabId) {
     }
   }
 
-  // Verificación de privilegios para Panel de Administrador
+  // Verificación de privilegios para Panel de Administrador / Vendedor
   if (tabId === 'view-admin') {
-    const isAdmin = state.user && state.token && state.user.rol === 'administrador';
-    if (!isAdmin) {
-      showAlert('Acceso denegado: El panel administrativo requiere credenciales de Administrador.', true);
+    const isAdminOrSeller = state.user && state.token && ['administrador', 'vendedor'].includes(state.user.rol);
+    if (!isAdminOrSeller) {
+      showAlert('Acceso denegado: El panel de productos requiere credenciales de Administrador o Vendedor.', true);
       switchTab('view-home');
       return;
     }
@@ -293,8 +293,12 @@ function updateSessionUI() {
     }
 
     const addrInput = document.getElementById('checkout-address');
-    if (addrInput && state.user.direccion && !addrInput.value) {
-      addrInput.value = state.user.direccion;
+    if (addrInput) {
+      addrInput.value = state.user.direccion || '';
+    }
+    const cardHolderInput = document.getElementById('card-holder');
+    if (cardHolderInput) {
+      cardHolderInput.value = state.user.nombre ? state.user.nombre.toUpperCase() : '';
     }
 
     // Panel de Auditoría solo visible para usuarios con rol auditor o administrador
@@ -303,10 +307,14 @@ function updateSessionUI() {
       auditTabBtn.classList.toggle('hidden', !isAuditorOrAdmin);
     }
 
-    // Panel de Administrador solo visible para usuarios con rol administrador
-    const isAdmin = state.user.rol === 'administrador';
+    // Panel de Productos visible para administrador y vendedor
+    const isAdminOrSeller = ['administrador', 'vendedor'].includes(state.user.rol);
+    const adminTabText = document.getElementById('admin-tab-text');
     if (adminTabBtn) {
-      adminTabBtn.classList.toggle('hidden', !isAdmin);
+      adminTabBtn.classList.toggle('hidden', !isAdminOrSeller);
+      if (adminTabText) {
+        adminTabText.textContent = state.user.rol === 'vendedor' ? 'Panel de Vendedor' : 'Panel de Administrador';
+      }
     }
   } else {
     statusEl.textContent = 'Hola, Identifícate';
@@ -319,6 +327,11 @@ function updateSessionUI() {
     if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
     if (auditTabBtn) auditTabBtn.classList.add('hidden');
     if (adminTabBtn) adminTabBtn.classList.add('hidden');
+
+    const addrInput = document.getElementById('checkout-address');
+    if (addrInput) addrInput.value = '';
+    const cardHolderInput = document.getElementById('card-holder');
+    if (cardHolderInput) cardHolderInput.value = '';
   }
 
   const totalItems = state.cart.reduce((acc, i) => acc + i.cantidad, 0);
@@ -1544,6 +1557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveCart();
         updateSessionUI();
         refreshCartModal();
+        loadOrders();
         authDialog.close();
         showAlert(`Sesión iniciada como ${state.user.nombre} (${state.user.rol.toUpperCase()})`);
       } catch (err) {
@@ -1592,6 +1606,7 @@ document.addEventListener('DOMContentLoaded', () => {
       saveCart();
       updateSessionUI();
       refreshCartModal();
+      loadOrders();
       authDialog.close();
       showAlert(`Bienvenido a ExpressMart México, ${state.user.nombre}`);
       showToast({
@@ -1642,6 +1657,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       updateSessionUI();
       refreshCartModal();
+      loadOrders();
       authDialog.close();
       showAlert('Cuenta creada y sesión iniciada correctamente.');
       showToast({
@@ -1698,6 +1714,23 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('em_token');
     localStorage.removeItem('em_user');
     localStorage.removeItem('em_cart');
+
+    const ordersBox = document.getElementById('orders-list');
+    if (ordersBox) {
+      ordersBox.innerHTML =
+        '<p class="muted p-4 rounded-xl bg-surface-container-low text-center">Inicie sesión para consultar sus pedidos en MXN, guías DHL/FedEx y gestionar devoluciones.</p>';
+    }
+    const addrInput = document.getElementById('checkout-address');
+    if (addrInput) addrInput.value = '';
+    const cardHolderInput = document.getElementById('card-holder');
+    if (cardHolderInput) cardHolderInput.value = '';
+    const checkoutSummary = document.getElementById('checkout-final-summary');
+    if (checkoutSummary) checkoutSummary.innerHTML = '';
+    const checkoutResult = document.getElementById('checkout-result-box');
+    if (checkoutResult) checkoutResult.innerHTML = '';
+    const couponInput = document.getElementById('cart-coupon');
+    if (couponInput) couponInput.value = '';
+
     updateSessionUI();
     refreshCartModal();
     switchTab('view-home');

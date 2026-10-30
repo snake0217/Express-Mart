@@ -250,7 +250,7 @@
             </button>
             <button type="button" class="tab-btn hidden px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-admin" role="tab" aria-selected="false">
               <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
-              Panel de Administrador
+              <span id="admin-tab-text">Panel de Administrador</span>
             </button>
             <button type="button" class="tab-btn hidden px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-audit" role="tab" aria-selected="false">
               <span class="material-symbols-outlined text-[18px] text-tertiary-fixed">verified_user</span>
@@ -1439,7 +1439,7 @@
 
         <div class="field">
           <label for="card-holder">Nombre del titular en la tarjeta</label>
-          <input type="text" id="card-holder" value="CRISTOPHER E SAN JUAN" required />
+          <input type="text" id="card-holder" placeholder="Nombre completo del titular" required />
         </div>
 
         <div class="field-row">

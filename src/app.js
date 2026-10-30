@@ -1073,8 +1073,9 @@ function createApp() {
   app.get('/api/orders', authenticateRequest, (req, res) => {
     const db = getDb();
     const isPrivileged = ['administrador', 'vendedor', 'soporte', 'auditor'].includes(req.user.rol);
+    const showAll = isPrivileged && (req.query.scope === 'all' || req.query.all === 'true' || req.query.all === '1');
 
-    const orders = isPrivileged
+    const orders = showAll
       ? db.prepare(`
           SELECT p.*, u.email as cliente_email, u.nombre as cliente_nombre
           FROM pedidos p
