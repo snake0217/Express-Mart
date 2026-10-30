@@ -96,7 +96,7 @@ function createApp() {
 
   app.use(securityHeadersMiddleware);
   app.use(rateLimitMiddleware);
-  app.use(express.json({ limit: '256kb' }));
+  app.use(express.json({ limit: '10mb' }));
   app.use(inputFirewallMiddleware);
   app.use(express.static(path.join(__dirname, '../public')));
 
@@ -370,6 +370,7 @@ function createApp() {
         email: user.email,
         nombre: user.nombre,
         rol: user.rol,
+        fotoPerfil: user.foto_perfil || '',
         mfaEnabled: Boolean(user.mfa_enabled),
         mfaVerificado: Boolean(mfaVerificado),
         direccion: decryptData(user.direccion_cifrada),
@@ -402,6 +403,7 @@ function createApp() {
         email: user.email,
         nombre: user.nombre,
         rol: user.rol,
+        fotoPerfil: user.foto_perfil || '',
         mfaEnabled: Boolean(user.mfa_enabled),
         direccion: decryptData(user.direccion_cifrada),
         telefono: decryptData(user.telefono_cifrado),
@@ -413,7 +415,7 @@ function createApp() {
   });
 
   app.put('/api/auth/profile', authenticateRequest, (req, res) => {
-    const { nombre, direccion, telefono, enableMfa } = req.body || {};
+    const { nombre, direccion, telefono, enableMfa, fotoPerfil } = req.body || {};
     const db = getDb();
     const current = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.user.id);
 
@@ -421,12 +423,13 @@ function createApp() {
     const newDirEnc = direccion !== undefined ? encryptData(direccion) : current.direccion_cifrada;
     const newTelEnc = telefono !== undefined ? encryptData(telefono) : current.telefono_cifrado;
     const newMfa = enableMfa !== undefined ? (enableMfa ? 1 : 0) : current.mfa_enabled;
+    const newFoto = fotoPerfil !== undefined ? String(fotoPerfil) : (current.foto_perfil || '');
 
     db.prepare(`
       UPDATE usuarios
-      SET nombre = ?, direccion_cifrada = ?, telefono_cifrado = ?, mfa_enabled = ?
+      SET nombre = ?, direccion_cifrada = ?, telefono_cifrado = ?, mfa_enabled = ?, foto_perfil = ?
       WHERE id = ?
-    `).run(newNombre, newDirEnc, newTelEnc, newMfa, req.user.id);
+    `).run(newNombre, newDirEnc, newTelEnc, newMfa, newFoto, req.user.id);
 
     recordAuditLog(db, {
       usuarioId: req.user.id,
@@ -443,6 +446,7 @@ function createApp() {
         email: current.email,
         nombre: newNombre,
         rol: current.rol,
+        fotoPerfil: newFoto,
         mfaEnabled: Boolean(newMfa),
         direccion: decryptData(newDirEnc),
         telefono: decryptData(newTelEnc)
@@ -735,7 +739,7 @@ function createApp() {
 
       // SEG-05: Siempre consultar precio y existencia desde la base de datos del servidor, ignorando cualquier precio enviado por el cliente
       const prod = db.prepare(`
-        SELECT c.id, c.sku, c.nombre, c.precio, i.stock_disponible
+        SELECT c.id, c.sku, c.nombre, c.precio, c.imagen_url, i.stock_disponible
         FROM catalogo c
         JOIN inventario i ON i.producto_id = c.id
         WHERE c.id = ? AND c.activo = 1
@@ -754,6 +758,7 @@ function createApp() {
         productoId: prod.id,
         sku: prod.sku,
         nombre: prod.nombre,
+        imagen_url: prod.imagen_url || '/assets/logo.png',
         cantidad,
         precio: prod.precio,
         subtotalItem: Number((prod.precio * cantidad).toFixed(2))

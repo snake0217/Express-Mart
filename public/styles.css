@@ -428,3 +428,53 @@ input:user-invalid ~ .error-msg {
   color: var(--secondary);
   font-size: 0.86rem;
 }
+
+/* ==========================================================================
+   Zoom Interactivo de Producto Estilo Mercado Libre / Amazon
+   ========================================================================== */
+#product-zoom-box {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  background: #ffffff;
+}
+
+#product-zoom-image {
+  transform-origin: center center;
+  transition: transform 0.12s ease-out;
+  will-change: transform;
+}
+
+#product-zoom-box:hover #product-zoom-image {
+  transform: scale(2.3);
+}
+
+.product-thumb-item {
+  width: 54px;
+  height: 54px;
+  border-radius: 0.5rem;
+  border: 2px solid var(--surface-dim);
+  cursor: pointer;
+  overflow: hidden;
+  background: #ffffff;
+  padding: 2px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.product-thumb-item:hover,
+.product-thumb-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+#toast-container {
+  pointer-events: none;
+}
+
+#toast-container > * {
+  pointer-events: auto;
+}

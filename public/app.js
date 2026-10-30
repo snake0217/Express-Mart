@@ -1,9 +1,8 @@
 /**
  * Cliente Web Interactivo ExpressMart - Sistema de Diseño Stitch "Aura Commerce" (Precios en MXN)
- * Conecta los flujos de Catálogo (RF-03), Ficha de Producto y Reseñas (RF-08),
- * Cesta y Checkout en 3 pasos (RF-04, RF-05, RNF-11), Cuentas y MFA (RF-01 / RF-02),
- * Pedidos y Devoluciones LFPC (RF-07), Notificaciones (RF-09), Reportes (RF-10)
- * y Centro de Auditoría ECTA-01.
+ * Conecta los flujos de Catálogo, Ficha de Producto con Zoom Interactivo y Reseñas Verificadas,
+ * Cesta con Miniaturas y Checkout en 3 pasos, Perfil con Foto Personalizada,
+ * Pedidos y Devoluciones LFPC, Notificaciones, Reportes y Centro de Auditoría RBAC.
  */
 
 const state = {
@@ -12,7 +11,8 @@ const state = {
   cart: JSON.parse(localStorage.getItem('em_cart') || '[]'),
   coupon: '',
   calculatedTotals: null,
-  recommendationsHealthy: true
+  recommendationsHealthy: true,
+  currentProduct: null
 };
 
 function formatMxn(amount) {
@@ -31,6 +31,54 @@ function showAlert(msg, isError = false) {
   setTimeout(() => el.classList.add('hidden'), 6000);
 }
 
+function showToast({ title, message, imageUrl, price }) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className =
+    'pointer-events-auto flex items-center gap-3 p-3.5 bg-surface-container-lowest text-on-surface rounded-xl shadow-[0_12px_36px_rgba(11,28,48,0.18)] border border-surface-container-highest/80 transform translate-y-3 opacity-0 transition-all duration-300 max-w-sm';
+
+  toast.innerHTML = `
+    <img
+      src="${imageUrl || '/assets/logo.png'}"
+      alt="${title}"
+      class="w-12 h-12 rounded-lg object-contain bg-white p-1 border border-surface-dim shrink-0"
+      onerror="this.src='/assets/logo.png'"
+    />
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-1 text-tertiary font-bold text-xs">
+        <span class="material-symbols-outlined text-[15px]">check_circle</span>
+        <span>${message || '¡Agregado a la cesta!'}</span>
+      </div>
+      <p class="font-bold text-xs truncate text-on-surface">${title}</p>
+      ${price ? `<p class="text-xs text-primary font-semibold">${formatMxn(price)}</p>` : ''}
+    </div>
+    <button type="button" class="btn-toast-view px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary text-xs font-bold shrink-0 transition-colors">
+      Ver Cesta
+    </button>
+  `;
+
+  container.appendChild(toast);
+
+  toast.querySelector('.btn-toast-view').addEventListener('click', () => {
+    const cartDialog = document.getElementById('cart-dialog');
+    setCheckoutStep(1);
+    refreshCartModal();
+    cartDialog.showModal();
+    toast.remove();
+  });
+
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-y-3', 'opacity-0');
+  });
+
+  setTimeout(() => {
+    toast.classList.add('translate-y-3', 'opacity-0');
+    setTimeout(() => toast.remove(), 350);
+  }, 4000);
+}
+
 async function apiFetch(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (state.token) {
@@ -45,41 +93,106 @@ async function apiFetch(url, options = {}) {
 }
 
 function switchTab(tabId) {
+  // Verificación de privilegios para Panel de Auditoría
+  if (tabId === 'view-audit') {
+    const isAuditorOrAdmin = state.user && state.token && ['auditor', 'administrador'].includes(state.user.rol);
+    if (!isAuditorOrAdmin) {
+      showAlert('Acceso denegado: El panel de auditoría requiere credenciales de Auditor o Administrador.', true);
+      switchTab('view-catalog');
+      return;
+    }
+  }
+
   document.querySelectorAll('.tab-btn').forEach((b) => {
     const isTarget = b.dataset.tab === tabId;
     b.classList.toggle('active', isTarget);
     b.setAttribute('aria-selected', isTarget ? 'true' : 'false');
   });
+
   document.querySelectorAll('.tab-view').forEach((v) => {
     v.classList.toggle('hidden', v.id !== tabId);
   });
 
+  if (tabId === 'view-catalog' || tabId === 'view-product-detail') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   if (tabId === 'view-orders') loadOrders();
   if (tabId === 'view-profile') loadProfile();
   if (tabId === 'view-admin') loadAdminReports();
   if (tabId === 'view-audit') loadAuditCenter();
 }
 
+function updateProfilePhotoUI(fotoUrl) {
+  const avatarImg = document.getElementById('profile-avatar-img');
+  const avatarInitials = document.getElementById('profile-avatar-initials');
+  const btnRemove = document.getElementById('btn-remove-photo');
+  if (!avatarImg || !avatarInitials) return;
+
+  if (fotoUrl) {
+    avatarImg.src = fotoUrl;
+    avatarImg.classList.remove('hidden');
+    avatarInitials.classList.add('hidden');
+    if (btnRemove) btnRemove.classList.remove('hidden');
+  } else {
+    avatarImg.src = '';
+    avatarImg.classList.add('hidden');
+    avatarInitials.classList.remove('hidden');
+    const name = state.user?.nombre || 'EM';
+    const initials = name
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    avatarInitials.textContent = initials || 'EM';
+    if (btnRemove) btnRemove.classList.add('hidden');
+  }
+}
+
 function updateSessionUI() {
   const statusEl = document.getElementById('user-status');
   const btnLogout = document.getElementById('btn-logout');
+  const headerAvatarImg = document.getElementById('header-avatar-img');
+  const headerAvatarIcon = document.getElementById('header-avatar-icon');
+  const auditTabBtn = document.querySelector('.tab-btn[data-tab="view-audit"]');
 
   if (state.user && state.token) {
     const firstName = state.user.nombre.split(' ')[0];
-    statusEl.textContent = `Hola, ${firstName} (${state.user.rol.toUpperCase()})`;
+    statusEl.textContent = `Hola, ${firstName}`;
     btnLogout.classList.remove('hidden');
+
+    if (state.user.fotoPerfil && headerAvatarImg) {
+      headerAvatarImg.src = state.user.fotoPerfil;
+      headerAvatarImg.classList.remove('hidden');
+      if (headerAvatarIcon) headerAvatarIcon.classList.add('hidden');
+    } else if (headerAvatarImg) {
+      headerAvatarImg.classList.add('hidden');
+      if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
+    }
+
     const addrInput = document.getElementById('checkout-address');
     if (addrInput && state.user.direccion && !addrInput.value) {
       addrInput.value = state.user.direccion;
     }
+
+    // Panel de Auditoría solo visible para usuarios con rol auditor o administrador
+    const isAuditorOrAdmin = ['auditor', 'administrador'].includes(state.user.rol);
+    if (auditTabBtn) {
+      auditTabBtn.classList.toggle('hidden', !isAuditorOrAdmin);
+    }
   } else {
     statusEl.textContent = 'Hola, Identifícate';
     btnLogout.classList.add('hidden');
+    if (headerAvatarImg) headerAvatarImg.classList.add('hidden');
+    if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
+    if (auditTabBtn) auditTabBtn.classList.add('hidden');
   }
 
   const totalItems = state.cart.reduce((acc, i) => acc + i.cantidad, 0);
   const countEl = document.getElementById('cart-count');
   if (countEl) countEl.textContent = String(totalItems);
+
+  updateProfilePhotoUI(state.user?.fotoPerfil || '');
 }
 
 function saveCart() {
@@ -88,7 +201,7 @@ function saveCart() {
 }
 
 // ============================================================================
-// CATÁLOGO Y BÚSQUEDA CON TARJETAS STITCH "AURA COMMERCE" EN MXN (RF-03)
+// CATÁLOGO Y BÚSQUEDA CON TARJETAS STITCH "AURA COMMERCE" EN MXN
 // ============================================================================
 async function loadCatalog() {
   const q = document.getElementById('search-input').value.trim();
@@ -105,15 +218,19 @@ async function loadCatalog() {
   if (orden) params.set('orden', orden);
 
   const data = await apiFetch(`/api/products?${params.toString()}`);
-  document.getElementById('search-latency-pill').textContent =
-    `Tiempo de búsqueda: ${data.responseTimeMs} ms (${data.total} productos en MXN · SLA < 2000 ms cumplido)`;
+  const latencyPill = document.getElementById('search-latency-pill');
+  if (latencyPill) {
+    latencyPill.textContent = `Tiempo de respuesta: ${data.responseTimeMs} ms (${data.total} productos en MXN)`;
+  }
 
   const recBanner = document.getElementById('recommendations-banner');
-  if (data.recommendations && data.recommendations.degradedMode) {
-    recBanner.textContent = `Aviso de contingencia: ${data.recommendations.message}`;
-    recBanner.classList.remove('hidden');
-  } else {
-    recBanner.classList.add('hidden');
+  if (recBanner) {
+    if (data.recommendations && data.recommendations.degradedMode) {
+      recBanner.textContent = `Aviso: ${data.recommendations.message}`;
+      recBanner.classList.remove('hidden');
+    } else {
+      recBanner.classList.add('hidden');
+    }
   }
 
   const grid = document.getElementById('products-grid');
@@ -148,8 +265,8 @@ async function loadCatalog() {
 
         <div class="flex items-center gap-1.5 text-amber-600 text-xs font-bold mb-1">
           <span class="material-symbols-outlined text-[15px] text-amber-500">star</span>
-          <span>${p.calificacion_promedio} / 5.0</span>
-          <span class="text-secondary font-normal">(${p.total_resenas} reseñas verificadas)</span>
+          <span>${Number(p.calificacion_promedio).toFixed(1)} / 5.0</span>
+          <span class="text-secondary font-normal">(${p.total_resenas || 0} reseñas verificadas)</span>
         </div>
 
         <h3 class="font-headline-sm text-[16px] leading-snug text-on-surface font-bold line-clamp-2 mb-1 cursor-pointer hover:text-primary open-detail-trigger" data-id="${p.id}">
@@ -179,7 +296,7 @@ async function loadCatalog() {
             class="py-2 px-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold transition-colors open-detail-trigger"
             data-id="${p.id}"
           >
-            Ficha / Reseñas
+            Ver Ficha
           </button>
           <button
             type="button"
@@ -187,6 +304,7 @@ async function loadCatalog() {
             data-id="${p.id}"
             data-nombre="${p.nombre}"
             data-precio="${p.precio}"
+            data-imagen="${imgUrl}"
           >
             <span class="material-symbols-outlined text-[16px]">add_shopping_cart</span>
             Agregar
@@ -197,186 +315,301 @@ async function loadCatalog() {
     grid.appendChild(card);
   }
 
+  // Eventos de Agregar al Carrito desde el catálogo
   grid.querySelectorAll('.add-to-cart-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const productoId = Number(btn.dataset.id);
       const nombre = btn.dataset.nombre;
       const precio = Number(btn.dataset.precio);
+      const imagen_url = btn.dataset.imagen || '/assets/logo.png';
+
       const existing = state.cart.find((i) => i.productoId === productoId);
       if (existing) {
         existing.cantidad += 1;
+        if (!existing.imagen_url) existing.imagen_url = imagen_url;
       } else {
-        state.cart.push({ productoId, nombre, precio, cantidad: 1 });
+        state.cart.push({ productoId, nombre, precio, imagen_url, cantidad: 1 });
       }
       saveCart();
-      showAlert(`"${nombre}" agregado a tu cesta (${formatMxn(precio)}).`);
+
+      showToast({
+        title: nombre,
+        message: '¡Agregado a la cesta!',
+        imageUrl: imagen_url,
+        price: precio
+      });
     });
   });
 
+  // Eventos de apertura de página de detalle con zoom
   grid.querySelectorAll('.open-detail-trigger').forEach((el) => {
-    el.addEventListener('click', () => openProductDetailModal(Number(el.dataset.id)));
+    el.addEventListener('click', () => openProductDetailPage(Number(el.dataset.id)));
   });
 }
 
 // ============================================================================
-// MODAL DETALLE DE PRODUCTO STITCH ("EXPRESSOUND PRO 900" LAYOUT) + RESEÑAS RF-08
+// PÁGINA COMPLETA DE DETALLE DE PRODUCTO ESTILO MERCADO LIBRE / AMAZON
+// CON ZOOM LENS INTERACTIVO AL PASAR EL RATÓN Y BUY BOX DEDICADO
 // ============================================================================
-async function openProductDetailModal(productId) {
-  const dialog = document.getElementById('product-detail-dialog');
-  const body = document.getElementById('product-detail-body');
+async function openProductDetailPage(productId) {
   try {
     const p = await apiFetch(`/api/products/${productId}`);
-    const specsEntries = Object.entries(p.especificaciones || {});
+    state.currentProduct = p;
 
-    body.innerHTML = `
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-        <div class="lg:col-span-5 bg-surface-container-low rounded-2xl p-4 flex flex-col items-center justify-center">
-          <div class="w-full aspect-square rounded-xl overflow-hidden bg-white mb-3 flex items-center justify-center">
-            <img
-              src="${p.imagen_url || '/assets/logo.png'}"
-              alt="${p.nombre}"
-              class="w-full h-full object-cover object-center"
-              onerror="this.src='/assets/logo.png'"
-            />
-          </div>
-          <span class="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold flex items-center gap-1">
-            <span class="material-symbols-outlined text-[14px]">verified</span>
-            Elección Oficial ExpressMart México · ${p.sku}
-          </span>
-        </div>
+    // Actualizar migas de pan
+    document.getElementById('detail-breadcrumb-cat').textContent = p.categoria;
+    document.getElementById('detail-breadcrumb-brand').textContent = p.marca;
+    document.getElementById('detail-breadcrumb-name').textContent = p.nombre;
 
-        <div class="lg:col-span-7 space-y-3">
-          <div class="font-label-md text-label-md text-primary font-bold uppercase">${p.marca} · ${p.categoria}</div>
-          <h3 class="font-headline-md text-headline-md text-on-surface font-extrabold leading-tight">${p.nombre}</h3>
-          <p class="font-body-md text-body-md text-secondary">${p.descripcion}</p>
+    // Configurar imagen principal y zoom
+    const zoomBox = document.getElementById('product-zoom-box');
+    const zoomImg = document.getElementById('product-zoom-image');
+    const zoomHint = document.getElementById('zoom-badge-hint');
+    const mainImgUrl = p.imagen_url || '/assets/logo.png';
 
-          <div class="p-3.5 rounded-xl bg-surface-container-low flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <div class="font-price-hero text-price-hero text-primary font-extrabold">${formatMxn(p.precio)}</div>
-              <div class="text-xs text-secondary">IVA 16% incluido · Envío: ${p.condiciones_envio}</div>
-            </div>
-            <button
-              type="button"
-              id="detail-add-cart-btn"
-              class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center gap-1.5"
-            >
-              <span class="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>
-              Añadir a la Cesta
-            </button>
-          </div>
+    zoomImg.src = mainImgUrl;
+    zoomImg.alt = p.nombre;
+    zoomImg.style.transform = 'scale(1)';
+    zoomImg.style.transformOrigin = 'center center';
+    if (zoomHint) zoomHint.classList.remove('opacity-0');
 
-          <div class="rounded-xl bg-surface-container-low p-3">
-            <h4 class="font-label-lg text-label-lg font-bold mb-1.5">Especificaciones Técnicas (ISO/IEC 25012 Completitud 100%)</h4>
-            <div class="grid grid-cols-2 gap-1.5 text-xs">
-              ${specsEntries
-                .map(
-                  ([k, v]) =>
-                    `<div class="text-secondary capitalize">${k}:</div><div class="font-bold text-on-surface">${v}</div>`
-                )
-                .join('')}
-            </div>
-          </div>
-        </div>
-      </div>
+    // Zoom interactivo al pasar el ratón (Magnificación 2.3x fluida con mouse tracking)
+    zoomBox.onmousemove = (e) => {
+      const rect = zoomBox.getBoundingClientRect();
+      const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+      zoomImg.style.transformOrigin = `${x}% ${y}%`;
+      zoomImg.style.transform = 'scale(2.3)';
+      if (zoomHint) zoomHint.classList.add('opacity-0');
+    };
 
-      <hr class="my-4 border-surface-container" />
+    zoomBox.onmouseleave = () => {
+      zoomImg.style.transformOrigin = 'center center';
+      zoomImg.style.transform = 'scale(1)';
+      if (zoomHint) zoomHint.classList.remove('opacity-0');
+    };
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-        <div class="lg:col-span-7">
-          <h4 class="font-headline-sm text-headline-sm font-bold mb-2">
-            Opiniones de Clientes Verificados (${(p.reviews || []).length})
-          </h4>
-          <div class="space-y-2 max-h-56 overflow-y-auto">
-            ${
-              (p.reviews || []).length
-                ? p.reviews
-                    .map(
-                      (r) => `
-                  <div class="p-3 rounded-lg bg-surface-container-low">
-                    <div class="flex items-center justify-between text-xs mb-1">
-                      <strong>${r.autor}</strong>
-                      <span class="text-amber-600 font-bold">Calificación: ${r.calificacion}/5 · Compra Verificada</span>
-                    </div>
-                    <p class="text-xs text-on-surface m-0">${r.comentario}</p>
-                  </div>
-                `
-                    )
-                    .join('')
-                : '<p class="muted">Aún no hay reseñas para este artículo.</p>'
-            }
-          </div>
-        </div>
+    // Tira de miniaturas interactivas (vistas alternativas)
+    const thumbsRow = document.getElementById('product-thumbnails-row');
+    const thumbImages = [
+      { label: 'Principal', url: mainImgUrl },
+      { label: 'Detalle', url: mainImgUrl },
+      { label: 'Empaque', url: mainImgUrl }
+    ];
 
-        <div class="lg:col-span-5 bg-surface-container-low p-3.5 rounded-xl">
-          <h4 class="font-label-lg text-label-lg font-bold mb-2">Escribir Reseña Verificada (RF-08)</h4>
-          <form id="detail-review-form" class="space-y-2.5">
-            <div class="field">
-              <label for="rev-rating">Calificación (1 a 5)</label>
-              <select id="rev-rating" required>
-                <option value="5">5 de 5 - Excelente</option>
-                <option value="4">4 de 5 - Muy bueno</option>
-                <option value="3">3 de 5 - Regular</option>
-                <option value="2">2 de 5 - Malo</option>
-                <option value="1">1 de 5 - Pésimo</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="rev-comment">Comentario sobre el producto</label>
-              <textarea id="rev-comment" rows="2" required minlength="4" placeholder="Comparte tu experiencia con el producto y el envío..."></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">Publicar Reseña</button>
-          </form>
-        </div>
-      </div>
-    `;
+    thumbsRow.innerHTML = thumbImages
+      .map(
+        (t, idx) => `
+        <button
+          type="button"
+          class="product-thumb-item flex-shrink-0 w-16 h-16 rounded-lg bg-surface-container-low border-2 ${
+            idx === 0 ? 'border-primary ring-2 ring-primary/20' : 'border-surface-container opacity-70 hover:opacity-100'
+          } p-1 overflow-hidden transition-all"
+          data-url="${t.url}"
+          title="Vista ${t.label}"
+        >
+          <img src="${t.url}" alt="${p.nombre} - ${t.label}" class="w-full h-full object-contain pointer-events-none" onerror="this.src='/assets/logo.png'" />
+        </button>
+      `
+      )
+      .join('');
 
-    document.getElementById('detail-add-cart-btn').addEventListener('click', () => {
-      const existing = state.cart.find((i) => i.productoId === p.id);
-      if (existing) existing.cantidad += 1;
-      else state.cart.push({ productoId: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: 1 });
-      saveCart();
-      dialog.close();
-      showAlert(`"${p.nombre}" añadido a la cesta (${formatMxn(p.precio)}).`);
+    thumbsRow.querySelectorAll('.product-thumb-item').forEach((thumbBtn) => {
+      thumbBtn.addEventListener('click', () => {
+        thumbsRow.querySelectorAll('.product-thumb-item').forEach((b) => {
+          b.classList.remove('border-primary', 'ring-2', 'ring-primary/20');
+          b.classList.add('border-surface-container', 'opacity-70');
+        });
+        thumbBtn.classList.add('border-primary', 'ring-2', 'ring-primary/20');
+        thumbBtn.classList.remove('border-surface-container', 'opacity-70');
+
+        zoomImg.src = thumbBtn.dataset.url;
+        zoomImg.style.transform = 'scale(1)';
+      });
     });
 
-    document.getElementById('detail-review-form').addEventListener('submit', async (e) => {
+    // Información del producto
+    document.getElementById('detail-brand-badge').textContent = `${p.marca} · ${p.categoria}`;
+    document.getElementById('detail-sku-badge').textContent = `SKU: ${p.sku}`;
+    document.getElementById('detail-title').textContent = p.nombre;
+
+    const ratingNum = Number(p.calificacion_promedio || 5.0).toFixed(1);
+    const reviewsCount = (p.reviews || []).length;
+    document.getElementById('detail-rating-num').textContent = ratingNum;
+    document.getElementById('detail-rating-count').textContent = `${reviewsCount} opiniones verificadas`;
+
+    // Precios y MSI
+    const precio = Number(p.precio);
+    const precioOrig = Math.round(precio * 1.18);
+    const msiVal = (precio / 12).toFixed(2);
+    document.getElementById('detail-price-main').textContent = formatMxn(precio);
+    document.getElementById('detail-price-original').textContent = formatMxn(precioOrig);
+    document.getElementById('detail-msi-val').textContent = `$${msiVal}`;
+
+    // Descripción
+    document.getElementById('detail-desc').textContent = p.descripcion;
+
+    // Tabla de Especificaciones Técnicas
+    const specsTable = document.getElementById('detail-specs-table');
+    const specsEntries = Object.entries(p.especificaciones || {});
+    if (specsEntries.length > 0) {
+      specsTable.innerHTML = specsEntries
+        .map(
+          ([k, v], idx) => `
+          <div class="grid grid-cols-3 p-2.5 ${idx % 2 === 0 ? 'bg-surface-container-low' : 'bg-surface-container-lowest'} border-b border-surface-container last:border-b-0">
+            <span class="text-secondary font-medium capitalize">${k.replace(/_/g, ' ')}:</span>
+            <span class="col-span-2 font-bold text-on-surface">${v}</span>
+          </div>
+        `
+        )
+        .join('');
+    } else {
+      specsTable.innerHTML = `<div class="p-3 text-secondary">Especificaciones verificadas por el fabricante oficial.</div>`;
+    }
+
+    // Reseñas verificadas
+    document.getElementById('detail-reviews-total').textContent = String(reviewsCount);
+    const reviewsList = document.getElementById('detail-reviews-list');
+    if (reviewsCount > 0) {
+      reviewsList.innerHTML = p.reviews
+        .map(
+          (r) => `
+          <div class="p-3 rounded-xl bg-surface-container-low border border-surface-container">
+            <div class="flex items-center justify-between text-xs mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-on-surface">${r.autor}</span>
+                <span class="px-1.5 py-0.5 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-xs text-[10px] font-bold">
+                  Compra Verificada
+                </span>
+              </div>
+              <div class="flex items-center text-amber-500 font-bold text-xs">
+                ${'★'.repeat(r.calificacion)}${'☆'.repeat(5 - r.calificacion)}
+                <span class="text-secondary ml-1">${r.fecha ? r.fecha.split('T')[0] : 'Reciente'}</span>
+              </div>
+            </div>
+            <p class="text-xs text-on-surface leading-relaxed">${r.comentario}</p>
+          </div>
+        `
+        )
+        .join('');
+    } else {
+      reviewsList.innerHTML = '<p class="text-xs text-secondary italic">Aún no hay opiniones registradas para este producto. ¡Sé el primero en calificarlo!</p>';
+    }
+
+    // Buy Box Dedicado
+    document.getElementById('buybox-price').textContent = formatMxn(precio);
+    document.getElementById('buybox-stock-label').textContent = `${p.stock_disponible} unidades disponibles para envío inmediato`;
+    document.getElementById('buybox-quantity').value = '1';
+
+    // Botón Agregar a la Cesta (Buy Box)
+    const btnBuyboxAdd = document.getElementById('btn-buybox-add-cart');
+    btnBuyboxAdd.onclick = () => {
+      const qty = Number(document.getElementById('buybox-quantity').value || 1);
+      const existing = state.cart.find((i) => i.productoId === p.id);
+      if (existing) {
+        existing.cantidad += qty;
+        if (!existing.imagen_url) existing.imagen_url = mainImgUrl;
+      } else {
+        state.cart.push({
+          productoId: p.id,
+          nombre: p.nombre,
+          precio: Number(p.precio),
+          imagen_url: mainImgUrl,
+          cantidad: qty
+        });
+      }
+      saveCart();
+
+      showToast({
+        title: `${qty}x ${p.nombre}`,
+        message: '¡Agregado a la cesta!',
+        imageUrl: mainImgUrl,
+        price: precio * qty
+      });
+    };
+
+    // Botón Comprar Ahora (Buy Box)
+    const btnBuyboxBuyNow = document.getElementById('btn-buybox-buy-now');
+    btnBuyboxBuyNow.onclick = () => {
+      const qty = Number(document.getElementById('buybox-quantity').value || 1);
+      const existing = state.cart.find((i) => i.productoId === p.id);
+      if (existing) {
+        existing.cantidad += qty;
+        if (!existing.imagen_url) existing.imagen_url = mainImgUrl;
+      } else {
+        state.cart.push({
+          productoId: p.id,
+          nombre: p.nombre,
+          precio: Number(p.precio),
+          imagen_url: mainImgUrl,
+          cantidad: qty
+        });
+      }
+      saveCart();
+
+      const cartDialog = document.getElementById('cart-dialog');
+      setCheckoutStep(1);
+      refreshCartModal();
+      cartDialog.showModal();
+    };
+
+    // Formulario de Reseña en la página
+    const pageReviewForm = document.getElementById('page-review-form');
+    pageReviewForm.onsubmit = async (e) => {
       e.preventDefault();
       if (!state.token) {
-        dialog.close();
         document.getElementById('auth-dialog').showModal();
-        showAlert('Inicie sesión para registrar una reseña verificada.', true);
+        showAlert('Inicie sesión para registrar una opinión verificada.', true);
         return;
       }
       try {
         await apiFetch(`/api/products/${p.id}/reviews`, {
           method: 'POST',
           body: JSON.stringify({
-            calificacion: Number(document.getElementById('rev-rating').value),
-            comentario: document.getElementById('rev-comment').value
+            calificacion: Number(document.getElementById('page-rev-rating').value),
+            comentario: document.getElementById('page-rev-comment').value
           })
         });
-        showAlert('Reseña verificada publicada correctamente.');
-        openProductDetailModal(p.id);
+        showAlert('Opinión verificada publicada exitosamente.');
+        document.getElementById('page-rev-comment').value = '';
+        openProductDetailPage(p.id);
         loadCatalog();
       } catch (err) {
         showAlert(err.message, true);
       }
-    });
+    };
 
-    dialog.showModal();
+    // Cambiar a la vista de detalle de producto
+    switchTab('view-product-detail');
   } catch (err) {
     showAlert(err.message, true);
   }
 }
 
+// Fallback para compatibilidad
+function openProductDetailModal(productId) {
+  openProductDetailPage(productId);
+}
+
 // ============================================================================
-// CARRITO Y CHECKOUT EN 3 PASOS EN MXN (RF-04, RF-05, RNF-11)
+// CARRITO Y CHECKOUT EN 3 PASOS EN MXN CON MINIATURAS
 // ============================================================================
 function setCheckoutStep(stepNum) {
   [1, 2, 3].forEach((n) => {
     document.getElementById(`checkout-step-${n}`).classList.toggle('hidden', n !== stepNum);
     document.getElementById(`step-ind-${n}`).classList.toggle('active', n === stepNum);
   });
+
+  // Restablecer botón de checkout al estado normal si volvemos a pasos anteriores
+  const btnConfirm = document.getElementById('btn-confirm-order');
+  const btnBackStep2 = document.getElementById('btn-back-step-2');
+  if (btnConfirm && stepNum < 3) {
+    btnConfirm.dataset.action = '';
+    btnConfirm.textContent = 'Confirmar y Pagar en MXN';
+    btnConfirm.className = 'btn btn-accent';
+    if (btnBackStep2) btnBackStep2.classList.remove('hidden');
+  }
 }
 
 async function refreshCartModal() {
@@ -386,7 +619,7 @@ async function refreshCartModal() {
 
   if (state.cart.length === 0) {
     container.innerHTML =
-      '<p class="muted p-3 bg-surface-container-low rounded-lg">Tu cesta está vacía. Explora el catálogo en Pesos Mexicanos ($ MXN) para agregar productos.</p>';
+      '<p class="muted p-4 bg-surface-container-low rounded-xl text-center">Tu cesta está vacía. Explora el catálogo para agregar productos.</p>';
     totalsBox.innerHTML = '';
     state.calculatedTotals = null;
     return;
@@ -395,19 +628,55 @@ async function refreshCartModal() {
   container.innerHTML = state.cart
     .map(
       (item, idx) => `
-      <div class="flex items-center justify-between py-2.5 px-3 mb-2 rounded-lg bg-surface-container-low">
-        <div>
-          <strong class="text-on-surface">${item.nombre}</strong>
-          <div class="text-xs text-secondary">Cantidad: ${item.cantidad} × ${formatMxn(item.precio)}</div>
+      <div class="flex items-center gap-3 py-3 px-3 mb-2 rounded-xl bg-surface-container-low border border-surface-container">
+        <img
+          src="${item.imagen_url || '/assets/logo.png'}"
+          alt="${item.nombre}"
+          class="w-16 h-16 rounded-lg object-contain bg-white p-1 border border-surface-dim shrink-0"
+          onerror="this.src='/assets/logo.png'"
+        />
+        <div class="flex-1 min-w-0">
+          <strong class="text-on-surface text-sm line-clamp-1">${item.nombre}</strong>
+          <div class="text-xs text-secondary mt-0.5">Precio unitario: ${formatMxn(item.precio)}</div>
+          <div class="flex items-center gap-2 mt-1.5">
+            <div class="flex items-center border border-surface-dim rounded-lg overflow-hidden bg-white">
+              <button type="button" class="cart-qty-btn cart-qty-minus px-2 py-0.5 text-xs hover:bg-slate-100 font-bold" data-idx="${idx}">-</button>
+              <span class="px-2.5 py-0.5 text-xs font-bold text-on-surface">${item.cantidad}</span>
+              <button type="button" class="cart-qty-btn cart-qty-plus px-2 py-0.5 text-xs hover:bg-slate-100 font-bold" data-idx="${idx}">+</button>
+            </div>
+            <button type="button" class="text-xs text-error hover:underline cart-remove-btn" data-idx="${idx}">Quitar</button>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-primary">${formatMxn(item.precio * item.cantidad)}</span>
-          <button type="button" class="btn btn-sm btn-outline cart-remove-btn" data-idx="${idx}">Quitar</button>
+        <div class="text-right shrink-0">
+          <span class="font-bold text-primary text-sm">${formatMxn(item.precio * item.cantidad)}</span>
         </div>
       </div>
     `
     )
     .join('');
+
+  // Controles de cantidad (+) y (-)
+  container.querySelectorAll('.cart-qty-plus').forEach((b) => {
+    b.addEventListener('click', () => {
+      const idx = Number(b.dataset.idx);
+      state.cart[idx].cantidad += 1;
+      saveCart();
+      refreshCartModal();
+    });
+  });
+
+  container.querySelectorAll('.cart-qty-minus').forEach((b) => {
+    b.addEventListener('click', () => {
+      const idx = Number(b.dataset.idx);
+      if (state.cart[idx].cantidad > 1) {
+        state.cart[idx].cantidad -= 1;
+      } else {
+        state.cart.splice(idx, 1);
+      }
+      saveCart();
+      refreshCartModal();
+    });
+  });
 
   container.querySelectorAll('.cart-remove-btn').forEach((b) => {
     b.addEventListener('click', () => {
@@ -423,12 +692,24 @@ async function refreshCartModal() {
       body: JSON.stringify({ items: state.cart, cuponCodigo: state.coupon })
     });
     state.calculatedTotals = calc;
+
+    // Sincronizar imágenes devueltas si el item no la tenía
+    if (calc.items && Array.isArray(calc.items)) {
+      calc.items.forEach((ci) => {
+        const localItem = state.cart.find((i) => i.productoId === ci.productoId);
+        if (localItem && ci.imagen_url && !localItem.imagen_url) {
+          localItem.imagen_url = ci.imagen_url;
+        }
+      });
+    }
+
     if (shipMsg) {
       shipMsg.textContent =
         calc.costoEnvio === 0
           ? 'Tu pedido incluye Envío ExpressPrime GRATIS en México ($0.00 MXN)'
           : `Agrega ${formatMxn(Math.max(0, 999 - calc.subtotal))} más para obtener Envío ExpressPrime GRATIS`;
     }
+
     totalsBox.innerHTML = `
       <div class="space-y-1 text-sm">
         <div class="flex justify-between"><span>Subtotal productos:</span> <strong>${formatMxn(calc.subtotal)}</strong></div>
@@ -452,7 +733,7 @@ async function loadOrders() {
   const box = document.getElementById('orders-list');
   if (!state.token) {
     box.innerHTML =
-      '<p class="muted p-4 rounded-xl bg-surface-container-low">Inicie sesión para consultar sus pedidos en MXN, guías DHL/FedEx y gestionar devoluciones LFPC.</p>';
+      '<p class="muted p-4 rounded-xl bg-surface-container-low">Inicie sesión para consultar sus pedidos en MXN, guías DHL/FedEx y gestionar devoluciones.</p>';
     return;
   }
   try {
@@ -476,19 +757,16 @@ async function loadOrders() {
           </div>
           <div class="text-sm text-on-surface">
             <strong>Dirección de Entrega:</strong> ${o.direccion_envio} |
-            <strong>Pago PCI DSS:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}
+            <strong>Pago:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}
           </div>
           <div class="text-sm text-tertiary font-semibold flex items-center gap-1.5">
             <span class="material-symbols-outlined text-[18px]">local_shipping</span>
-            <span>Guía Paquetería: ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía'}</span>
-          </div>
-          <div class="text-xs text-secondary font-mono">
-            Hash Integridad SHA-256 (RNF-09): ${o.hash_integridad}
+            <span>Guía de Envío: ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía'}</span>
           </div>
           <div class="pt-1">
             ${
               o.estado !== 'devuelto' && o.estado !== 'cancelado'
-                ? `<button type="button" class="btn btn-sm btn-outline return-order-btn" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN (LFPC)</button>`
+                ? `<button type="button" class="btn btn-sm btn-outline return-order-btn" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
                 : '<span class="badge badge-ok">Reembolsado en MXN / Devuelto conforme a LFPC</span>'
             }
           </div>
@@ -525,6 +803,14 @@ async function loadProfile() {
     document.getElementById('prof-telefono').value = data.user.telefono || '';
     document.getElementById('prof-mfa').checked = Boolean(data.user.mfaEnabled);
 
+    // Actualizar foto en la UI de perfil
+    if (data.user.fotoPerfil) {
+      state.user.fotoPerfil = data.user.fotoPerfil;
+      localStorage.setItem('em_user', JSON.stringify(state.user));
+    }
+    updateProfilePhotoUI(data.user.fotoPerfil || '');
+    updateSessionUI();
+
     const notifList = document.getElementById('notifications-list');
     notifList.innerHTML = (data.notifications || [])
       .map(
@@ -555,7 +841,7 @@ async function loadAdminReports() {
         <div class="kpi-card"><div>Ticket Promedio</div><div class="kpi-val">${formatMxn(rep.ventas.ticketPromedioMxn)}</div></div>
         <div class="kpi-card"><div>SKUs en Catálogo</div><div class="kpi-val">${rep.inventario.totalProductosActivos}</div></div>
       </div>
-      <h4 class="font-label-lg text-label-lg font-bold mb-1">Conciliación de Inventario en Almacén D3 (CEDIS CDMX Norte)</h4>
+      <h4 class="font-label-lg text-label-lg font-bold mb-1">Conciliación de Inventario en Almacén (CEDIS CDMX Norte)</h4>
       <pre class="code-box">${JSON.stringify(rep.inventario.detalleInventario, null, 2)}</pre>
     `;
   } catch (err) {
@@ -610,6 +896,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
+  // Botón volver al catálogo desde la página de detalle
+  const btnBackCatalog = document.getElementById('btn-back-to-catalog');
+  if (btnBackCatalog) {
+    btnBackCatalog.addEventListener('click', () => switchTab('view-catalog'));
+  }
+
   // Accesos rápidos del header Stitch
   const btnHeaderOrders = document.getElementById('btn-header-orders');
   if (btnHeaderOrders) {
@@ -624,7 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Selector de departamento en el buscador compuesto Stitch
+  // Selector de departamento en el buscador compuesto
   const deptSelect = document.getElementById('header-dept-select');
   if (deptSelect) {
     deptSelect.addEventListener('change', (e) => {
@@ -641,17 +933,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.promo-filter-trigger').forEach((el) => {
     el.addEventListener('click', () => {
       document.getElementById('filter-category').value = el.dataset.cat || '';
+      switchTab('view-catalog');
       loadCatalog();
       document.getElementById('products-grid').scrollIntoView({ behavior: 'smooth' });
     });
   });
 
-  // Botones de cupones promocionales en Hero y ExpressPrime
+  // Botones de cupones promocionales
   const heroCouponBtn = document.getElementById('btn-hero-coupon');
   if (heroCouponBtn) {
     heroCouponBtn.addEventListener('click', () => {
       state.coupon = 'BIENVENIDA10';
-      document.getElementById('cart-coupon').value = 'BIENVENIDA10';
+      const cInput = document.getElementById('cart-coupon');
+      if (cInput) cInput.value = 'BIENVENIDA10';
       showAlert('Cupón BIENVENIDA10 (-10% en MXN) activado para tu compra.');
     });
   }
@@ -660,7 +954,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (primeCouponBtn) {
     primeCouponBtn.addEventListener('click', () => {
       state.coupon = 'ENVIOGRATIS';
-      document.getElementById('cart-coupon').value = 'ENVIOGRATIS';
+      const cInput = document.getElementById('cart-coupon');
+      if (cInput) cInput.value = 'ENVIOGRATIS';
       showAlert('Cupón ENVIOGRATIS ExpressPrime activado en tu cesta.');
     });
   }
@@ -672,19 +967,27 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCatalog();
   });
   ['filter-category', 'filter-brand', 'filter-max-price', 'filter-sort'].forEach((id) => {
-    document.getElementById(id).addEventListener('change', loadCatalog);
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', loadCatalog);
   });
 
-  // Modal Detalle de Producto
+  // Modal Detalle de Producto legacy (cerrar)
   const detailDialog = document.getElementById('product-detail-dialog');
-  document.getElementById('btn-close-detail').addEventListener('click', () => detailDialog.close());
+  const btnCloseDetail = document.getElementById('btn-close-detail');
+  if (btnCloseDetail) btnCloseDetail.addEventListener('click', () => detailDialog.close());
 
   // Modal de Autenticación
   const authDialog = document.getElementById('auth-dialog');
-  document.getElementById('btn-open-auth').addEventListener('click', () => authDialog.showModal());
+  document.getElementById('btn-open-auth').addEventListener('click', () => {
+    if (state.token && state.user) {
+      switchTab('view-profile');
+    } else {
+      authDialog.showModal();
+    }
+  });
   document.getElementById('btn-close-auth').addEventListener('click', () => authDialog.close());
 
-  // Botones de acceso rápido para demostración de roles y MFA
+  // Botones de acceso rápido para demostración de roles
   document.querySelectorAll('.demo-login-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       document.getElementById('login-email').value = btn.dataset.email;
@@ -736,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.mfaRequired) {
         document.getElementById('mfa-field-group').classList.remove('hidden');
         document.getElementById('login-mfa').value = res.demoHintCode || '';
-        showAlert(`Ingrese el código MFA de 6 dígitos (Código TOTP actual: ${res.demoHintCode})`);
+        showAlert(`Ingrese el código de verificación de 6 dígitos (Código TOTP de prueba: ${res.demoHintCode})`);
         return;
       }
       state.token = res.token;
@@ -787,6 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('em_token');
     localStorage.removeItem('em_user');
     updateSessionUI();
+    switchTab('view-catalog');
     showAlert('Sesión cerrada de forma segura.');
   });
 
@@ -825,31 +1129,85 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-back-step-1').addEventListener('click', () => setCheckoutStep(1));
   document.getElementById('btn-back-step-2').addEventListener('click', () => setCheckoutStep(2));
 
+  // Paso 3: Resumen final con miniaturas de productos
   document.getElementById('btn-to-step-3').addEventListener('click', () => {
     if (!state.calculatedTotals) return;
     const summaryEl = document.getElementById('checkout-final-summary');
     const addr = document.getElementById('checkout-address').value.trim();
     const method = document.getElementById('payment-method').value;
+
+    const itemsSummaryHtml = state.cart
+      .map(
+        (item) => `
+        <div class="flex items-center gap-2.5 py-1.5 border-b border-surface-container">
+          <img
+            src="${item.imagen_url || '/assets/logo.png'}"
+            alt="${item.nombre}"
+            class="w-10 h-10 rounded object-contain bg-white p-0.5 border border-surface-dim shrink-0"
+            onerror="this.src='/assets/logo.png'"
+          />
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-xs text-on-surface truncate">${item.nombre}</div>
+            <div class="text-[11px] text-secondary">${item.cantidad} × ${formatMxn(item.precio)}</div>
+          </div>
+          <span class="font-bold text-xs text-on-surface">${formatMxn(item.precio * item.cantidad)}</span>
+        </div>
+      `
+      )
+      .join('');
+
     summaryEl.innerHTML = `
-      <div class="space-y-1 text-sm">
-        <div><strong>Dirección de Entrega en México:</strong> ${addr}</div>
-        <div><strong>Método de Pago Certificado PCI DSS:</strong> ${method.toUpperCase()}</div>
-        <div><strong>Subtotal:</strong> ${formatMxn(state.calculatedTotals.subtotal)}</div>
-        <div><strong>Descuento:</strong> -${formatMxn(state.calculatedTotals.descuento)}</div>
-        <div><strong>IVA (16%):</strong> ${formatMxn(state.calculatedTotals.impuestos)}</div>
-        <div><strong>Envío ExpressPrime:</strong> ${formatMxn(state.calculatedTotals.costoEnvio)}</div>
-        <div class="text-lg pt-2 border-t border-surface-dim text-primary">
-          <strong>Total Confirmado a Pagar: ${formatMxn(state.calculatedTotals.total)}</strong>
+      <div class="space-y-2 text-sm">
+        <div class="mb-2">
+          <div class="text-xs font-bold text-secondary uppercase mb-1">Artículos a Enviar:</div>
+          <div class="max-h-40 overflow-y-auto space-y-1 bg-surface-container-low p-2 rounded-lg">
+            ${itemsSummaryHtml}
+          </div>
+        </div>
+        <div class="space-y-1 text-xs">
+          <div><strong>Dirección de Entrega:</strong> ${addr}</div>
+          <div><strong>Método de Pago:</strong> ${method.toUpperCase()}</div>
+          <div class="flex justify-between pt-1"><span>Subtotal:</span> <strong>${formatMxn(state.calculatedTotals.subtotal)}</strong></div>
+          <div class="flex justify-between text-tertiary"><span>Descuento:</span> <strong>-${formatMxn(state.calculatedTotals.descuento)}</strong></div>
+          <div class="flex justify-between"><span>IVA (16%):</span> <strong>${formatMxn(state.calculatedTotals.impuestos)}</strong></div>
+          <div class="flex justify-between"><span>Envío ExpressPrime:</span> <strong>${formatMxn(state.calculatedTotals.costoEnvio)}</strong></div>
+          <div class="text-base pt-2 border-t border-surface-dim text-primary flex justify-between">
+            <strong>Total Confirmado a Pagar:</strong> <strong>${formatMxn(state.calculatedTotals.total)}</strong>
+          </div>
         </div>
       </div>
     `;
+
     document.getElementById('checkout-result-box').innerHTML = '';
+    const btnConfirm = document.getElementById('btn-confirm-order');
+    btnConfirm.dataset.action = '';
+    btnConfirm.textContent = 'Confirmar y Pagar en MXN';
+    btnConfirm.className = 'btn btn-accent';
+    document.getElementById('btn-back-step-2').classList.remove('hidden');
+
     setCheckoutStep(3);
   });
 
+  // Botón Confirmar y Pagar: cambia a "Salir" cuando la compra se concreta
   document.getElementById('btn-confirm-order').addEventListener('click', async () => {
+    const btnConfirm = document.getElementById('btn-confirm-order');
     const resultBox = document.getElementById('checkout-result-box');
+
+    // Si ya se concretó la compra y el botón dice "Salir"
+    if (btnConfirm.dataset.action === 'exit') {
+      btnConfirm.dataset.action = '';
+      btnConfirm.textContent = 'Confirmar y Pagar en MXN';
+      btnConfirm.className = 'btn btn-accent';
+      document.getElementById('btn-back-step-2').classList.remove('hidden');
+      cartDialog.close();
+      switchTab('view-orders');
+      return;
+    }
+
     try {
+      btnConfirm.disabled = true;
+      btnConfirm.textContent = 'Procesando pago seguro...';
+
       const res = await apiFetch('/api/checkout', {
         method: 'POST',
         body: JSON.stringify({
@@ -864,24 +1222,118 @@ document.addEventListener('DOMContentLoaded', () => {
           pasosCheckout: 3
         })
       });
+
       state.cart = [];
       state.coupon = '';
       saveCart();
       loadCatalog();
+
       resultBox.innerHTML = `
-        <div class="alert alert-info flex-col items-start">
-          <div><strong>${res.message}</strong></div>
-          <div>Folio: <strong>${res.order.folio}</strong> | Total: <strong>${formatMxn(res.order.total)}</strong></div>
-          <div>Guía ExpressPrime: <strong>${res.order.envio.numeroGuia}</strong> (${res.order.envio.proveedorPaqueteria})</div>
-          <div>Token PCI DSS: <code>${res.order.pago.tokenPci}</code> | Latencia: ${res.responseTimeMs} ms</div>
+        <div class="p-3.5 rounded-xl bg-tertiary-fixed/30 border border-tertiary/20 text-on-surface space-y-1">
+          <div class="flex items-center gap-1.5 text-tertiary font-bold text-sm">
+            <span class="material-symbols-outlined text-[18px]">verified</span>
+            <span>${res.message || '¡Pago procesado con éxito!'}</span>
+          </div>
+          <div class="text-xs">Folio de Pedido: <strong>${res.order.folio}</strong> | Total: <strong>${formatMxn(res.order.total)}</strong></div>
+          <div class="text-xs">Guía ExpressPrime: <strong>${res.order.envio.numeroGuia}</strong> (${res.order.envio.proveedorPaqueteria})</div>
+          <div class="text-xs text-secondary">Recibirás la confirmación de tu pedido por correo electrónico.</div>
         </div>
       `;
+
+      // Ocultar botón "Volver al Pago" y cambiar botón de confirmar a "Salir"
+      document.getElementById('btn-back-step-2').classList.add('hidden');
+      btnConfirm.disabled = false;
+      btnConfirm.dataset.action = 'exit';
+      btnConfirm.textContent = 'Salir';
+      btnConfirm.className = 'btn btn-primary';
+
+      showToast({
+        title: '¡Compra confirmada con éxito!',
+        message: `Folio: ${res.order.folio}`,
+        imageUrl: '/assets/logo.png',
+        price: res.order.total
+      });
     } catch (err) {
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = 'Confirmar y Pagar en MXN';
       resultBox.innerHTML = `<div class="alert alert-error">Error en la transacción: ${err.message}</div>`;
     }
   });
 
-  // Formularios de perfil, ARCO y administración
+  // Carga y modificación de Foto de Perfil en "Mi Cuenta"
+  const fileInputPhoto = document.getElementById('input-profile-photo');
+  const btnTriggerPhoto = document.getElementById('btn-trigger-photo');
+  const btnUploadDirect = document.getElementById('btn-upload-photo-direct');
+  const profileAvatarBox = document.getElementById('profile-avatar-box');
+  const btnRemovePhoto = document.getElementById('btn-remove-photo');
+
+  const triggerFileSelect = () => {
+    if (!state.token) {
+      document.getElementById('auth-dialog').showModal();
+      showAlert('Inicie sesión para personalizar su foto de perfil.', true);
+      return;
+    }
+    fileInputPhoto.click();
+  };
+
+  if (btnTriggerPhoto) btnTriggerPhoto.addEventListener('click', triggerFileSelect);
+  if (btnUploadDirect) btnUploadDirect.addEventListener('click', triggerFileSelect);
+  if (profileAvatarBox) profileAvatarBox.addEventListener('click', triggerFileSelect);
+
+  if (fileInputPhoto) {
+    fileInputPhoto.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showAlert('Seleccione un archivo de imagen válido (PNG, JPG, WEBP).', true);
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert('La imagen no debe superar los 5MB.', true);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target.result;
+        try {
+          const res = await apiFetch('/api/auth/profile', {
+            method: 'PUT',
+            body: JSON.stringify({ fotoPerfil: dataUrl })
+          });
+          state.user = res.user;
+          localStorage.setItem('em_user', JSON.stringify(state.user));
+          updateSessionUI();
+          updateProfilePhotoUI(dataUrl);
+          showAlert('Foto de perfil actualizada correctamente.');
+        } catch (err) {
+          showAlert(err.message, true);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (btnRemovePhoto) {
+    btnRemovePhoto.addEventListener('click', async () => {
+      try {
+        const res = await apiFetch('/api/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ fotoPerfil: '' })
+        });
+        state.user = res.user;
+        localStorage.setItem('em_user', JSON.stringify(state.user));
+        updateSessionUI();
+        updateProfilePhotoUI('');
+        showAlert('Foto de perfil eliminada.');
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    });
+  }
+
+  // Guardar Cambios en Formulario de Perfil
   document.getElementById('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -903,6 +1355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Formulario de Derechos ARCO
   document.getElementById('arco-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -914,12 +1367,13 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       });
       document.getElementById('arco-result').innerHTML =
-        `<div class="alert alert-info">Folio ARCO LFPDPPP: <strong>${res.folio}</strong> — ${res.respuesta}</div>`;
+        `<div class="alert alert-info">Folio ARCO: <strong>${res.folio}</strong> — ${res.respuesta}</div>`;
     } catch (err) {
       showAlert(err.message, true);
     }
   });
 
+  // Alta de Producto en Panel Administrativo
   document.getElementById('admin-product-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -934,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', () => {
           stock: Number(document.getElementById('prod-stock').value),
           descripcion: document.getElementById('prod-desc').value,
           condiciones_envio: document.getElementById('prod-envio').value,
-          especificaciones: { origen: 'Panel Administrativo ExpressMart México', certificadoCalidad: 'ISO-25012' }
+          especificaciones: { origen: 'Panel Oficial ExpressMart México' }
         })
       });
       showAlert(res.message);
@@ -948,6 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-refresh-orders').addEventListener('click', loadOrders);
   document.getElementById('btn-load-reports').addEventListener('click', loadAdminReports);
   document.getElementById('btn-refresh-audit').addEventListener('click', loadAuditCenter);
+
   document.getElementById('btn-toggle-contingency').addEventListener('click', async () => {
     try {
       state.recommendationsHealthy = !state.recommendationsHealthy;
