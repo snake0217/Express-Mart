@@ -8,8 +8,10 @@ const path = require('node:path');
 
 const REQUIRED_FILES = [
   'package.json',
-  'Dockerfile',
-  'docker-compose.yml',
+  'package-lock.json',
+  'README.md',
+  '.gitignore',
+  '.env.example',
   '.github/workflows/ci-cd.yml',
   'src/app.js',
   'src/server.js',
@@ -19,52 +21,21 @@ const REQUIRED_FILES = [
   'src/services/externalProviders.js',
   'src/utils/crypto.js',
   'src/utils/sanitizer.js',
+  'src/openapi.json',
+  'src/openapi.yaml',
   'public/index.html',
   'public/styles.css',
   'public/app.js',
+  'public/assets/logo.png',
   'tests/unit.test.js',
   'tests/integration.test.js',
   'tests/security.test.js',
-  'docs/01_Matriz_Requisitos_y_Trazabilidad.md',
-  'docs/01_Matriz_Requisitos_y_Trazabilidad.docx',
-  'docs/02_Arquitectura_Contratos_API_y_Estandares.md',
-  'docs/02_Arquitectura_Contratos_API_y_Estandares.docx',
-  'docs/03_Seguridad_Riesgos_CalidadDatos_y_Proveedores.md',
-  'docs/03_Seguridad_Riesgos_CalidadDatos_y_Proveedores.docx',
-  'docs/04_Plan_y_Actas_de_Pruebas_Integrales.md',
-  'docs/04_Plan_y_Actas_de_Pruebas_Integrales.docx',
-  'docs/05_Liberacion_Operacion_Continuidad_y_Mejora.md',
-  'docs/05_Liberacion_Operacion_Continuidad_y_Mejora.docx',
-  'docs/06_Politica_Integral_de_Base_de_Datos.md',
-  'docs/06_Politica_Integral_de_Base_de_Datos.docx',
-  'docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.md',
-  'docs/07_Manual_Instalacion_BaseDatos_y_Uso_App.docx',
-  'docs/08_Manual_Uso_Git_y_Ramas.md',
-  'docs/08_Manual_Uso_Git_y_Ramas.docx',
-  'docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.md',
-  'docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.docx',
-  'docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md',
-  'docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.docx',
-  'docs/11_Guia_Demostracion_y_Defensa_Auditoria.md',
-  'docs/11_Guia_Demostracion_y_Defensa_Auditoria.docx',
-  'docs/openapi.json',
-  'docs/openapi.yaml',
-  'docs/00_README_General_ExpressMart.docx',
-  'docs/evidencias/EV-05_Verificacion_Base_Datos_Funcional.json',
-  'docs/evidencias/EV-18_Pruebas_Autenticacion_Sesiones_FuerzaBruta.json',
-  'docs/evidencias/EV-24_Informe_Pruebas_Rendimiento.json',
-  'docs/evidencias/EV-34_Acta_Simulacro_Recuperacion_ISO22301.json',
-  'backups/expressmart-backup-latest.enc',
-  'Manual_de_Calidad (ExpressMart).docx',
-  'Plan_de_auditoria_copia_buena.docx',
-  'Politica_Integral_de_Base_de_Datos_ExpressMart.docx',
-  'Manual_Instalacion_BaseDatos_y_Uso_ExpressMart.docx',
-  'Manual_Uso_Git_y_Ramas_ExpressMart.docx',
-  'Revision_Primer_Sprint_Express_Mart_23-10-2026.docx',
-  'Revision_Primer_Sprint_Express_Mart_CERRADA.docx',
-  'Acta_Cierre_Hallazgos_Primer_Sprint_ExpressMart.docx',
-  'Guia_Demostracion_y_Defensa_Auditoria_ExpressMart.docx',
-  'Registros-Operativos-ExpressMart.xlsx'
+  'scripts/audit-verifier.js',
+  'scripts/performance-test.js',
+  'scripts/backup-restore.js',
+  'scripts/static-analysis.js',
+  'scripts/verify-auth-sessions.js',
+  'scripts/verify-db-functional.js'
 ];
 
 function verifyAuditCompliance() {
@@ -113,7 +84,7 @@ function verifyAuditCompliance() {
     }
   };
 
-  const outPath = path.join(rootDir, 'docs/evidencias/EV-39_Informe_Resultado_Auditoria_ECTA01.json');
+  const outPath = path.join(rootDir, 'data/EV-39_Informe_Resultado_Auditoria_ECTA01.json');
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));

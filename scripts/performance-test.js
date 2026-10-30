@@ -98,7 +98,7 @@ async function runPerformanceSuite() {
     }
   };
 
-  const outDir = path.join(__dirname, '../docs/evidencias');
+  const outDir = path.join(__dirname, '../data');
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'EV-24_Informe_Pruebas_Rendimiento.json'),

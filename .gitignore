@@ -1,8 +1,27 @@
+# Dependencias y cobertura de pruebas
 node_modules/
 coverage/
+
+# Base de datos local y artefactos de ejecución
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+data/
+
+# Variables de entorno y secretos locales
 .env
-backups/*.enc
+
+# Respaldos y bitácoras
+backups/
 logs/*.log
+
+# Documentos ofimáticos y respaldos locales
+*.docx
+*.xlsx
+docs/
+disenostich/
+documentos_respaldo/
+
+# Configuración de contenedores
+Dockerfile
+docker-compose.yml

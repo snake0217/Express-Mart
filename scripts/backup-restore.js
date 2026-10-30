@@ -69,7 +69,7 @@ function runBackupAndVerify() {
     }
   };
 
-  const outDir = path.join(__dirname, '../docs/evidencias');
+  const outDir = path.join(__dirname, '../data');
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
     path.join(outDir, 'EV-34_Acta_Simulacro_Recuperacion_ISO22301.json'),

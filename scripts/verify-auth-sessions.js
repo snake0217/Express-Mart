@@ -160,11 +160,11 @@ async function runAuthSessionVerifications() {
     controlesVerificados: results
   };
 
-  const outDir = path.join(__dirname, '../docs/evidencias');
+  const outDir = path.join(__dirname, '../data');
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'EV-18_Pruebas_Autenticacion_Sesiones_FuerzaBruta.json'), JSON.stringify(report, null, 2));
 
-  console.log('[AUTH-VERIFY] Reporte generado exitosamente en docs/evidencias/EV-18_Pruebas_Autenticacion_Sesiones_FuerzaBruta.json');
+  console.log('[AUTH-VERIFY] Reporte generado exitosamente en data/EV-18_Pruebas_Autenticacion_Sesiones_FuerzaBruta.json');
   return report;
 }
 

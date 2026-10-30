@@ -188,11 +188,11 @@ function verifyDatabase() {
     ]
   };
 
-  const outDir = path.join(__dirname, '../docs/evidencias');
+  const outDir = path.join(__dirname, '../data');
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'EV-05_Verificacion_Base_Datos_Funcional.json'), JSON.stringify(evidence, null, 2));
 
-  console.log('[BD-VERIFY] Reporte generado exitosamente en docs/evidencias/EV-05_Verificacion_Base_Datos_Funcional.json');
+  console.log('[BD-VERIFY] Reporte generado exitosamente en data/EV-05_Verificacion_Base_Datos_Funcional.json');
   return evidence;
 }
 
