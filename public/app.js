@@ -5,10 +5,27 @@
  * Pedidos y Devoluciones LFPC, Notificaciones, Reportes y Centro de Auditoría RBAC.
  */
 
+function getInitialCart() {
+  const token = localStorage.getItem('em_token');
+  const userRaw = localStorage.getItem('em_user');
+  if (!token || !userRaw) {
+    return [];
+  }
+  try {
+    const user = JSON.parse(userRaw);
+    if (user && user.id) {
+      const userCart = localStorage.getItem(`em_cart_${user.id}`);
+      if (userCart) return JSON.parse(userCart);
+    }
+  } catch (_) {}
+  return [];
+}
+
+
 const state = {
   token: localStorage.getItem('em_token') || '',
   user: JSON.parse(localStorage.getItem('em_user') || 'null'),
-  cart: JSON.parse(localStorage.getItem('em_cart') || '[]'),
+  cart: getInitialCart(),
   coupon: '',
   calculatedTotals: null,
   recommendationsHealthy: true,
@@ -98,7 +115,17 @@ function switchTab(tabId) {
     const isAuditorOrAdmin = state.user && state.token && ['auditor', 'administrador'].includes(state.user.rol);
     if (!isAuditorOrAdmin) {
       showAlert('Acceso denegado: El panel de auditoría requiere credenciales de Auditor o Administrador.', true);
-      switchTab('view-catalog');
+      switchTab('view-home');
+      return;
+    }
+  }
+
+  // Verificación de privilegios para Panel de Administrador
+  if (tabId === 'view-admin') {
+    const isAdmin = state.user && state.token && state.user.rol === 'administrador';
+    if (!isAdmin) {
+      showAlert('Acceso denegado: El panel administrativo requiere credenciales de Administrador.', true);
+      switchTab('view-home');
       return;
     }
   }
@@ -113,9 +140,9 @@ function switchTab(tabId) {
     v.classList.toggle('hidden', v.id !== tabId);
   });
 
-  if (tabId === 'view-catalog' || tabId === 'view-product-detail') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (tabId === 'view-catalog') loadCatalog();
   if (tabId === 'view-orders') loadOrders();
   if (tabId === 'view-profile') loadProfile();
   if (tabId === 'view-admin') loadAdminReports();
@@ -243,6 +270,7 @@ function updateSessionUI() {
   const headerAvatarImg = document.getElementById('header-avatar-img');
   const headerAvatarIcon = document.getElementById('header-avatar-icon');
   const auditTabBtn = document.querySelector('.tab-btn[data-tab="view-audit"]');
+  const adminTabBtn = document.querySelector('.tab-btn[data-tab="view-admin"]');
 
   if (state.user && state.token) {
     const firstName = state.user.nombre.split(' ')[0];
@@ -274,6 +302,12 @@ function updateSessionUI() {
     if (auditTabBtn) {
       auditTabBtn.classList.toggle('hidden', !isAuditorOrAdmin);
     }
+
+    // Panel de Administrador solo visible para usuarios con rol administrador
+    const isAdmin = state.user.rol === 'administrador';
+    if (adminTabBtn) {
+      adminTabBtn.classList.toggle('hidden', !isAdmin);
+    }
   } else {
     statusEl.textContent = 'Hola, Identifícate';
     btnLogout.classList.add('hidden');
@@ -284,6 +318,7 @@ function updateSessionUI() {
     }
     if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
     if (auditTabBtn) auditTabBtn.classList.add('hidden');
+    if (adminTabBtn) adminTabBtn.classList.add('hidden');
   }
 
   const totalItems = state.cart.reduce((acc, i) => acc + i.cantidad, 0);
@@ -295,22 +330,136 @@ function updateSessionUI() {
 }
 
 function saveCart() {
-  localStorage.setItem('em_cart', JSON.stringify(state.cart));
+  if (state.user && state.user.id) {
+    localStorage.setItem(`em_cart_${state.user.id}`, JSON.stringify(state.cart));
+  }
+  if (state.user && state.token) {
+    localStorage.setItem('em_cart', JSON.stringify(state.cart));
+  } else {
+    localStorage.removeItem('em_cart');
+  }
   updateSessionUI();
 }
 
 // ============================================================================
 // CATÁLOGO Y BÚSQUEDA CON TARJETAS STITCH "AURA COMMERCE" EN MXN
 // ============================================================================
+function createProductCard(p) {
+  const precioNum = Number(p.precio);
+  const precioAnterior = Math.round(precioNum * 1.18);
+  const mensualidadMsi = (precioNum / 12).toFixed(2);
+  const imgUrl = p.imagen_url || '/assets/logo.png';
+
+  const card = document.createElement('article');
+  card.className =
+    'bg-surface-container-lowest rounded-xl p-space-md shadow-[0_8px_24px_rgba(11,28,48,0.06)] hover:shadow-[0_14px_32px_rgba(11,28,48,0.12)] transition-all flex flex-col justify-between border border-surface-container';
+
+  card.innerHTML = `
+    <div>
+      <div class="relative w-full aspect-[4/3] rounded-xl bg-surface-container-low mb-space-sm overflow-hidden group cursor-pointer open-detail-trigger" data-id="${p.id}">
+        <span class="absolute top-2.5 left-2.5 z-10 bg-primary text-on-primary font-label-xs text-label-xs px-2.5 py-0.5 rounded-full font-bold uppercase shadow-sm">
+          ${p.categoria} · ${p.marca}
+        </span>
+        <span class="absolute top-2.5 right-2.5 z-10 bg-surface-container-highest/95 backdrop-blur-sm text-on-surface font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold shadow-sm">
+          ${p.sku}
+        </span>
+        <img
+          src="${imgUrl}"
+          alt="Imagen del producto ${p.nombre}"
+          class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+          onerror="this.src='/assets/logo.png'"
+        />
+      </div>
+
+      <div class="flex items-center gap-1.5 text-amber-600 text-xs font-bold mb-1">
+        <span class="material-symbols-outlined text-[15px] text-amber-500">star</span>
+        <span>${Number(p.calificacion_promedio || 5.0).toFixed(1)} / 5.0</span>
+        <span class="text-secondary font-normal">(${p.total_resenas || 0} reseñas verificadas)</span>
+      </div>
+
+      <h3 class="font-headline-sm text-[16px] leading-snug text-on-surface font-bold line-clamp-2 mb-1 cursor-pointer hover:text-primary open-detail-trigger" data-id="${p.id}">
+        ${p.nombre}
+      </h3>
+      <p class="font-body-sm text-body-sm text-secondary line-clamp-2 mb-space-sm">
+        ${p.descripcion}
+      </p>
+    </div>
+
+    <div class="pt-space-xs border-t border-surface-container">
+      <div class="flex items-baseline gap-2">
+        <span class="font-price-card text-price-card text-on-surface font-extrabold">${formatMxn(precioNum)}</span>
+        <span class="font-body-sm text-xs text-secondary line-through">${formatMxn(precioAnterior)}</span>
+      </div>
+      <div class="text-xs text-secondary mb-1">
+        Hasta <strong>12 MSI de $${mensualidadMsi} MXN</strong> · IVA 16% incl.
+      </div>
+      <div class="flex items-center gap-1 text-tertiary font-label-xs text-label-xs font-bold mb-space-sm">
+        <span class="material-symbols-outlined text-[15px]">verified</span>
+        <span>ExpressPrime GRATIS · Stock: ${p.stock_disponible} uds.</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          class="py-2 px-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold transition-colors open-detail-trigger cursor-pointer text-center"
+          data-id="${p.id}"
+        >
+          Ver Ficha
+        </button>
+        <button
+          type="button"
+          class="py-2 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold transition-colors flex items-center justify-center gap-1 add-to-cart-btn cursor-pointer"
+          data-id="${p.id}"
+          data-nombre="${p.nombre}"
+          data-precio="${p.precio}"
+          data-imagen="${imgUrl}"
+        >
+          <span class="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+          Agregar
+        </button>
+      </div>
+    </div>
+  `;
+
+  card.querySelectorAll('.open-detail-trigger').forEach((el) => {
+    el.addEventListener('click', () => openProductDetailPage(p.id));
+  });
+
+  card.querySelectorAll('.add-to-cart-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!state.token || !state.user) {
+        document.getElementById('auth-dialog').showModal();
+        showAlert('Inicia sesión o regístrate para agregar productos a tu carrito de compra.', true);
+        return;
+      }
+      const existing = state.cart.find((i) => i.productoId === p.id);
+      if (existing) {
+        existing.cantidad += 1;
+        if (!existing.imagen_url) existing.imagen_url = imgUrl;
+      } else {
+        state.cart.push({ productoId: p.id, nombre: p.nombre, precio: precioNum, imagen_url: imgUrl, cantidad: 1 });
+      }
+      saveCart();
+      showToast({
+        title: p.nombre,
+        message: '¡Agregado a la cesta!',
+        imageUrl: imgUrl,
+        price: precioNum
+      });
+    });
+  });
+
+  return card;
+}
+
 async function loadCatalog() {
-  const q = document.getElementById('search-input').value.trim();
   const categoria = document.getElementById('filter-category').value;
   const marca = document.getElementById('filter-brand').value;
   const maxPrecio = document.getElementById('filter-max-price').value;
   const orden = document.getElementById('filter-sort').value;
 
   const params = new URLSearchParams();
-  if (q) params.set('q', q);
   if (categoria) params.set('categoria', categoria);
   if (marca) params.set('marca', marca);
   if (maxPrecio) params.set('maxPrecio', maxPrecio);
@@ -333,119 +482,54 @@ async function loadCatalog() {
   }
 
   const grid = document.getElementById('products-grid');
-  grid.innerHTML = '';
+  if (grid) {
+    grid.innerHTML = '';
+    for (const p of data.products) {
+      grid.appendChild(createProductCard(p));
+    }
+  }
+}
 
-  for (const p of data.products) {
-    const precioNum = Number(p.precio);
-    const precioAnterior = Math.round(precioNum * 1.18);
-    const mensualidadMsi = (precioNum / 12).toFixed(2);
-    const imgUrl = p.imagen_url || '/assets/logo.png';
+async function openSearchResultsPage(query, dept = '') {
+  const queryDisplay = document.getElementById('search-query-display');
+  const countPill = document.getElementById('search-results-count-pill');
+  const latencyPill = document.getElementById('search-results-latency-pill');
+  const grid = document.getElementById('search-results-grid');
+  const emptyBox = document.getElementById('search-results-empty');
 
-    const card = document.createElement('article');
-    card.className =
-      'bg-surface-container-lowest rounded-xl p-space-md shadow-[0_8px_24px_rgba(11,28,48,0.06)] hover:shadow-[0_14px_32px_rgba(11,28,48,0.12)] transition-all flex flex-col justify-between border border-surface-container';
+  if (queryDisplay) queryDisplay.textContent = `"${query || 'Todos los departamentos'}"`;
 
-    card.innerHTML = `
-      <div>
-        <div class="relative w-full aspect-[4/3] rounded-xl bg-surface-container-low mb-space-sm overflow-hidden group cursor-pointer open-detail-trigger" data-id="${p.id}">
-          <span class="absolute top-2.5 left-2.5 z-10 bg-primary text-on-primary font-label-xs text-label-xs px-2.5 py-0.5 rounded-full font-bold uppercase shadow-sm">
-            ${p.categoria} · ${p.marca}
-          </span>
-          <span class="absolute top-2.5 right-2.5 z-10 bg-surface-container-highest/95 backdrop-blur-sm text-on-surface font-label-xs text-label-xs px-2 py-0.5 rounded-full font-bold shadow-sm">
-            ${p.sku}
-          </span>
-          <img
-            src="${imgUrl}"
-            alt="Imagen del producto ${p.nombre}"
-            class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-            onerror="this.src='/assets/logo.png'"
-          />
-        </div>
+  switchTab('view-search-results');
+  if (grid) grid.innerHTML = '<div class="col-span-full py-12 text-center text-secondary">Buscando productos en ExpressMart...</div>';
+  if (emptyBox) emptyBox.classList.add('hidden');
 
-        <div class="flex items-center gap-1.5 text-amber-600 text-xs font-bold mb-1">
-          <span class="material-symbols-outlined text-[15px] text-amber-500">star</span>
-          <span>${Number(p.calificacion_promedio).toFixed(1)} / 5.0</span>
-          <span class="text-secondary font-normal">(${p.total_resenas || 0} reseñas verificadas)</span>
-        </div>
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (dept) params.set('categoria', dept);
 
-        <h3 class="font-headline-sm text-[16px] leading-snug text-on-surface font-bold line-clamp-2 mb-1 cursor-pointer hover:text-primary open-detail-trigger" data-id="${p.id}">
-          ${p.nombre}
-        </h3>
-        <p class="font-body-sm text-body-sm text-secondary line-clamp-2 mb-space-sm">
-          ${p.descripcion}
-        </p>
-      </div>
+  try {
+    const data = await apiFetch(`/api/products?${params.toString()}`);
+    if (latencyPill) latencyPill.textContent = `Tiempo de respuesta: ${data.responseTimeMs} ms`;
+    if (countPill) countPill.textContent = `${data.total} productos encontrados en MXN`;
 
-      <div class="pt-space-xs border-t border-surface-container">
-        <div class="flex items-baseline gap-2">
-          <span class="font-price-card text-price-card text-on-surface font-extrabold">${formatMxn(precioNum)}</span>
-          <span class="font-body-sm text-xs text-secondary line-through">${formatMxn(precioAnterior)}</span>
-        </div>
-        <div class="text-xs text-secondary mb-1">
-          Hasta <strong>12 MSI de $${mensualidadMsi} MXN</strong> · IVA 16% incl.
-        </div>
-        <div class="flex items-center gap-1 text-tertiary font-label-xs text-label-xs font-bold mb-space-sm">
-          <span class="material-symbols-outlined text-[15px]">verified</span>
-          <span>ExpressPrime GRATIS · Stock: ${p.stock_disponible} uds.</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            class="py-2 px-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-bold transition-colors open-detail-trigger"
-            data-id="${p.id}"
-          >
-            Ver Ficha
-          </button>
-          <button
-            type="button"
-            class="py-2 px-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold transition-colors flex items-center justify-center gap-1 add-to-cart-btn"
-            data-id="${p.id}"
-            data-nombre="${p.nombre}"
-            data-precio="${p.precio}"
-            data-imagen="${imgUrl}"
-          >
-            <span class="material-symbols-outlined text-[16px]">add_shopping_cart</span>
-            Agregar
-          </button>
-        </div>
-      </div>
-    `;
-    grid.appendChild(card);
+    if (!data.products || data.products.length === 0) {
+      if (grid) grid.innerHTML = '';
+      if (emptyBox) emptyBox.classList.remove('hidden');
+    } else {
+      if (emptyBox) emptyBox.classList.add('hidden');
+      if (grid) {
+        grid.innerHTML = '';
+        data.products.forEach((p) => {
+          grid.appendChild(createProductCard(p));
+        });
+      }
+    }
+  } catch (err) {
+    if (grid) grid.innerHTML = `<div class="col-span-full alert alert-error">${err.message}</div>`;
   }
 
-  // Eventos de Agregar al Carrito desde el catálogo
-  grid.querySelectorAll('.add-to-cart-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const productoId = Number(btn.dataset.id);
-      const nombre = btn.dataset.nombre;
-      const precio = Number(btn.dataset.precio);
-      const imagen_url = btn.dataset.imagen || '/assets/logo.png';
-
-      const existing = state.cart.find((i) => i.productoId === productoId);
-      if (existing) {
-        existing.cantidad += 1;
-        if (!existing.imagen_url) existing.imagen_url = imagen_url;
-      } else {
-        state.cart.push({ productoId, nombre, precio, imagen_url, cantidad: 1 });
-      }
-      saveCart();
-
-      showToast({
-        title: nombre,
-        message: '¡Agregado a la cesta!',
-        imageUrl: imagen_url,
-        price: precio
-      });
-    });
-  });
-
-  // Eventos de apertura de página de detalle con zoom
-  grid.querySelectorAll('.open-detail-trigger').forEach((el) => {
-    el.addEventListener('click', () => openProductDetailPage(Number(el.dataset.id)));
-  });
 }
+
 
 // ============================================================================
 // PÁGINA COMPLETA DE DETALLE DE PRODUCTO ESTILO MERCADO LIBRE / AMAZON
@@ -604,6 +688,11 @@ async function openProductDetailPage(productId) {
     // Botón Agregar a la Cesta (Buy Box)
     const btnBuyboxAdd = document.getElementById('btn-buybox-add-cart');
     btnBuyboxAdd.onclick = () => {
+      if (!state.token || !state.user) {
+        document.getElementById('auth-dialog').showModal();
+        showAlert('Inicia sesión o regístrate para agregar productos a tu carrito de compra.', true);
+        return;
+      }
       const qty = Number(document.getElementById('buybox-quantity').value || 1);
       const existing = state.cart.find((i) => i.productoId === p.id);
       if (existing) {
@@ -631,6 +720,11 @@ async function openProductDetailPage(productId) {
     // Botón Comprar Ahora (Buy Box)
     const btnBuyboxBuyNow = document.getElementById('btn-buybox-buy-now');
     btnBuyboxBuyNow.onclick = () => {
+      if (!state.token || !state.user) {
+        document.getElementById('auth-dialog').showModal();
+        showAlert('Inicia sesión o regístrate para comprar productos en ExpressMart.', true);
+        return;
+      }
       const qty = Number(document.getElementById('buybox-quantity').value || 1);
       const existing = state.cart.find((i) => i.productoId === p.id);
       if (existing) {
@@ -984,15 +1078,161 @@ async function loadAuditCenter() {
 }
 
 // ============================================================================
+// BUSCADOR EN VIVO CON SUGERENCIAS INTERACTIVAS E IMÁGENES
+// ============================================================================
+function setupSearchSuggestions() {
+  const searchInput = document.getElementById('search-input');
+  const searchForm = document.getElementById('search-form');
+  const dropdown = document.getElementById('search-suggestions-dropdown');
+  const deptSelect = document.getElementById('header-dept-select');
+  if (!searchInput || !dropdown || !searchForm) return;
+
+  let debounceTimer = null;
+
+  const closeSuggestions = () => {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+  };
+
+  const renderSuggestions = (products, query) => {
+    if (!products || products.length === 0) {
+      dropdown.innerHTML = `
+        <div class="p-4 text-center text-xs text-secondary">
+          No se encontraron coincidencias para <strong class="text-on-surface">"${query}"</strong>
+        </div>
+      `;
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    const itemsHtml = products
+      .slice(0, 6)
+      .map((p) => {
+        const imgUrl = p.imagen_url || '/assets/logo.png';
+        const precioNum = Number(p.precio);
+        return `
+        <div
+          class="search-suggestion-item flex items-center gap-3 p-3 hover:bg-surface-container transition-colors cursor-pointer border-b border-surface-container last:border-b-0"
+          data-id="${p.id}"
+          role="option"
+        >
+          <img
+            src="${imgUrl}"
+            alt="${p.nombre}"
+            class="w-12 h-12 rounded-lg object-contain bg-white p-1 border border-surface-container shrink-0"
+            onerror="this.src='/assets/logo.png'"
+          />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="px-1.5 py-0.2 rounded bg-surface-container-high text-on-surface font-label-xs text-[10px] font-bold uppercase">${p.categoria}</span>
+              <span class="text-secondary text-[11px] truncate">${p.marca}</span>
+            </div>
+            <p class="font-bold text-xs text-on-surface truncate">${p.nombre}</p>
+            <p class="text-xs text-primary font-bold">${formatMxn(precioNum)}</p>
+          </div>
+          <span class="material-symbols-outlined text-[18px] text-secondary shrink-0">chevron_right</span>
+        </div>
+      `;
+      })
+      .join('');
+
+    dropdown.innerHTML = `
+      <div class="divide-y divide-surface-container">
+        <div class="px-3 py-1.5 bg-surface-container-low text-[11px] font-bold text-secondary uppercase tracking-wider flex items-center justify-between">
+          <span>Sugerencias en ExpressMart</span>
+          <span class="text-[10px] text-primary font-semibold">${products.length} encontrados</span>
+        </div>
+        ${itemsHtml}
+        <button
+          type="button"
+          class="btn-view-all-results w-full p-2.5 text-center text-xs font-bold text-primary hover:bg-surface-container-low transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <span class="material-symbols-outlined text-[16px]">search</span>
+          Ver todos los resultados para "${query}"
+        </button>
+      </div>
+    `;
+
+    dropdown.querySelectorAll('.search-suggestion-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const prodId = Number(item.dataset.id);
+        closeSuggestions();
+        openProductDetailPage(prodId);
+      });
+    });
+
+    const btnViewAll = dropdown.querySelector('.btn-view-all-results');
+    if (btnViewAll) {
+      btnViewAll.addEventListener('click', () => {
+        closeSuggestions();
+        openSearchResultsPage(query, deptSelect ? deptSelect.value : '');
+      });
+    }
+
+    dropdown.classList.remove('hidden');
+  };
+
+  searchInput.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    clearTimeout(debounceTimer);
+    if (!val || val.length < 2) {
+      closeSuggestions();
+      return;
+    }
+    debounceTimer = setTimeout(async () => {
+      try {
+        const dept = deptSelect ? deptSelect.value : '';
+        const params = new URLSearchParams({ q: val });
+        if (dept) params.set('categoria', dept);
+        const res = await apiFetch(`/api/products?${params.toString()}`);
+        renderSuggestions(res.products || [], val);
+      } catch (_) {
+        closeSuggestions();
+      }
+    }, 200);
+  });
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeSuggestions();
+    }
+  });
+
+  searchForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    closeSuggestions();
+    const query = searchInput.value.trim();
+    const dept = deptSelect ? deptSelect.value : '';
+    openSearchResultsPage(query, dept);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!searchForm.contains(e.target) && !dropdown.contains(e.target)) {
+      closeSuggestions();
+    }
+  });
+}
+
+// ============================================================================
 // INICIALIZACIÓN DE EVENTOS DOM
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   updateSessionUI();
   loadCatalog();
+  setupSearchSuggestions();
 
   // Navegación por pestañas
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // Botones de navegación directa a Inicio y Catálogo
+  document.querySelectorAll('.btn-nav-home').forEach((btn) => {
+    btn.addEventListener('click', () => switchTab('view-home'));
+  });
+
+  document.querySelectorAll('.btn-nav-catalog').forEach((btn) => {
+    btn.addEventListener('click', () => switchTab('view-catalog'));
   });
 
   // Botón volver al catálogo desde la página de detalle
@@ -1011,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (brandHome) {
     brandHome.addEventListener('click', (e) => {
       e.preventDefault();
-      switchTab('view-catalog');
+      switchTab('view-home');
     });
   }
 
@@ -1059,12 +1299,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Filtros de búsqueda
-  document.getElementById('search-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    switchTab('view-catalog');
-    loadCatalog();
-  });
+  // Filtros avanzados del catálogo
+
   ['filter-category', 'filter-brand', 'filter-max-price', 'filter-sort'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', loadCatalog);
@@ -1180,7 +1416,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         localStorage.setItem('em_token', state.token);
         localStorage.setItem('em_user', JSON.stringify(state.user));
+        state.cart = getInitialCart();
+        saveCart();
         updateSessionUI();
+        refreshCartModal();
         authDialog.close();
         showAlert(`Sesión iniciada como ${state.user.nombre} (${state.user.rol.toUpperCase()})`);
       } catch (err) {
@@ -1225,7 +1464,10 @@ document.addEventListener('DOMContentLoaded', () => {
       state.user = res.user;
       localStorage.setItem('em_token', state.token);
       localStorage.setItem('em_user', JSON.stringify(state.user));
+      state.cart = getInitialCart();
+      saveCart();
       updateSessionUI();
+      refreshCartModal();
       authDialog.close();
       showAlert(`Bienvenido a ExpressMart México, ${state.user.nombre}`);
       showToast({
@@ -1268,10 +1510,14 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('em_token', state.token);
       localStorage.setItem('em_user', JSON.stringify(state.user));
 
-      // Garantizar que la lista de deseos de una cuenta nueva esté 100% vacía
+      // Garantizar que la cesta y lista de deseos de una cuenta nueva comiencen 100% vacías
+      state.cart = [];
+      localStorage.setItem(`em_cart_${res.user.id}`, JSON.stringify([]));
+      saveCart();
       localStorage.setItem(`em_wishlists_${res.user.id}`, JSON.stringify([]));
 
       updateSessionUI();
+      refreshCartModal();
       authDialog.close();
       showAlert('Cuenta creada y sesión iniciada correctamente.');
       showToast({
@@ -1322,10 +1568,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     state.token = '';
     state.user = null;
+    state.cart = [];
+    state.coupon = '';
+    state.calculatedTotals = null;
     localStorage.removeItem('em_token');
     localStorage.removeItem('em_user');
+    localStorage.removeItem('em_cart');
     updateSessionUI();
-    switchTab('view-catalog');
+    refreshCartModal();
+    switchTab('view-home');
     showAlert('Sesión cerrada de forma segura.');
   }
 
