@@ -83,7 +83,9 @@ npm run audit:verify
   - [`docs/08_Manual_Uso_Git_y_Ramas.md`](./docs/08_Manual_Uso_Git_y_Ramas.md) (`MAN-GIT-MC001`)
   - [`docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.md`](./docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.md) (`DOC-SCRUM-SPRINT01`)
   - [`docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md`](./docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md) (`ACTA-CIERRE-SPRINT01`)
+  - [`docs/11_Guia_Demostracion_y_Defensa_Auditoria.md`](./docs/11_Guia_Demostracion_y_Defensa_Auditoria.md) (`GUIA-AUDIT-DEMO`)
   - [`docs/openapi.json`](./docs/openapi.json) / [`docs/openapi.yaml`](./docs/openapi.yaml) (Contratos OpenAPI 3.0)
   - [`Revision_Primer_Sprint_Express_Mart_CERRADA.docx`](./Revision_Primer_Sprint_Express_Mart_CERRADA.docx) (Revisión Auditada y Cerrada al 100%)
+
 
 

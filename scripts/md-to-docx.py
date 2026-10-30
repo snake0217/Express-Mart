@@ -225,8 +225,13 @@ def main():
     if acta_cierre_md.exists():
         convert_md_to_docx(acta_cierre_md, root / 'Acta_Cierre_Hallazgos_Primer_Sprint_ExpressMart.docx')
 
+    guia_demo_md = docs_dir / '11_Guia_Demostracion_y_Defensa_Auditoria.md'
+    if guia_demo_md.exists():
+        convert_md_to_docx(guia_demo_md, root / 'Guia_Demostracion_y_Defensa_Auditoria_ExpressMart.docx')
+
 
 if __name__ == '__main__':
     main()
+
 
 

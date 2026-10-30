@@ -45,6 +45,8 @@ const REQUIRED_FILES = [
   'docs/09_Sprint_1_Backlog_y_Criterios_Aceptacion.docx',
   'docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.md',
   'docs/10_Atencion_y_Cierre_Hallazgos_Primer_Sprint.docx',
+  'docs/11_Guia_Demostracion_y_Defensa_Auditoria.md',
+  'docs/11_Guia_Demostracion_y_Defensa_Auditoria.docx',
   'docs/openapi.json',
   'docs/openapi.yaml',
   'docs/00_README_General_ExpressMart.docx',
@@ -61,6 +63,7 @@ const REQUIRED_FILES = [
   'Revision_Primer_Sprint_Express_Mart_23-10-2026.docx',
   'Revision_Primer_Sprint_Express_Mart_CERRADA.docx',
   'Acta_Cierre_Hallazgos_Primer_Sprint_ExpressMart.docx',
+  'Guia_Demostracion_y_Defensa_Auditoria_ExpressMart.docx',
   'Registros-Operativos-ExpressMart.xlsx'
 ];
 
