@@ -386,76 +386,134 @@ function renderProfileWishlists(user) {
     container.innerHTML = `
       <div class="p-6 rounded-xl bg-surface-container-low text-center border border-dashed border-surface-dim">
         <span class="material-symbols-outlined text-[36px] text-secondary mb-2 block">favorite_border</span>
-        <p class="font-bold text-sm text-on-surface">Inicia sesión para ver tu lista de deseos</p>
+        <p class="font-bold text-sm text-on-surface">Inicia sesión para ver tus artículos favoritos</p>
       </div>
     `;
-    if (badge) badge.textContent = '0 listas';
+    if (badge) {
+      badge.textContent = '0 artículos';
+      badge.className = 'px-2 py-0.5 rounded-full bg-surface-container-high text-secondary font-label-xs text-label-xs font-semibold';
+    }
     return;
   }
 
-  const storageKey = `em_wishlists_${user.id}`;
-  let wishlists = null;
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (raw !== null) {
-      wishlists = JSON.parse(raw);
-    }
-  } catch (_) {
-    wishlists = null;
-  }
+  const favs = getFavorites();
 
-  // Cuentas de demostración iniciales mantienen listas de ejemplo
-  // Cualquier usuario nuevo registrado comienza con lista completamente vacía
-  if (wishlists === null) {
-    if (user.email === 'cliente@expressmart.mx') {
-      wishlists = [
-        {
-          titulo: 'Setup Oficina & Desarrollo CDMX',
-          detalle: '3 artículos · Monitoreo de precios en MXN',
-          precio: 26739
-        },
-        {
-          titulo: 'Hogar Inteligente & Café',
-          detalle: '2 artículos · Envío ExpressPrime Gratis',
-          precio: 10089
-        }
-      ];
-      localStorage.setItem(storageKey, JSON.stringify(wishlists));
-    } else {
-      wishlists = [];
-      localStorage.setItem(storageKey, JSON.stringify([]));
-    }
-  }
-
-  if (!wishlists || wishlists.length === 0) {
+  if (!favs || favs.length === 0) {
     container.innerHTML = `
       <div class="p-6 rounded-xl bg-surface-container-low text-center border border-dashed border-surface-dim">
         <span class="material-symbols-outlined text-[36px] text-secondary mb-2 block">favorite_border</span>
-        <p class="font-bold text-sm text-on-surface">Tu lista de deseos está vacía</p>
-        <p class="text-xs text-secondary mt-1">Explora el catálogo y guarda tus artículos favoritos para recibir alertas de precio y ofertas.</p>
+        <p class="font-bold text-sm text-on-surface">Aún no tienes artículos en favoritos</p>
+        <p class="text-xs text-secondary mt-1">Explora el catálogo y pulsa el corazón en cualquier producto para guardarlo aquí y en la pestaña de Favoritos.</p>
+        <button type="button" class="btn-profile-fav-to-catalog mt-3 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs transition-colors inline-flex items-center gap-1 cursor-pointer">
+          <span class="material-symbols-outlined text-[14px]">grid_view</span>
+          <span>Explorar Catálogo</span>
+        </button>
       </div>
     `;
+    const btnToCat = container.querySelector('.btn-profile-fav-to-catalog');
+    if (btnToCat) {
+      btnToCat.onclick = () => {
+        const tabCat = document.getElementById('tab-catalog');
+        if (tabCat) tabCat.click();
+      };
+    }
     if (badge) {
-      badge.textContent = '0 listas';
+      badge.textContent = '0 artículos';
       badge.className = 'px-2 py-0.5 rounded-full bg-surface-container-high text-secondary font-label-xs text-label-xs font-semibold';
     }
   } else {
-    container.innerHTML = wishlists
-      .map(
-        (w) => `
-        <div class="p-3 rounded-lg bg-surface-container-low flex items-center justify-between">
-          <div>
-            <p class="font-bold text-on-surface">${w.titulo}</p>
-            <p class="text-secondary text-xs">${w.detalle}</p>
+    container.innerHTML = `
+      <div class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+        ${favs.map((item) => `
+          <div class="p-2.5 rounded-xl bg-surface-container-low border border-surface-container hover:border-primary/40 transition-all flex items-center justify-between gap-3 group">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <img
+                src="${item.imagen_url || '/assets/logo.png'}"
+                alt="${escapeHtml(item.nombre || 'Producto')}"
+                class="w-12 h-12 object-contain bg-white rounded-lg p-1 border border-surface-container flex-shrink-0"
+                onerror="this.src='/assets/logo.png'"
+              />
+              <div class="min-w-0">
+                <p class="font-bold text-xs text-on-surface truncate group-hover:text-primary transition-colors cursor-pointer btn-profile-fav-view" data-id="${item.id}" title="${escapeHtml(item.nombre || '')}">
+                  ${escapeHtml(item.nombre || '')}
+                </p>
+                <div class="flex items-center gap-2 text-[11px] text-secondary mt-0.5">
+                  <span>${escapeHtml(item.categoria || 'Catálogo')}</span>
+                  <span>·</span>
+                  <span class="font-bold text-primary">${formatMxn(item.precio || 0)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                type="button"
+                class="btn-profile-fav-addcart p-1.5 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors cursor-pointer"
+                data-id="${item.id}"
+                title="Agregar a la cesta"
+              >
+                <span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+              </button>
+              <button
+                type="button"
+                class="btn-profile-fav-remove p-1.5 rounded-lg hover:bg-rose-50 text-secondary hover:text-rose-600 transition-colors cursor-pointer"
+                data-id="${item.id}"
+                title="Quitar de favoritos"
+              >
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+              </button>
+            </div>
           </div>
-          <span class="font-bold text-primary">${formatMxn(w.precio)}</span>
-        </div>
-      `
-      )
-      .join('');
+        `).join('')}
+      </div>
+      <div class="pt-2.5 border-t border-surface-container mt-2 flex items-center justify-between">
+        <span class="text-xs text-secondary font-medium">${favs.length} artículo${favs.length === 1 ? '' : 's'} guardado${favs.length === 1 ? '' : 's'}</span>
+        <button type="button" id="btn-profile-view-all-favs" class="text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer">
+          <span>Ver pestaña de Favoritos</span>
+          <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+        </button>
+      </div>
+    `;
+
     if (badge) {
-      badge.textContent = `${wishlists.length} ${wishlists.length === 1 ? 'lista' : 'listas'}`;
-      badge.className = 'px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold';
+      badge.textContent = `${favs.length} ${favs.length === 1 ? 'artículo' : 'artículos'}`;
+      badge.className = 'px-2 py-0.5 rounded-full bg-primary/15 text-primary font-label-xs text-label-xs font-bold';
+    }
+
+    container.querySelectorAll('.btn-profile-fav-view').forEach((btn) => {
+      btn.onclick = () => {
+        const pId = Number(btn.getAttribute('data-id'));
+        const product = (state.products || []).find((p) => Number(p.id) === pId) || favs.find((f) => Number(f.id) === pId);
+        if (product) openProductDetail(product);
+      };
+    });
+
+    container.querySelectorAll('.btn-profile-fav-addcart').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const pId = Number(btn.getAttribute('data-id'));
+        const product = (state.products || []).find((p) => Number(p.id) === pId) || favs.find((f) => Number(f.id) === pId);
+        if (product) addToCart(product, 1);
+      };
+    });
+
+    container.querySelectorAll('.btn-profile-fav-remove').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const pId = Number(btn.getAttribute('data-id'));
+        const product = favs.find((f) => Number(f.id) === pId);
+        if (product) {
+          toggleFavorite(product);
+          renderProfileWishlists(user);
+        }
+      };
+    });
+
+    const btnAllFavs = container.querySelector('#btn-profile-view-all-favs');
+    if (btnAllFavs) {
+      btnAllFavs.onclick = () => {
+        const tabFavs = document.getElementById('tab-favorites');
+        if (tabFavs) tabFavs.click();
+      };
     }
   }
 }
@@ -598,8 +656,24 @@ function getFavoritesKey() {
 
 function getFavorites() {
   try {
-    const raw = localStorage.getItem(getFavoritesKey());
-    return raw ? JSON.parse(raw) : [];
+    const key = getFavoritesKey();
+    const raw = localStorage.getItem(key);
+    let favs = raw ? JSON.parse(raw) : [];
+
+    // Migración inteligente si el usuario recién inició sesión y tenía favoritos guardados como invitado
+    if (state.user && state.user.id && (!Array.isArray(favs) || favs.length === 0)) {
+      const guestRaw = localStorage.getItem('em_favorites_guest');
+      if (guestRaw) {
+        try {
+          const guestFavs = JSON.parse(guestRaw);
+          if (Array.isArray(guestFavs) && guestFavs.length > 0) {
+            favs = guestFavs;
+            localStorage.setItem(key, JSON.stringify(favs));
+          }
+        } catch (_) {}
+      }
+    }
+    return Array.isArray(favs) ? favs : [];
   } catch (_) {
     return [];
   }
@@ -610,6 +684,9 @@ function saveFavorites(favs) {
     localStorage.setItem(getFavoritesKey(), JSON.stringify(favs));
   } catch (_) {}
   updateFavoritesBadge();
+  if (state.user) {
+    renderProfileWishlists(state.user);
+  }
 }
 
 function isProductFavorite(productId) {
@@ -2529,8 +2606,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const btnCloseNotif = document.getElementById('btn-close-notif-dialog');
+  const btnCloseNotifFooter = document.getElementById('btn-close-notif-dialog-footer');
   if (btnCloseNotif && notifDialog) {
     btnCloseNotif.addEventListener('click', () => notifDialog.close());
+  }
+  if (btnCloseNotifFooter && notifDialog) {
+    btnCloseNotifFooter.addEventListener('click', () => notifDialog.close());
   }
 
   const btnGoToProfileNotifs = document.getElementById('btn-go-to-profile-notifs');

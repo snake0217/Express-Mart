@@ -1312,10 +1312,10 @@
             <div class="flex items-center justify-between mb-space-sm">
               <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold flex items-center gap-2">
                 <span class="material-symbols-outlined text-primary">favorite</span>
-                Mis Listas de Deseos (MXN)
+                Mis Artículos Favoritos
               </h3>
-              <span id="profile-wishlist-badge" class="px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant font-label-xs text-label-xs font-bold">
-                0 listas
+              <span id="profile-wishlist-badge" class="px-2 py-0.5 rounded-full bg-primary/15 text-primary font-label-xs text-label-xs font-bold">
+                0 artículos
               </span>
             </div>
             <div id="profile-wishlists-container" class="space-y-2 text-body-sm">
@@ -1936,10 +1936,10 @@
     <div class="modal-header border-b border-surface-container pb-3 px-6 pt-4 flex items-center justify-between bg-surface-container-lowest">
       <div class="flex items-center gap-2 text-on-surface font-bold">
         <span class="material-symbols-outlined text-primary text-[24px]">notifications</span>
-        <h2 id="notif-dialog-title" class="font-headline-sm text-headline-sm">Buzón de Notificaciones y Avisos</h2>
+        <h2 id="notif-dialog-title" class="font-headline-sm text-headline-sm text-primary font-extrabold">Buzón de Notificaciones y Avisos</h2>
       </div>
-      <button type="button" id="btn-close-notif-dialog" class="btn-close flex items-center justify-center" aria-label="Cerrar ventana de notificaciones">
-        <span class="material-symbols-outlined text-[18px]">close</span>
+      <button type="button" id="btn-close-notif-dialog" class="w-9 h-9 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all flex items-center justify-center font-bold shadow-sm cursor-pointer border border-primary/25" aria-label="Cerrar ventana de notificaciones" title="Cerrar notificaciones">
+        <span class="material-symbols-outlined text-[20px]">close</span>
       </button>
     </div>
     <div class="p-6 bg-surface-container-lowest max-h-[460px] overflow-y-auto">
@@ -1949,10 +1949,16 @@
     </div>
     <div class="modal-actions flex items-center justify-between gap-3 p-4 border-t border-surface-container bg-surface-container-low">
       <span class="text-xs text-secondary">Avisos de compras, envíos y cuenta</span>
-      <button type="button" id="btn-go-to-profile-notifs" class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs transition-colors flex items-center gap-1">
-        <span>Ver en Mi Perfil</span>
-        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <button type="button" id="btn-close-notif-dialog-footer" class="px-4 py-2 rounded-lg border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold text-xs transition-colors cursor-pointer flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+          <span>Cerrar</span>
+        </button>
+        <button type="button" id="btn-go-to-profile-notifs" class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer">
+          <span>Ver en Mi Perfil</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      </div>
     </div>
   </dialog>
 

@@ -319,6 +319,18 @@ input:user-invalid ~ .error-msg {
   background: rgba(255, 255, 255, 0.24);
 }
 
+/* Botón de cierre azul accesible para modales claros como Notificaciones */
+#btn-close-notif-dialog {
+  background: rgba(29, 78, 154, 0.12) !important;
+  color: #1d4e9a !important;
+  border: 1px solid rgba(29, 78, 154, 0.25) !important;
+}
+
+#btn-close-notif-dialog:hover {
+  background: #1d4e9a !important;
+  color: #ffffff !important;
+}
+
 .modal-body {
   padding: 1.35rem;
   max-height: 82vh;
