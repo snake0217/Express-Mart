@@ -2,6 +2,7 @@
  * Punto de entrada del servidor HTTP ExpressMart
  */
 
+require('./config/loadEnv');
 const { createApp } = require('./app');
 const { getConfig } = require('./config/env');
 

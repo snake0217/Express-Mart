@@ -4,6 +4,7 @@
  */
 
 const path = require('node:path');
+require('./loadEnv');
 
 const ENVIRONMENTS = {
   development: {

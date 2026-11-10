@@ -5,6 +5,7 @@
  */
 
 const path = require('node:path');
+require('./config/loadEnv');
 const crypto = require('node:crypto');
 const express = require('express');
 const { getConfig } = require('./config/env');
