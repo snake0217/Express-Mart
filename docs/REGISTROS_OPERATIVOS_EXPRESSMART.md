@@ -22,9 +22,9 @@
 | **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0009`) | **9** | Análisis 5 Porqués | **CONFORME** |
 | | Problemas con Causa Raíz Identificada | **9 de 9 (100%)** | 100% analizados | **CONFORME** |
 | | Problemas Abiertos | **0** | Cero problemas abiertos | **100% CERRADOS** |
-| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0015`) | **15** | Aprobación CAB formal | **CONFORME** |
-| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.7%)** |
-| | Cambios Exitosos sin Rollback | **15 de 15 (100%)** | >= 98% éxito | **SUPERADO** |
+| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0016`) | **16** | Aprobación CAB formal | **CONFORME** |
+| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.2%)** |
+| | Cambios Exitosos sin Rollback | **16 de 16 (100%)** | >= 98% éxito | **SUPERADO** |
 | **Vulnerabilidades** | Total de Vulnerabilidades Gestionadas (`VUL-0001` a `VUL-0008`) | **8** | Remediación verificada | **CONFORME** |
 | | Vulnerabilidades Críticas o Altas Abiertas | **0** | **Cero toleradas** | **100% REMEDIADAS** |
 | | Días Promedio hasta la Remediación | **1.1 días** | <= 5 días hábiles | **SUPERADO** |
@@ -66,7 +66,7 @@
 
 ---
 
-## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0015`)
+## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0016`)
 
 | ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |
@@ -85,6 +85,7 @@
 | `RFC-0013` | 10/11/2026 | UX | Frontend | **Retiro de tecnicismos, pestaña Favoritos e ícono** | Simplificación de experiencia visual de compra | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0014` | 10/11/2026 | Auditor Líder | Documentación | **Diccionario de Datos (16 Tablas), ERD y Guion** | Cierre de hallazgo H-02 y dictamen ECTA-DEV-01 | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0015` | 10/11/2026 | Soporte Técnico | Configuración | **Carga universal de variables de entorno y transporte SMTP** | Resolución definitiva de error Missing credentials for PLAIN en 2FA | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
+| `RFC-0016` | 10/11/2026 | Auditoría UX | Notificaciones y Perfil | **Botón azul de cerrar notificaciones y reactividad de favoritos** | Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 
 ---
 

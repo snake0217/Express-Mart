@@ -373,6 +373,26 @@ NUEVOS_CAMBIOS = [
         "Exitoso",
         "INC-0012 / PRB-0009",
         "src/config/loadEnv.js, src/services/emailService.js y commit f50250e"
+    ),
+    (
+        "RFC-0016",
+        datetime.datetime(2026, 11, 10),
+        "Auditoría UX y Clientes",
+        "Frontend / Notificaciones y Perfil",
+        "Optimización del botón de cerrar en notificaciones y sincronización de favoritos en perfil",
+        "Reemplazo del color blanco por azul corporativo #1d4e9a con borde y hover en el botón de cerrar de notificaciones, botón 'Cerrar' adicional en el pie del diálogo y conexión reactiva de favoritos con el perfil.",
+        "Garantizar la visibilidad y accesibilidad del botón de cierre en modales claros y mantener consistencia total en los artículos favoritos del usuario.",
+        "Normal",
+        "Bajo. Cambios visuales de accesibilidad WCAG y reactividad en cliente.",
+        "git revert 17031f2",
+        "Comité de cambios",
+        datetime.datetime(2026, 11, 10),
+        "10/11/2026 17:35 a 17:45",
+        "Cristopher San Juan y Diego Alarcón",
+        "Cerrado",
+        "Exitoso",
+        "Requerimiento UX",
+        "public/index.html, public/app.js, public/styles.css y commit 17031f2"
     )
 ]
 
@@ -509,9 +529,9 @@ def generate_operational_records_markdown():
     lines.append("| **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0009`) | **9** | Análisis 5 Porqués | **CONFORME** |")
     lines.append("| | Problemas con Causa Raíz Identificada | **9 de 9 (100%)** | 100% analizados | **CONFORME** |")
     lines.append("| | Problemas Abiertos | **0** | Cero problemas abiertos | **100% CERRADOS** |")
-    lines.append("| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0015`) | **15** | Aprobación CAB formal | **CONFORME** |")
-    lines.append("| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.7%)** |")
-    lines.append("| | Cambios Exitosos sin Rollback | **15 de 15 (100%)** | >= 98% éxito | **SUPERADO** |")
+    lines.append("| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0016`) | **16** | Aprobación CAB formal | **CONFORME** |")
+    lines.append("| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.2%)** |")
+    lines.append("| | Cambios Exitosos sin Rollback | **16 de 16 (100%)** | >= 98% éxito | **SUPERADO** |")
     lines.append("| **Vulnerabilidades** | Total de Vulnerabilidades Gestionadas (`VUL-0001` a `VUL-0008`) | **8** | Remediación verificada | **CONFORME** |")
     lines.append("| | Vulnerabilidades Críticas o Altas Abiertas | **0** | **Cero toleradas** | **100% REMEDIADAS** |")
     lines.append("| | Días Promedio hasta la Remediación | **1.1 días** | <= 5 días hábiles | **SUPERADO** |")
@@ -569,7 +589,7 @@ def generate_operational_records_markdown():
     lines.append("")
 
     # Tabla 3: Cambios Operativos
-    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0015`)")
+    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0016`)")
     lines.append("")
     lines.append("| ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |")
     lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |")
@@ -588,7 +608,8 @@ def generate_operational_records_markdown():
         ("RFC-0012", "10/11/2026", "Finanzas", "Herramientas", "Panel Administrativo Python y rediseño formal", "Control financiero de ingresos, cuentas y ventas", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0013", "10/11/2026", "UX", "Frontend", "Retiro de tecnicismos, pestaña Favoritos e ícono", "Simplificación de experiencia visual de compra", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0014", "10/11/2026", "Auditor Líder", "Documentación", "Diccionario de Datos (16 Tablas), ERD y Guion", "Cierre de hallazgo H-02 y dictamen ECTA-DEV-01", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
-        ("RFC-0015", "10/11/2026", "Soporte Técnico", "Configuración", "Carga universal de variables de entorno y transporte SMTP", "Resolución definitiva de error Missing credentials for PLAIN en 2FA", "Normal", "Comité de Cambios (CAB)", "Exitoso")
+        ("RFC-0015", "10/11/2026", "Soporte Técnico", "Configuración", "Carga universal de variables de entorno y transporte SMTP", "Resolución definitiva de error Missing credentials for PLAIN en 2FA", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
+        ("RFC-0016", "10/11/2026", "Auditoría UX", "Notificaciones y Perfil", "Botón azul de cerrar notificaciones y reactividad de favoritos", "Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil", "Normal", "Comité de Cambios (CAB)", "Exitoso")
     ]
     for rfc in rfc_list:
         lines.append(f"| `{rfc[0]}` | {rfc[1]} | {rfc[2]} | {rfc[3]} | **{rfc[4]}** | {rfc[5]} | `{rfc[6]}` | {rfc[7]} | **{rfc[8]}** |")
