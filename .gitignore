@@ -11,17 +11,25 @@ data/
 
 # Variables de entorno y secretos locales
 .env
+CONTRASENAS_ADMIN_Y_AUDITOR.*
+reportes/
+fotosproductos/
+__pycache__/
+*.pyc
+*.pyo
 
 # Respaldos y bitácoras
 backups/
 logs/*.log
 
-# Documentos ofimáticos y respaldos locales
-*.docx
+# Documentos ofimáticos y respaldos locales temporales
 *.xlsx
-docs/
 disenostich/
 documentos_respaldo/
+
+# Permitir documentos técnicos y diagramas de auditoría
+!docs/
+!docs/**
 
 # Configuración de contenedores
 Dockerfile

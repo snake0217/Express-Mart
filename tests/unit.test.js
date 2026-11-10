@@ -205,4 +205,90 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
     expect(exhausted.success).toBe(false);
     expect(exhausted.intentosConexion).toBe(3);
   });
+
+  test('10. Procesamiento de pagos simulados con PayPal Sandbox en MXN (RF-05 / Apartado 25)', () => {
+    const ppResult = processPaymentGateway({
+      metodoPago: 'paypal',
+      monto: 2499.00
+    });
+    expect(ppResult.success).toBe(true);
+    expect(ppResult.estado).toBe('capturado');
+    expect(ppResult.moneda).toBe('MXN');
+    expect(ppResult.monto).toBe(2499.00);
+    expect(ppResult.proveedor).toMatch(/PayPal Sandbox/);
+    expect(ppResult.referenciaPasarela).toMatch(/^PAYPAL-SBX-/);
+    expect(ppResult.tarjetaEnmascarada).toContain('bancochido@banco.com');
+    expect(ppResult.tokenPci).toMatch(/^PP-TOK-/);
+    expect(ppResult.connectionReleased).toBe(true);
+  });
+
+  test('11. Servicio de Correos Electrónicos con Nodemailer y Plantilla 2FA', async () => {
+    const { buildVerificationEmailTemplate, sendVerificationEmail, transporter } = require('../src/services/emailService');
+    const htmlRegistro = buildVerificationEmailTemplate({
+      nombre: 'Diego Alarcón',
+      code: '849201',
+      purpose: 'registro'
+    });
+    expect(htmlRegistro).toContain('849201');
+    expect(htmlRegistro).toContain('Diego Alarcón');
+    expect(htmlRegistro).toContain('Verifiquemos tu correo');
+
+    const htmlLogin = buildVerificationEmailTemplate({
+      nombre: 'Diego Alarcón',
+      code: '654321',
+      purpose: 'login'
+    });
+    expect(htmlLogin).toContain('654321');
+    expect(htmlLogin).toContain('Código de Seguridad');
+
+    const htmlDefault = buildVerificationEmailTemplate({ code: '999999' });
+    expect(htmlDefault).toContain('999999');
+    expect(htmlDefault).toContain('Usuario');
+
+    const testDomainRes = await sendVerificationEmail({
+      to: 'admin@expressmart.mx',
+      code: '888888'
+    });
+    expect(testDomainRes.success).toBe(true);
+
+    const testDomainRes2 = await sendVerificationEmail({
+      to: 'usuario@example.com',
+      code: '777777',
+      purpose: 'login'
+    });
+    expect(testDomainRes2.success).toBe(true);
+
+    const origSend = transporter.sendMail;
+    transporter.sendMail = jest.fn().mockResolvedValue({ messageId: 'mock-123' });
+
+    const resReg = await sendVerificationEmail({
+      to: 'diegoman170802@gmail.com',
+      nombre: 'Diego Alarcón',
+      code: '123456',
+      purpose: 'registro'
+    });
+    expect(resReg.success).toBe(true);
+    expect(resReg.messageId).toBe('mock-123');
+
+    const resLog = await sendVerificationEmail({
+      to: 'diegoman170802@gmail.com',
+      nombre: 'Diego Alarcón',
+      code: '654321',
+      purpose: 'login'
+    });
+    expect(resLog.success).toBe(true);
+
+    // Error handling
+    transporter.sendMail = jest.fn().mockRejectedValue(new Error('SMTP Error'));
+    const resErr = await sendVerificationEmail({
+      to: 'diegoman170802@gmail.com',
+      nombre: 'Diego Alarcón',
+      code: '000000',
+      purpose: 'registro'
+    });
+    expect(resErr.success).toBe(false);
+    expect(resErr.error).toBe('SMTP Error');
+
+    transporter.sendMail = origSend;
+  });
 });

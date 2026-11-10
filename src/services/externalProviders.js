@@ -102,6 +102,32 @@ function processPaymentGateway({
       };
     }
 
+    if (metodoPago === 'paypal') {
+      const { paypal } = getConfig();
+      const referenciaPasarela = `PAYPAL-SBX-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+      const latenciaMs = Math.max(15, Date.now() - startTime + 30);
+      const emailSandbox = paypal?.sandboxEmail || 'bancochido@banco.com';
+
+      return {
+        success: true,
+        estado: 'capturado',
+        referenciaPasarela,
+        proveedor: 'PayPal Sandbox (REST API v2 / MX)',
+        metodoPago: 'paypal',
+        mesesSinIntereses: 1,
+        monto: Number(Number(monto).toFixed(2)),
+        moneda: 'MXN',
+        tarjetaEnmascarada: `PAYPAL (${emailSandbox})`,
+        tokenPci: `PP-TOK-${crypto.randomBytes(8).toString('hex').toUpperCase()}`,
+        bovedaCifrada: `vault_pp_${crypto.randomBytes(12).toString('hex')}`,
+        idempotencyKey: idempotencyKey || `idem_pp_${crypto.randomBytes(12).toString('hex')}`,
+        intentosConexion: attempts,
+        latenciaMs,
+        timeoutConfiguredMs: paymentGateway.timeoutMs,
+        connectionReleased: true
+      };
+    }
+
     const tokenized = tokenizeCard(
       metodoPago === 'wallet' ? '4999888877776666' : cardNumber,
       cardHolder,

@@ -105,6 +105,16 @@ function getConfig() {
       maxRetries: Number(process.env.PAYMENT_GATEWAY_MAX_RETRIES || 3),   // RFC-0001: 3 retries with backoff
       connectionPoolRelease: true                                         // PRB-0001 fix
     },
+    paypal: {
+      clientId: process.env.PAYPAL_CLIENT_ID || 'Ac1DHKE068BKREloy9_v2y2mb5PawyS-0dX32ko2XKrwfYxyejUYXfMjoUaEkRpmloEN6kf3SlgGrdw_',
+      clientSecret: process.env.PAYPAL_CLIENT_SECRET || 'EOywKcH9CQZwi1hQXS8STOKthzBrkJ-BFAgWKCV6wy0MY5lJTq9xwprhuzjfQge4ojp05tRjQ805kEs_',
+      sandboxEmail: process.env.PAYPAL_SANDBOX_EMAIL || 'bancochido@banco.com',
+      sandboxPassword: process.env.PAYPAL_SANDBOX_PASSWORD || 'nBBi"*d6',
+      sandboxUrl: process.env.PAYPAL_SANDBOX_URL || 'https://sandbox.paypal.com',
+      region: process.env.PAYPAL_REGION || 'MX',
+      currency: 'MXN',
+      environment: process.env.PAYPAL_ENVIRONMENT || 'sandbox'
+    },
     featureFlags: {
       threeStepCheckout: process.env.FEATURE_THREE_STEP_CHECKOUT !== 'false',
       recommendationsService: process.env.FEATURE_RECOMMENDATIONS_SERVICE !== 'false',

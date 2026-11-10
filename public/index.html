@@ -125,6 +125,9 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body class="bg-surface font-body-md text-on-surface antialiased">
+  <!-- Canvas de Efecto Hojas de Otoño Cayendo (Falling Leaves) -->
+  <canvas id="falling-leaves-canvas" class="falling-leaves-canvas" aria-hidden="true"></canvas>
+
   <!-- Enlace de accesibilidad WCAG 2.2 (Apartado 28 / RNF-07) -->
   <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
@@ -219,6 +222,18 @@
             <span class="font-label-md text-label-md text-surface font-bold">&amp; Mis Pedidos</span>
           </button>
 
+          <!-- Botón de Notificaciones al lado del icono de compra -->
+          <button type="button" id="btn-header-notifications" aria-label="Ver avisos y notificaciones" class="flex items-center gap-1.5 px-space-sm py-1.5 rounded hover:outline hover:outline-1 hover:outline-outline-variant transition-all relative" title="Notificaciones">
+            <div class="relative flex items-center">
+              <span class="material-symbols-outlined text-surface text-[26px]">notifications</span>
+              <span id="header-notif-count" class="hidden absolute -top-1 -right-1 bg-error text-white font-headline-sm text-[10px] font-extrabold h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center">0</span>
+            </div>
+            <div class="hidden xl:flex flex-col text-left leading-tight">
+              <span class="font-label-xs text-label-xs text-surface-dim">Avisos</span>
+              <span class="font-label-md text-label-md text-surface font-bold">Notificaciones</span>
+            </div>
+          </button>
+
           <button type="button" id="btn-open-cart" aria-label="Ver cesta y tramitar pedido" class="flex items-center gap-1.5 px-space-sm py-1.5 rounded hover:outline hover:outline-1 hover:outline-outline-variant transition-all relative">
             <div class="relative flex items-center">
               <span class="material-symbols-outlined text-surface text-[30px]">shopping_cart</span>
@@ -244,11 +259,16 @@
               <span class="material-symbols-outlined text-[18px]">grid_view</span>
               Catálogo de Productos
             </button>
+            <button type="button" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all relative" data-tab="view-favorites" role="tab" aria-selected="false">
+              <span class="material-symbols-outlined text-[18px] text-error">favorite</span>
+              <span>Favoritos</span>
+              <span id="nav-favorites-count" class="hidden px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-error text-white">0</span>
+            </button>
             <button type="button" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-orders" role="tab" aria-selected="false">
               <span class="material-symbols-outlined text-[18px]">local_shipping</span>
               Mis Pedidos y Devoluciones
             </button>
-            <button type="button" class="tab-btn px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-profile" role="tab" aria-selected="false">
+            <button type="button" class="tab-btn hidden px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-profile" role="tab" aria-selected="false">
               <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
               Mi Cuenta y Privacidad
             </button>
@@ -262,12 +282,22 @@
             </button>
           </div>
 
-          <div class="hidden xl:flex items-center gap-3 shrink-0 text-label-xs">
-            <span class="flex items-center gap-1 text-tertiary-fixed font-bold">
+          <div class="flex items-center gap-3 shrink-0 text-label-xs">
+            <!-- Switch Hojas de Otoño (Falling Leaves) -->
+            <label for="toggle-falling-leaves" class="leaves-toggle-container flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-full bg-[#0c1e3d]/90 hover:bg-[#0c1e3d] border border-[#1d4e9a]/60 text-surface text-xs font-semibold transition-all shadow-sm" title="Efecto de hojas de otoño cayendo (clic para activar o desactivar)">
+              <span class="text-sm select-none" aria-hidden="true">🍂</span>
+              <span class="hidden sm:inline">Hojas de Otoño</span>
+              <input type="checkbox" id="toggle-falling-leaves" class="leaves-switch-input sr-only" checked aria-label="Activar o desactivar efecto de hojas de otoño" />
+              <span class="leaves-switch-track" aria-hidden="true">
+                <span class="leaves-switch-thumb"></span>
+              </span>
+            </label>
+
+            <span class="hidden xl:flex items-center gap-1 text-tertiary-fixed font-bold">
               <span class="material-symbols-outlined text-[16px]">verified</span>
               ExpressPrime Envío Gratis CDMX
             </span>
-            <span id="health-badge" class="px-2.5 py-0.5 rounded-full bg-[#0c1e3d] text-surface-dim font-semibold flex items-center gap-1 border border-[#1d4e9a]/40">
+            <span id="health-badge" class="hidden xl:flex px-2.5 py-0.5 rounded-full bg-[#0c1e3d] text-surface-dim font-semibold items-center gap-1 border border-[#1d4e9a]/40">
               <span class="material-symbols-outlined text-[14px] text-tertiary-fixed">security</span>
               Compra 100% Protegida · Garantía Oficial
             </span>
@@ -425,7 +455,7 @@
                   <span class="material-symbols-outlined text-tertiary-fixed text-[22px]">verified</span>
                   <h2 class="font-headline-sm text-headline-sm text-surface font-bold">ExpressPrime México</h2>
                 </div>
-                <p class="font-body-sm text-body-sm text-surface-dim mb-space-sm">Envíos gratis en 24h en CDMX, Guadalajara y Monterrey, y devoluciones LFPC sin costo.</p>
+                <p class="font-body-sm text-body-sm text-surface-dim mb-space-sm">Envíos gratis en 24h en CDMX, Guadalajara y Monterrey, y devoluciones sin costo.</p>
                 <div class="relative rounded-lg overflow-hidden shadow-lg aspect-video w-full mb-space-sm">
                   <img alt="ExpressPrime Beneficios" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcoaJzzVouDi8W6YbQUfJhvj0sZrfSPXEJjbXsfSRn1p2JGo1noulM18le-q1Yu3EUWN3stE6mCERt1LZy48lSks0k96dlv4xEcktJgqveOTBAtYa-CbT_VSCTp3UP6E3DF9dWeSomgd8otwPa3OxItFVJBmg8byBtPAkPoqTaCi_lypTv8wzFdZQIu28EOg5vCAjPRz5pE00r01rnmUqruRhJAOCz_pvoQao1BzTuPIjmFwWprbRh" />
                   <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
@@ -442,13 +472,19 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-tertiary-fixed text-[16px]">check_circle</span>
-                    <span>Compra protegida 30 días LFPC</span>
+                    <span>Compra protegida 30 días</span>
                   </div>
                 </div>
+                <div class="mt-space-sm flex flex-col gap-2">
+                  <button type="button" id="btn-open-membership" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-label-md text-label-md font-bold text-center transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                    <span>Suscribirse a ExpressPrime</span>
+                  </button>
+                  <button type="button" id="btn-prime-coupon" class="w-full py-2 rounded-lg bg-white/10 hover:bg-white/20 text-surface font-label-sm text-label-sm font-semibold text-center transition-colors">
+                    Activar Cupón ENVIOGRATIS
+                  </button>
+                </div>
               </div>
-              <button type="button" id="btn-prime-coupon" class="mt-space-sm w-full py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md font-bold text-center transition-colors">
-                Activar Cupón ENVIOGRATIS
-              </button>
             </div>
 
             <!-- Card 4: Setup Oficina & Teletrabajo -->
@@ -495,6 +531,175 @@
             </div>
           </div>
         </div>
+
+        <!-- 2.1 BENTO ROW 2: NUEVOS PRODUCTOS DESTACADOS EN EL DASHBOARD PRINCIPAL -->
+        <div class="relative z-20 px-margin pb-space-lg mt-6 pt-4">
+          <div class="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-amber-500 text-[26px]">local_fire_department</span>
+                <h2 class="font-headline-sm text-headline-sm text-on-surface font-extrabold">Nuevas Llegadas y Especiales en ExpressMart</h2>
+              </div>
+              <p class="font-body-sm text-body-sm text-secondary">
+                Consolas next-gen, pantallas gigantes 4K, suplementos deportivos, entretenimiento clásico y maquinaria pesada.
+              </p>
+            </div>
+            <button type="button" class="btn-nav-catalog text-sm font-bold text-primary hover:text-primary-container flex items-center gap-1 cursor-pointer shrink-0">
+              Ver todas las novedades en catálogo <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+            <!-- Card 5: Gaming & Consolas Next-Gen -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between border border-surface-container hover:border-primary/50 transition-all">
+              <div>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[20px]">sports_esports</span>
+                    Gaming &amp; Consolas
+                  </h3>
+                  <span class="px-2 py-0.5 bg-amber-500 text-white font-label-xs text-label-xs rounded font-bold uppercase">NEXT-GEN</span>
+                </div>
+                <div class="grid grid-cols-2 gap-space-sm">
+                  <!-- Nintendo Switch 2 -->
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Videojuegos" data-sku="EM-GAM-022" title="Ver Nintendo Switch 2">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-white mb-1.5 relative p-1 border border-surface-dim">
+                      <img alt="Nintendo Switch 2 OLED" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/nintendo-switch-2.webp" onerror="this.src='/assets/logo.png'" />
+                      <span class="absolute top-1 left-1 bg-primary text-on-primary font-label-xs text-[10px] px-1 py-0.2 rounded font-extrabold">NUEVO</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate font-semibold">Nintendo Switch 2</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$9,999.00 MXN</p>
+                  </div>
+                  <!-- Xbox Series S -->
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Videojuegos" data-sku="EM-GAM-023" title="Ver Xbox Series S">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-white mb-1.5 relative p-1 border border-surface-dim">
+                      <img alt="Xbox Series S 512GB" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/xbox-series-s.png" onerror="this.src='/assets/logo.png'" />
+                      <span class="absolute top-1 left-1 bg-emerald-700 text-white font-label-xs text-[10px] px-1 py-0.2 rounded font-extrabold">12 MSI</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate font-semibold">Xbox Series S 512GB</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$5,799.00 MXN</p>
+                  </div>
+                  <!-- Gears of War: E-Day -->
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Videojuegos" data-sku="EM-GAM-024" title="Ver Gears of War: E-Day">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-white mb-1.5 relative p-1 border border-surface-dim">
+                      <img alt="Gears of War E-Day" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/gears-of-war-eday.webp" onerror="this.src='/assets/logo.png'" />
+                      <span class="absolute top-1 left-1 bg-amber-600 text-white font-label-xs text-[10px] px-1 py-0.2 rounded font-extrabold">PREVENTA</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate font-semibold">Gears of War: E-Day</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$1,599.00 MXN</p>
+                  </div>
+                  <!-- Gears of War: Novela El Fin de la Coalición -->
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Libros" data-sku="EM-LIB-025" title="Ver Libro Gears of War">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-white mb-1.5 relative p-1 border border-surface-dim">
+                      <img alt="Libro Gears of War El Fin de la Coalición" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/gears-fin-coalicion.webp" onerror="this.src='/assets/logo.png'" />
+                      <span class="absolute top-1 left-1 bg-tertiary text-on-tertiary font-label-xs text-[10px] px-1 py-0.2 rounded font-extrabold">CANON</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate font-semibold">Gears: Fin Coalición</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$489.00 MXN</p>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold promo-filter-trigger" data-cat="Videojuegos">
+                Explorar Videojuegos &amp; Libros <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
+            </div>
+
+            <!-- Card 6: Pantalla Gigante Samsung 75" 4K -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between border border-surface-container hover:border-primary/50 transition-all">
+              <div>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[20px]">tv</span>
+                    Cine en Casa &amp; TV
+                  </h3>
+                  <span class="px-2 py-0.5 bg-primary text-on-primary font-label-xs text-label-xs rounded font-bold uppercase">4K UHD</span>
+                </div>
+                <div class="group p-2 rounded-xl bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Electronica" data-sku="EM-TV-021" title="Ver Pantalla Samsung 75">
+                  <div class="w-full aspect-video rounded-lg overflow-hidden bg-white mb-2 relative p-2 border border-surface-dim flex items-center justify-center">
+                    <img alt="Pantalla Samsung 75 Crystal UHD" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/samsung-75-crystal-uhd.jpg" onerror="this.src='/assets/logo.png'" />
+                    <span class="absolute top-2 left-2 bg-error text-white font-label-xs text-[10px] px-1.5 py-0.5 rounded font-extrabold">-28% OFERTA</span>
+                  </div>
+                  <p class="font-bold text-sm text-on-surface line-clamp-2">Samsung 75" Crystal UHD 4K Smart TV Tizen</p>
+                  <div class="flex items-baseline gap-2 mt-1">
+                    <span class="font-headline-sm text-headline-sm text-primary font-extrabold">$14,999.00 MXN</span>
+                    <span class="text-xs text-secondary line-through">$20,999.00</span>
+                  </div>
+                  <p class="text-xs text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">local_shipping</span> Envío ExpressPrime GRATIS
+                  </p>
+                </div>
+              </div>
+              <button type="button" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold promo-filter-trigger" data-cat="Electronica">
+                Ver Pantallas y Smart TVs <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
+            </div>
+
+            <!-- Card 7: Entretenimiento & Clásicos Mexicanos -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between border border-surface-container hover:border-primary/50 transition-all">
+              <div>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[20px]">movie</span>
+                    Series &amp; Películas
+                  </h3>
+                  <span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed font-label-xs text-label-xs rounded font-bold uppercase">COLECCIÓN</span>
+                </div>
+                <div class="group p-2 rounded-xl bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Entretenimiento" data-sku="EM-PEL-026" title="Ver La Familia P. Luche DVD">
+                  <div class="w-full aspect-video rounded-lg overflow-hidden bg-white mb-2 relative p-2 border border-surface-dim flex items-center justify-center">
+                    <img alt="La Familia P. Luche Colección Completa DVD" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/familia-peluche-dvd.jpg" onerror="this.src='/assets/logo.png'" />
+                    <span class="absolute top-2 left-2 bg-primary text-on-primary font-label-xs text-[10px] px-1.5 py-0.5 rounded font-extrabold">3 TEMPORADAS</span>
+                  </div>
+                  <p class="font-bold text-sm text-on-surface line-clamp-2">La Familia P. Luche Colección Completa 3 Temp. (DVD Original)</p>
+                  <div class="flex items-baseline gap-2 mt-1">
+                    <span class="font-headline-sm text-headline-sm text-primary font-extrabold">$549.00 MXN</span>
+                    <span class="text-xs text-secondary">Edición Coleccionista</span>
+                  </div>
+                  <p class="text-xs text-secondary mt-1">Todos los episodios remasterizados con Eugenio Derbez y Consuelo Duval.</p>
+                </div>
+              </div>
+              <button type="button" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold promo-filter-trigger" data-cat="Entretenimiento">
+                Ver Entretenimiento en DVD <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
+            </div>
+
+            <!-- Card 8: Deportes, Fitness & Maquinaria Agrícola -->
+            <div class="bg-surface-container-lowest p-space-md rounded-xl shadow-[0_12px_32px_rgba(11,28,48,0.08)] flex flex-col justify-between border border-surface-container hover:border-primary/50 transition-all">
+              <div>
+                <div class="flex items-center justify-between mb-space-sm">
+                  <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-primary text-[20px]">fitness_center</span>
+                    Fitness &amp; Campo
+                  </h3>
+                  <span class="px-2 py-0.5 bg-emerald-600 text-white font-label-xs text-label-xs rounded font-bold uppercase">ESPECIALES</span>
+                </div>
+                <div class="grid grid-cols-2 gap-space-sm">
+                  <!-- Dymatize Elite Whey -->
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Deportes" data-sku="EM-DEP-027" title="Ver Proteína Dymatize">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-white mb-1.5 relative p-1 border border-surface-dim">
+                      <img alt="Proteína Dymatize Elite 100 Whey 5 lbs" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/elite-whey-protein.webp" onerror="this.src='/assets/logo.png'" />
+                      <span class="absolute top-1 left-1 bg-emerald-700 text-white font-label-xs text-[10px] px-1 py-0.2 rounded font-extrabold">25G PRO</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate font-semibold">Dymatize Whey 5 lbs</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$1,699.00 MXN</p>
+                  </div>
+                  <!-- Llanta Tractor Fortmaster -->
+                  <div class="group p-1.5 rounded-lg bg-surface hover:bg-surface-container-low transition-colors cursor-pointer promo-filter-trigger" data-cat="Automotriz" data-sku="EM-AGR-028" title="Ver Llanta Tractor Fortmaster">
+                    <div class="w-full aspect-square rounded overflow-hidden bg-white mb-1.5 relative p-1 border border-surface-dim">
+                      <img alt="Llanta Tractor Fortmaster 9.5-16" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" src="/assets/productos/llanta-tractor-fortmaster.webp" onerror="this.src='/assets/logo.png'" />
+                      <span class="absolute top-1 left-1 bg-amber-700 text-white font-label-xs text-[10px] px-1 py-0.2 rounded font-extrabold">6 CAPAS</span>
+                    </div>
+                    <p class="font-body-sm text-body-sm text-on-surface truncate font-semibold">Llanta Tractor 9.5-16</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">$4,250.00 MXN</p>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="mt-space-sm font-label-md text-label-md text-primary hover:text-primary-container flex items-center gap-1 font-bold promo-filter-trigger" data-cat="Deportes">
+                Explorar Deportes &amp; Automotriz <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Banner CTA para ir al Catálogo Completo -->
         <div class="max-w-[1440px] mx-auto px-margin py-8 text-center flex flex-col sm:flex-row items-center justify-between gap-4 bg-surface-container-low rounded-2xl p-6 border border-surface-container mt-4 mb-6">
           <div class="text-left">
@@ -503,7 +708,7 @@
               Explora Nuestro Catálogo Completo de Productos
             </h3>
             <p class="font-body-sm text-body-sm text-secondary">
-              Más de 20 artículos verificados con entrega ExpressPrime en CDMX y garantía de 30 días LFPC.
+              Más de 20 artículos verificados con entrega ExpressPrime en CDMX y garantía oficial de 30 días.
             </p>
           </div>
           <button type="button" class="btn-nav-catalog px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold shadow-md hover:opacity-95 transition-all text-sm flex items-center gap-2 shrink-0 cursor-pointer">
@@ -530,7 +735,7 @@
                 </h2>
               </div>
               <p class="font-body-sm text-body-sm text-secondary">
-                Todos los precios incluyen 16% de IVA en Pesos Mexicanos ($ MXN) conforme a la LFPC · Stock verificado en CEDIS CDMX Norte.
+                Todos los precios incluyen 16% de IVA en Pesos Mexicanos ($ MXN) · Stock verificado en CEDIS CDMX.
               </p>
             </div>
             <span id="search-latency-pill" class="px-3 py-1.5 rounded-full bg-tertiary-fixed/40 text-on-tertiary-fixed-variant font-label-md text-label-md font-bold w-fit">
@@ -547,7 +752,13 @@
                 <option value="Audio">Audio y Auriculares</option>
                 <option value="telefonia">Telefonía Móvil 5G</option>
                 <option value="Accesorios">Accesorios y Periféricos</option>
-                <option value="Hogar">Hogar y Café</option>
+                <option value="Hogar">Hogar y Cocina</option>
+                <option value="Videojuegos">Videojuegos y Consolas</option>
+                <option value="Electronica">Electrónica y Smart TV</option>
+                <option value="Deportes">Deportes y Fitness</option>
+                <option value="Automotriz">Automotriz y Accesorios</option>
+                <option value="Libros">Libros y Lectura</option>
+                <option value="Entretenimiento">Cine y Entretenimiento</option>
               </select>
             </div>
 
@@ -556,10 +767,30 @@
               <select id="filter-brand" class="h-10 px-3 rounded-lg bg-surface-container-low border border-surface-dim font-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary">
                 <option value="">Todas las marcas</option>
                 <option value="TechNova">TechNova</option>
-                <option value="SonicWave">SonicWave</option>
-                <option value="VisionMax">VisionMax</option>
-                <option value="KeyMaster">KeyMaster</option>
-                <option value="HomeElite">HomeElite</option>
+                <option value="Sony">Sony</option>
+                <option value="Samsung">Samsung</option>
+                <option value="Logitech">Logitech</option>
+                <option value="TP-Link">TP-Link</option>
+                <option value="Dell">Dell</option>
+                <option value="Corsair">Corsair</option>
+                <option value="ASUS">ASUS</option>
+                <option value="JBL">JBL</option>
+                <option value="DJI">DJI</option>
+                <option value="Anker">Anker</option>
+                <option value="UGREEN">UGREEN</option>
+                <option value="Belkin">Belkin</option>
+                <option value="Keychron">Keychron</option>
+                <option value="Philips">Philips</option>
+                <option value="Dyson">Dyson</option>
+                <option value="Ninja">Ninja</option>
+                <option value="Xiaomi">Xiaomi</option>
+                <option value="Microsoft">Microsoft / Xbox</option>
+                <option value="Nintendo">Nintendo</option>
+                <option value="LG">LG</option>
+                <option value="Bowflex">Bowflex</option>
+                <option value="Garmin">Garmin</option>
+                <option value="NOCO">NOCO</option>
+                <option value="70mai">70mai</option>
               </select>
             </div>
 
@@ -897,6 +1128,14 @@
                 <span class="material-symbols-outlined text-[18px]">bolt</span>
                 Comprar Ahora
               </button>
+              <button
+                type="button"
+                id="btn-buybox-fav"
+                class="w-full py-2 px-4 rounded-xl border border-surface-container hover:bg-surface-container-high text-on-surface font-label-md font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span class="material-symbols-outlined text-[18px] text-error" id="buybox-fav-icon">favorite_border</span>
+                <span id="buybox-fav-text">Guardar en Favoritos</span>
+              </button>
             </div>
 
             <hr class="border-surface-container my-1" />
@@ -925,7 +1164,7 @@
               Mis Pedidos, Rastreo DHL/FedEx y Gestión de Devoluciones
             </h2>
             <p class="font-body-md text-body-md text-secondary">
-              Consulta el estado en tiempo real desde CEDIS CDMX, verifica el código de seguridad SHA-256 y solicita devoluciones inmediatas amparadas por la LFPC.
+              Consulta el estado en tiempo real de tus envíos y solicita devoluciones inmediatas sin costo.
             </p>
           </div>
           <button type="button" id="btn-refresh-orders" class="px-4 py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold flex items-center gap-1.5 shrink-0 transition-colors">
@@ -939,7 +1178,43 @@
     </section>
 
     <!-- ===============================================================
-         VISTA 3: MI CUENTA, PERFIL CIFRADO, WISHLISTS Y ARCO (STITCH)
+         VISTA: MIS FAVORITOS (LISTA DE DESEOS Y PRODUCTOS GUARDADOS)
+         =============================================================== -->
+    <section id="view-favorites" class="tab-view hidden max-w-[1440px] mx-auto px-margin pt-space-md" aria-labelledby="heading-favorites">
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg mb-space-lg border border-surface-container">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-md border-b border-surface-container">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-error text-[28px]">favorite</span>
+              <h2 id="heading-favorites" class="font-headline-lg text-headline-lg text-on-surface font-extrabold">
+                Mis Favoritos
+              </h2>
+              <span id="favorites-badge-count" class="px-2.5 py-0.5 rounded-full bg-error/10 text-error font-bold text-xs">0 artículos</span>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">
+              Todos tus artículos guardados en un solo lugar. Puedes agregarlos a tu cesta en cualquier momento o explorar nuevas opciones.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btn-fav-clear-all" class="px-4 py-2 rounded-lg border border-surface-container text-xs font-semibold text-secondary hover:text-error hover:bg-surface-container-high transition-colors hidden">
+              Vaciar lista
+            </button>
+            <button type="button" class="btn-nav-catalog px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">grid_view</span>
+              <span>Explorar Catálogo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor de Favoritos dinámico -->
+        <div id="favorites-container" class="pt-space-md">
+          <!-- Inyectado dinámicamente por JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================================================
+         VISTA 3: MI CUENTA, PERFIL CIFRADO Y WISHLISTS (STITCH)
          =============================================================== -->
     <section id="view-profile" class="tab-view hidden max-w-[1440px] mx-auto px-margin pt-space-md" aria-labelledby="heading-profile">
       <!-- Banner Superior de Perfil estilo Stitch con selector de foto -->
@@ -962,8 +1237,8 @@
               <h2 id="heading-profile" class="font-headline-md text-headline-md text-on-surface font-extrabold">
                 Mi Cuenta y Perfil de Usuario
               </h2>
-              <span class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-xs text-label-xs font-bold flex items-center gap-1">
-                <span class="material-symbols-outlined text-[14px]">verified</span> Miembro ExpressPrime México
+              <span id="profile-membership-badge" class="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-label-xs text-label-xs font-bold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">person</span> Cuenta Estándar
               </span>
             </div>
             <p class="font-body-sm text-body-sm text-secondary mt-0.5">
@@ -990,8 +1265,13 @@
         </div>
       </div>
 
+      <!-- Sección de Membresía ExpressPrime (RF-04 / RF-05) -->
+      <div id="profile-membership-section" class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg mb-space-lg border border-surface-container">
+        <!-- Renderizado dinámico de la suscripción y planes -->
+      </div>
+
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-        <!-- Columna Izquierda (7 cols): Formulario de Perfil + Derechos ARCO -->
+        <!-- Columna Izquierda (7 cols): Formulario de Perfil y Preferencias -->
         <div class="lg:col-span-7 flex flex-col gap-space-md">
           <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg">
             <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-space-md flex items-center gap-2">
@@ -1024,38 +1304,9 @@
               </button>
             </form>
           </div>
-
-          <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg">
-            <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mb-1 flex items-center gap-2">
-              <span class="material-symbols-outlined text-tertiary">gavel</span>
-              Ejercicio de Derechos ARCO (LFPDPPP - NOR-08)
-            </h3>
-            <p class="font-body-sm text-body-sm text-secondary mb-space-md">
-              Solicita Acceso, Rectificación, Cancelación u Oposición sobre tus datos personales con emisión inmediata de folio oficial.
-            </p>
-            <form id="arco-form" class="space-y-4">
-              <div class="field">
-                <label for="arco-tipo">Tipo de derecho ARCO a ejercer</label>
-                <select id="arco-tipo" required>
-                  <option value="acceso">Acceso a mis datos personales</option>
-                  <option value="rectificacion">Rectificación de datos</option>
-                  <option value="cancelacion">Cancelación de datos</option>
-                  <option value="oposicion">Oposición al tratamiento</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="arco-desc">Descripción de la solicitud</label>
-                <textarea id="arco-desc" rows="2" required minlength="5" placeholder="Solicito copia o actualización de mis datos conforme a la LFPDPPP..."></textarea>
-              </div>
-              <button type="submit" class="px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold transition-colors">
-                Enviar Solicitud ARCO
-              </button>
-            </form>
-            <div id="arco-result" class="mt-3"></div>
-          </div>
         </div>
 
-        <!-- Columna Derecha (5 cols): Wishlists Stitch + Buzón de Notificaciones RF-09 -->
+        <!-- Columna Derecha (5 cols): Wishlists + Buzón de Notificaciones -->
         <div class="lg:col-span-5 flex flex-col gap-space-md">
           <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg">
             <div class="flex items-center justify-between mb-space-sm">
@@ -1120,6 +1371,12 @@
                   <option value="telefonia">Telefonía</option>
                   <option value="Accesorios">Accesorios</option>
                   <option value="Hogar">Hogar</option>
+                  <option value="Videojuegos">Videojuegos</option>
+                  <option value="Electronica">Electrónica</option>
+                  <option value="Deportes">Deportes</option>
+                  <option value="Automotriz">Automotriz</option>
+                  <option value="Libros">Libros</option>
+                  <option value="Entretenimiento">Entretenimiento</option>
                 </select>
               </div>
               <div class="field">
@@ -1253,26 +1510,6 @@
     </div>
 
     <div class="modal-body">
-      <div class="demo-roles-box mb-space-md">
-        <p class="font-label-md text-label-md text-on-surface mb-2">
-          <strong>Selector Rápido de Cuentas de Demostración:</strong>
-        </p>
-        <div class="demo-buttons">
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="cliente@expressmart.mx" data-pass="ClientePassword123!">
-            <span class="material-symbols-outlined text-[16px]">person</span> Cliente Verificado
-          </button>
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="vendedor@expressmart.mx" data-pass="VendedorPassword123!">
-            <span class="material-symbols-outlined text-[16px]">storefront</span> Vendedor
-          </button>
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="admin@expressmart.mx" data-pass="AdminPassword123!">
-            <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span> Administrador
-          </button>
-          <button type="button" class="btn btn-sm btn-outline demo-login-btn" data-email="auditor@expressmart.mx" data-pass="AuditorPassword123!">
-            <span class="material-symbols-outlined text-[16px]">fact_check</span> Auditor
-          </button>
-        </div>
-      </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
         <!-- Iniciar Sesión -->
         <form id="login-form" class="p-space-md rounded-xl bg-surface-container-low space-y-3" novalidate>
@@ -1312,7 +1549,7 @@
 
         <!-- Crear Cuenta -->
         <form id="register-form" class="p-space-md rounded-xl bg-surface-container-low space-y-3" novalidate>
-          <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Crear Cuenta Nueva (LFPDPPP)</h3>
+          <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Crear Cuenta Nueva</h3>
           <div class="field">
             <label for="reg-nombre">Nombre y apellidos</label>
             <input type="text" id="reg-nombre" required minlength="3" placeholder="Ej. Sofía Martínez" />
@@ -1348,10 +1585,81 @@
           </div>
           <div class="field checkbox-field">
             <input type="checkbox" id="reg-privacy" required checked />
-            <label for="reg-privacy">Acepto el Aviso de Privacidad Integral (LFPDPPP) y Condiciones de Compra (LFPC).</label>
+            <label for="reg-privacy">Acepto el Aviso de Privacidad Integral y las Condiciones de Compra.</label>
           </div>
-          <button type="submit" class="btn btn-outline btn-block">Crear cuenta gratuita</button>
         </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL DE VERIFICACIÓN DE DOS PASOS (2FA) POR CORREO ELECTRÓNICO
+       =============================================================== -->
+  <dialog id="mfa-modal" class="modal-dialog max-w-md p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="mfa-dialog-title">
+    <div class="bg-surface-container-lowest p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-surface-container">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <span class="material-symbols-outlined text-[24px]">mark_email_read</span>
+          </div>
+          <div>
+            <h3 id="mfa-dialog-title" class="font-headline-sm text-headline-sm text-on-surface font-extrabold">Verificación en Dos Pasos (2FA)</h3>
+            <span class="font-label-xs text-secondary">Seguridad reforzada ExpressMart</span>
+          </div>
+        </div>
+        <button type="button" id="btn-close-mfa" class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-secondary hover:text-on-surface transition-colors cursor-pointer" aria-label="Cerrar verificación">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-center">
+        <div class="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-950 text-left">
+          <p>
+            Por tu seguridad, enviamos un código de 6 dígitos a:
+            <strong id="mfa-email-display" class="block font-mono text-sm text-primary font-bold mt-0.5">correo@ejemplo.com</strong>
+          </p>
+          <p class="text-[11px] text-secondary mt-1">Revisa tu bandeja de entrada o carpeta de spam.</p>
+        </div>
+
+        <form id="mfa-form" class="space-y-3.5" novalidate>
+          <div class="space-y-1">
+            <label for="mfa-code-input" class="font-label-md text-label-md text-on-surface block font-bold">
+              Ingresa tu código de 6 dígitos
+            </label>
+            <input
+              type="text"
+              id="mfa-code-input"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              inputmode="numeric"
+              placeholder="000000"
+              required
+              autocomplete="one-time-code"
+              class="w-full h-14 text-center font-mono text-3xl font-extrabold tracking-[10px] rounded-xl bg-surface border-2 border-surface-dim focus:border-primary focus:ring-2 focus:ring-primary/30 text-primary transition-all focus:outline-none"
+            />
+          </div>
+
+          <div id="mfa-result-box"></div>
+
+          <button
+            type="submit"
+            id="btn-submit-mfa"
+            class="w-full py-3 rounded-xl bg-primary text-on-primary font-bold text-sm hover:opacity-95 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span class="material-symbols-outlined text-[20px]">verified_user</span>
+            <span id="mfa-submit-label">Verificar y Continuar</span>
+          </button>
+        </form>
+
+        <div class="flex items-center justify-between pt-2 border-t border-surface-container text-xs">
+          <button type="button" id="btn-resend-mfa" class="text-primary hover:underline font-bold flex items-center gap-1 cursor-pointer">
+            <span class="material-symbols-outlined text-[16px]">refresh</span>
+            <span>Reenviar código</span>
+          </button>
+          <button type="button" id="btn-cancel-mfa" class="text-secondary hover:text-on-surface cursor-pointer">
+            Volver al login
+          </button>
+        </div>
       </div>
     </div>
   </dialog>
@@ -1379,7 +1687,7 @@
             Envío ExpressPrime GRATIS en pedidos a partir de $999.00 MXN
           </p>
           <p class="font-body-sm text-body-sm text-secondary">
-            Precios desglosados en Pesos Mexicanos ($ MXN) con 16% de IVA incluido conforme a la LFPC.
+            Precios desglosados en Pesos Mexicanos ($ MXN) con 16% de IVA incluido.
           </p>
         </div>
       </div>
@@ -1409,7 +1717,7 @@
 
         <div class="field mt-3">
           <label for="checkout-address">Dirección de entrega confirmada en México</label>
-          <span id="checkout-addr-hint" class="hint">Resguardada con cifrado AES-256 conforme a LFPDPPP</span>
+          <span id="checkout-addr-hint" class="hint">Tus datos están protegidos con cifrado de alta seguridad</span>
           <input type="text" id="checkout-address" required minlength="8" placeholder="Av. Insurgentes Sur 1602, Col. Crédito Constructor, CDMX, CP 03940" aria-describedby="checkout-addr-hint" />
         </div>
 
@@ -1429,6 +1737,7 @@
             <option value="tarjeta">Tarjeta de Crédito / Débito (Visa, Mastercard, Amex México)</option>
             <option value="msi">Meses Sin Intereses (3, 6 o 12 MSI con bancos participantes)</option>
             <option value="wallet">Billetera Digital (ExpressPay / SPEI)</option>
+            <option value="paypal">PayPal Sandbox (Cuenta Oficial ExpressMart MX)</option>
           </select>
         </div>
 
@@ -1441,19 +1750,99 @@
           </select>
         </div>
 
-        <div class="field">
-          <label for="card-holder">Nombre del titular en la tarjeta</label>
-          <input type="text" id="card-holder" placeholder="Nombre completo del titular" required />
+        <!-- Panel Interactivo PayPal Sandbox Oficial (RF-05 / Apartado 25) -->
+        <div id="paypal-sandbox-box" class="p-4 rounded-xl bg-surface-container-low border border-[#0070ba]/40 space-y-3 mb-3 hidden">
+          <div class="flex items-center justify-between pb-2 border-b border-surface-container">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-black tracking-tight text-[#003087] bg-white border border-[#003087]/20 shadow-xs">
+                <span class="text-[#003087] font-black">Pay</span><span class="text-[#0079C1] font-black">Pal</span>
+              </span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-100 text-amber-900 border border-amber-300">Sandbox Test MX</span>
+            </div>
+            <span class="text-xs font-bold text-secondary">Moneda: MXN ($)</span>
+          </div>
+
+          <div class="p-2.5 rounded-lg bg-surface border border-surface-dim/60 text-[11px] space-y-1 text-on-surface">
+            <div class="flex items-center justify-between">
+              <span class="text-secondary font-medium">Sandbox URL:</span>
+              <span class="font-mono text-primary font-bold">https://sandbox.paypal.com</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-secondary font-medium">Entorno de Pagos:</span>
+              <span class="font-semibold text-tertiary">PayPal Sandbox (México · MXN)</span>
+            </div>
+          </div>
+
+          <!-- Campos de Credenciales PayPal Requeridos antes de Simular -->
+          <div class="space-y-2.5 pt-1">
+            <div class="flex flex-col gap-1">
+              <label for="paypal-sandbox-email" class="text-xs font-bold text-on-surface flex items-center justify-between">
+                <span>Correo Electrónico Comprador PayPal:</span>
+                <span class="text-[10px] font-normal text-secondary">Cuenta Sandbox</span>
+              </label>
+              <input
+                type="email"
+                id="paypal-sandbox-email"
+                value="bancochido@banco.com"
+                class="w-full h-9 px-3 rounded-lg bg-surface border border-surface-dim font-mono text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="bancochido@banco.com"
+                required
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label for="paypal-sandbox-password" class="text-xs font-bold text-on-surface flex items-center justify-between">
+                <span>Contraseña PayPal Sandbox:</span>
+                <span class="text-[10px] font-normal text-secondary">Requerida</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="paypal-sandbox-password"
+                  value="nBBi&quot;*d6"
+                  class="w-full h-9 pl-3 pr-10 rounded-lg bg-surface border border-surface-dim font-mono text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="nBBi&quot;*d6"
+                  required
+                />
+                <button
+                  type="button"
+                  id="btn-toggle-paypal-pwd"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-secondary hover:text-on-surface cursor-pointer focus:outline-none"
+                  title="Mostrar / Ocultar Contraseña"
+                >
+                  <span class="material-symbols-outlined text-[18px]">visibility</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-1">
+            <button type="button" id="btn-paypal-sandbox-simulate" class="w-full py-2.5 px-4 rounded-lg bg-[#ffc439] hover:bg-[#f4b628] text-[#003087] font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer border border-[#e0a820]">
+              <span class="material-symbols-outlined text-[20px]">login</span>
+              <span id="btn-paypal-simulate-text">Iniciar Sesión y Autorizar con PayPal (MXN)</span>
+            </button>
+            <p id="paypal-status-feedback" class="text-[11px] text-center text-secondary mt-1.5 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-[14px] text-amber-600">info</span>
+              <span>Ingresa el correo y contraseña antes de autorizar el pago con PayPal.</span>
+            </p>
+          </div>
         </div>
 
-        <div class="field-row">
+        <div id="credit-card-fields-group">
           <div class="field">
-            <label for="card-number">Número de tarjeta (Prueba autorizada: 4111111111114242)</label>
-            <input type="text" id="card-number" value="4111111111114242" maxlength="19" required />
+            <label for="card-holder">Nombre del titular en la tarjeta</label>
+            <input type="text" id="card-holder" placeholder="Nombre completo del titular" required />
           </div>
-          <div class="field">
-            <label for="card-expiry">Vigencia (MM/AA)</label>
-            <input type="text" id="card-expiry" value="12/29" maxlength="5" required />
+
+          <div class="field-row">
+            <div class="field">
+              <label for="card-number">Número de tarjeta (Prueba autorizada: 4111111111114242)</label>
+              <input type="text" id="card-number" value="4111111111114242" maxlength="19" required />
+            </div>
+            <div class="field">
+              <label for="card-expiry">Vigencia (MM/AA)</label>
+              <input type="text" id="card-expiry" value="12/29" maxlength="5" required />
+            </div>
           </div>
         </div>
 
@@ -1509,6 +1898,65 @@
   </dialog>
 
   <!-- ===============================================================
+       MODAL DE ADVERTENCIA POR INACTIVIDAD ("¿SIGUES AHÍ?")
+       =============================================================== -->
+  <dialog id="inactivity-dialog" class="modal-dialog max-w-md p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="inactivity-dialog-title">
+    <div class="p-6 bg-surface-container-lowest flex flex-col items-center text-center">
+      <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-[36px]">hourglass_top</span>
+      </div>
+      <h2 id="inactivity-dialog-title" class="font-headline-sm text-headline-sm text-on-surface font-extrabold mb-2">
+        ¿Sigues ahí?
+      </h2>
+      <p class="font-body-sm text-body-sm text-secondary mb-4">
+        Hemos detectado 5 minutos de inactividad en tu cuenta de ExpressMart. Por motivos de seguridad bancaria y protección de tus datos, tu sesión se cerrará automáticamente en:
+      </p>
+
+      <div class="w-full p-4 rounded-xl bg-surface-container-low border border-surface-container mb-6 flex flex-col items-center justify-center">
+        <span class="text-xs text-secondary uppercase font-bold tracking-wider mb-1">Tiempo restante</span>
+        <span id="inactivity-countdown" class="font-mono text-3xl font-extrabold text-error tracking-widest">02:00</span>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center gap-3 w-full">
+        <button type="button" id="btn-inactivity-logout" class="w-full sm:w-auto flex-1 px-4 py-2.5 rounded-xl border border-surface-container text-on-surface hover:bg-surface-container-high font-label-md text-label-md font-semibold transition-colors">
+          Cerrar sesión
+        </button>
+        <button type="button" id="btn-inactivity-keep" class="w-full sm:w-auto flex-1 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md font-bold transition-all flex items-center justify-center gap-1.5 shadow-md">
+          <span class="material-symbols-outlined text-[20px]">check_circle</span>
+          <span>Sí, sigo aquí</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL DE NOTIFICACIONES Y AVISOS (ACCESO RÁPIDO HEADER)
+       =============================================================== -->
+  <dialog id="notifications-dialog" class="modal-dialog max-w-lg p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="notif-dialog-title">
+    <div class="modal-header border-b border-surface-container pb-3 px-6 pt-4 flex items-center justify-between bg-surface-container-lowest">
+      <div class="flex items-center gap-2 text-on-surface font-bold">
+        <span class="material-symbols-outlined text-primary text-[24px]">notifications</span>
+        <h2 id="notif-dialog-title" class="font-headline-sm text-headline-sm">Buzón de Notificaciones y Avisos</h2>
+      </div>
+      <button type="button" id="btn-close-notif-dialog" class="btn-close flex items-center justify-center" aria-label="Cerrar ventana de notificaciones">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    <div class="p-6 bg-surface-container-lowest max-h-[460px] overflow-y-auto">
+      <div id="header-notifications-list" class="space-y-3">
+        <!-- Inyectado dinámicamente -->
+      </div>
+    </div>
+    <div class="modal-actions flex items-center justify-between gap-3 p-4 border-t border-surface-container bg-surface-container-low">
+      <span class="text-xs text-secondary">Avisos de compras, envíos y cuenta</span>
+      <button type="button" id="btn-go-to-profile-notifs" class="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-bold text-xs transition-colors flex items-center gap-1">
+        <span>Ver en Mi Perfil</span>
+        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+      </button>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
        OVERLAY CENTRADO DE CARGA SIMULADA (LOGIN Y REGISTRO)
        =============================================================== -->
   <div id="auth-loading-overlay" class="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4" role="status" aria-live="polite">
@@ -1529,6 +1977,229 @@
   </div>
 
   <!-- ===============================================================
+       MODAL DE SUSCRIPCIÓN EXPRESSPRIME CON SIMULACIÓN DE PAGO
+       =============================================================== -->
+  <dialog id="subscription-dialog" class="modal-dialog modal-large" aria-labelledby="sub-dialog-title">
+    <div class="modal-header bg-gradient-to-r from-[#0c1e3d] to-[#163e8a] text-surface p-4 rounded-t-2xl flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-amber-400 text-[26px]">workspace_premium</span>
+        <div>
+          <h2 id="sub-dialog-title" class="font-headline-sm text-headline-sm font-bold text-white">
+            Membresía ExpressPrime México
+          </h2>
+          <p class="text-xs text-blue-200">Envíos gratis garantizados y 5% de cashback en todas tus compras</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-sub" class="btn-close flex items-center justify-center text-white hover:text-slate-200" aria-label="Cerrar modal de suscripción">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body p-6 space-y-6">
+      <!-- Beneficios Principales -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-amber-600 text-[24px]">local_shipping</span>
+          <div>
+            <strong class="text-xs text-on-surface block">Envíos Gratis Ilimitados</strong>
+            <span class="text-[11px] text-secondary">Sin monto mínimo de compra en todo México</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-amber-600 text-[24px]">savings</span>
+          <div>
+            <strong class="text-xs text-on-surface block">5% de Cashback Directo</strong>
+            <span class="text-[11px] text-secondary">Descuento automático en tus compras en MXN</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-amber-600 text-[24px]">verified</span>
+          <div>
+            <strong class="text-xs text-on-surface block">Atención Prioritaria VIP</strong>
+            <span class="text-[11px] text-secondary">Garantía y devoluciones de 30 días sin costo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selector de Planes (1 Mes, 3 Meses, 1 Año) -->
+      <div>
+        <label class="font-label-lg text-label-lg font-bold text-on-surface block mb-2">
+          1. Selecciona tu plan de suscripción:
+        </label>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="sub-plans-container">
+          <!-- Plan 1 Mes -->
+          <label class="sub-plan-card relative flex flex-col justify-between p-4 rounded-xl border-2 border-primary bg-primary/5 cursor-pointer transition-all shadow-sm">
+            <input type="radio" name="sub_plan" value="1_mes" class="sr-only" checked />
+            <div class="sub-plan-indicator absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
+              <span class="sub-plan-dot w-2.5 h-2.5 rounded-full bg-primary block"></span>
+            </div>
+            <div>
+              <span class="text-xs uppercase font-bold text-secondary">Mensual</span>
+              <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">1 Mes</h3>
+              <p class="text-xs text-secondary mt-1">Ideal para probar los beneficios ExpressPrime.</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-surface-container">
+              <span class="font-headline-md text-headline-md font-extrabold text-primary">$99.00</span>
+              <span class="text-xs text-secondary font-medium">MXN / mes</span>
+            </div>
+          </label>
+
+          <!-- Plan 3 Meses -->
+          <label class="sub-plan-card relative flex flex-col justify-between p-4 rounded-xl border-2 border-surface-container hover:border-primary cursor-pointer transition-all bg-surface-container-lowest">
+            <span class="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider">
+              Ahorra 16%
+            </span>
+            <input type="radio" name="sub_plan" value="3_meses" class="sr-only" />
+            <div class="sub-plan-indicator absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-surface-container flex items-center justify-center">
+              <span class="sub-plan-dot w-2.5 h-2.5 rounded-full bg-primary hidden"></span>
+            </div>
+            <div>
+              <span class="text-xs uppercase font-bold text-secondary">Trimestral</span>
+              <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">3 Meses</h3>
+              <p class="text-xs text-secondary mt-1">Recomendado para compras habituales ($83/mes).</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-surface-container">
+              <span class="font-headline-md text-headline-md font-extrabold text-primary">$249.00</span>
+              <span class="text-xs text-secondary font-medium">MXN total</span>
+            </div>
+          </label>
+
+          <!-- Plan 1 Año -->
+          <label class="sub-plan-card relative flex flex-col justify-between p-4 rounded-xl border-2 border-surface-container hover:border-primary cursor-pointer transition-all bg-surface-container-lowest">
+            <span class="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider">
+              25% Ahorro · Mejor Valor
+            </span>
+            <input type="radio" name="sub_plan" value="1_ano" class="sr-only" />
+            <div class="sub-plan-indicator absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-surface-container flex items-center justify-center">
+              <span class="sub-plan-dot w-2.5 h-2.5 rounded-full bg-primary hidden"></span>
+            </div>
+            <div>
+              <span class="text-xs uppercase font-bold text-secondary">Anual</span>
+              <h3 class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1">1 Año (12 Meses)</h3>
+              <p class="text-xs text-secondary mt-1">Máximo beneficio con envíos gratis todo el año ($74.91/mes).</p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-surface-container">
+              <span class="font-headline-md text-headline-md font-extrabold text-primary">$899.00</span>
+              <span class="text-xs text-secondary font-medium">MXN total</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Método de Pago Simulado -->
+      <div>
+        <label class="font-label-lg text-label-lg font-bold text-on-surface block mb-2">
+          2. Método de Pago Seguro para Simulación:
+        </label>
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center gap-4">
+            <label class="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input type="radio" name="sub_payment_method" value="tarjeta" checked class="accent-primary" />
+              <span>Tarjeta de Crédito / Débito</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input type="radio" name="sub_payment_method" value="paypal" class="accent-primary" />
+              <span>PayPal Sandbox Oficial MX</span>
+            </label>
+          </div>
+
+          <div id="sub-card-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-surface-container-low border border-surface-container">
+            <div class="field sm:col-span-2">
+              <label for="sub-card-name" class="text-xs font-semibold">Nombre del Titular de la Tarjeta</label>
+              <input type="text" id="sub-card-name" placeholder="DIEGO ALARCON DE JESUS" class="text-sm uppercase" />
+            </div>
+            <div class="field">
+              <label for="sub-card-number" class="text-xs font-semibold">Número de Tarjeta (Simulación)</label>
+              <input type="text" id="sub-card-number" value="4111 1111 1111 4242" maxlength="19" class="text-sm font-mono" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="field">
+                <label for="sub-card-exp" class="text-xs font-semibold">Expiración</label>
+                <input type="text" id="sub-card-exp" value="12/29" maxlength="5" class="text-sm font-mono" />
+              </div>
+              <div class="field">
+                <label for="sub-card-cvv" class="text-xs font-semibold">CVV</label>
+                <input type="password" id="sub-card-cvv" value="123" maxlength="4" class="text-sm font-mono" />
+              </div>
+            </div>
+          </div>
+
+          <div id="sub-paypal-fields" class="hidden p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-2">
+            <div class="flex items-center justify-between pb-1.5 border-b border-blue-200">
+              <div class="flex items-center gap-1.5 font-bold text-blue-950">
+                <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                <span>PayPal Sandbox Oficial (bancochido@banco.com)</span>
+              </div>
+              <span class="font-mono text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">https://sandbox.paypal.com</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div class="flex flex-col gap-0.5">
+                <label for="sub-paypal-email" class="text-[11px] font-bold text-blue-950">Correo Comprador:</label>
+                <input type="email" id="sub-paypal-email" value="bancochido@banco.com" class="w-full h-8 px-2.5 rounded bg-white border border-blue-300 font-mono text-xs text-blue-950 focus:outline-none focus:ring-1 focus:ring-blue-500" required />
+              </div>
+              <div class="flex flex-col gap-0.5">
+                <label for="sub-paypal-password" class="text-[11px] font-bold text-blue-950">Contraseña Sandbox:</label>
+                <input type="password" id="sub-paypal-password" value="nBBi&quot;*d6" class="w-full h-8 px-2.5 rounded bg-white border border-blue-300 font-mono text-xs text-blue-950 focus:outline-none focus:ring-1 focus:ring-blue-500" required />
+              </div>
+            </div>
+            <p class="text-[10px] text-blue-800">Se validarán las credenciales sandbox antes de simular el cargo recurrente de membresía.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="sub-result-box"></div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-surface-container">
+        <div>
+          <span class="text-xs text-secondary block">Total a pagar hoy (MXN):</span>
+          <span id="sub-summary-total" class="font-headline-md text-headline-md font-extrabold text-primary">$99.00 MXN</span>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button type="button" id="btn-cancel-sub-dialog" class="btn btn-outline flex-1 sm:flex-initial">
+            Cancelar
+          </button>
+          <button type="button" id="btn-confirm-subscription" class="btn btn-accent flex-1 sm:flex-initial flex items-center justify-center gap-1.5 font-bold shadow-md">
+            <span class="material-symbols-outlined text-[18px]">lock</span>
+            <span id="btn-sub-label">Confirmar y Simular Pago</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL DE INFORMACIÓN Y PÁGINAS LEGALES / CORPORATIVAS
+       =============================================================== -->
+  <dialog id="info-modal" class="modal-dialog modal-large p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden max-w-3xl w-full">
+    <div class="bg-surface-container-lowest p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-surface-container sticky top-0 bg-surface-container-lowest z-10">
+        <div class="flex items-center gap-3">
+          <div id="info-modal-icon-container" class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <span id="info-modal-icon" class="material-symbols-outlined text-[24px]">info</span>
+          </div>
+          <div>
+            <h3 id="info-modal-title" class="font-headline-sm text-headline-sm text-on-surface font-extrabold">Título Informativo</h3>
+            <span id="info-modal-subtitle" class="font-label-xs text-secondary">ExpressMart Marketplace México</span>
+          </div>
+        </div>
+        <button type="button" id="btn-close-info-modal" class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-secondary hover:text-on-surface transition-colors cursor-pointer" aria-label="Cerrar modal de información">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div id="info-modal-body" class="font-body-md text-on-surface space-y-4 leading-relaxed">
+        <!-- El contenido se inyecta dinámicamente mediante INFO_PAGES -->
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-surface-container">
+        <button type="button" id="btn-accept-info-modal" class="btn btn-primary px-5 py-2 font-bold cursor-pointer">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
        FOOTER GLOBAL EXPRESSMART CON AZUL CORPORATIVO (LOGO OFICIAL #1d4e9a)
        =============================================================== -->
   <footer class="w-full bg-[#123580] text-surface-dim font-body-md text-body-md mt-space-xl border-t border-[#1d4e9a]/30" role="contentinfo">
@@ -1536,33 +2207,96 @@
       Subir al inicio
     </a>
     <div class="max-w-[1440px] mx-auto px-margin py-space-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-gutter">
+      <!-- Columna 1: Gana Dinero con Nosotros -->
       <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Conócenos</h3>
-        <span class="text-surface-dim text-body-sm">TiendaExpress Online, S.A. de C.V.</span>
-        <span class="text-surface-dim text-body-sm">Av. Paseo de la Reforma 450, CDMX, México</span>
-        <span class="text-surface-dim text-body-sm">Manual de Calidad SGC MC-001 v1.0</span>
-        <span class="text-surface-dim text-body-sm">Plan de Auditoría ECTA-01 (100% Cumplimiento)</span>
+        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-amber-400 text-[20px]">storefront</span>
+          Gana Dinero con Nosotros
+        </h3>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="vender">
+          <span class="material-symbols-outlined text-[16px] text-amber-400">arrow_forward</span>
+          <span class="font-semibold text-white">¿Quieres vender con nosotros?</span>
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="trabajar">
+          <span class="material-symbols-outlined text-[16px] text-emerald-400">arrow_forward</span>
+          <span class="font-semibold text-white">Trabajar en ExpressMart</span>
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="afiliados">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Programa de Afiliados Express
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="cedis">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Logística y Envíos Full CEDIS
+        </button>
       </div>
+
+      <!-- Columna 2: Aviso de Privacidad y Marco Legal (Sustituye a Equipo del Proyecto) -->
       <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Normativa y Seguridad</h3>
-        <span class="text-surface-dim text-body-sm">ISO/IEC 25010 · ISO/IEC 25012 · IEEE 830</span>
-        <span class="text-surface-dim text-body-sm">ISO/IEC 27001 · OWASP ASVS · Top 10</span>
-        <span class="text-surface-dim text-body-sm">PCI DSS v4.0 Tokenización Financiera</span>
-        <span class="text-surface-dim text-body-sm">LFPDPPP (ARCO) y LFPC Profeco México</span>
+        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-emerald-400 text-[20px]">verified_user</span>
+          Aviso de Privacidad y Legal
+        </h3>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="aviso-privacidad">
+          <span class="material-symbols-outlined text-[16px] text-emerald-400">shield</span>
+          <span class="font-semibold text-white">Aviso de Privacidad Integral</span>
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="terminos-condiciones">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Términos y Condiciones de Compra
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="garantias-devoluciones">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Devoluciones y Garantía 30 Días
+        </button>
       </div>
+
+      <!-- Columna 3: Seguridad y Confianza -->
       <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Métodos de Pago en México</h3>
-        <span class="text-surface-dim text-body-sm">Tarjetas Visa, Mastercard y Amex (MXN)</span>
-        <span class="text-surface-dim text-body-sm">Hasta 12 Meses Sin Intereses (MSI)</span>
-        <span class="text-surface-dim text-body-sm">Billetera ExpressPay y SPEI</span>
-        <span class="text-surface-dim text-body-sm">Facturación CFDI 4.0 con IVA 16%</span>
+        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-cyan-400 text-[20px]">lock</span>
+          Seguridad y Confianza
+        </h3>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="seguridad-iso">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Estándares de Calidad y Servicio
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="seguridad-owasp">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Cifrado y Transacciones Seguras
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="seguridad-pci">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Protección de Tarjetas y Pagos
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="profeco">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Atención y Protección al Consumidor
+        </button>
       </div>
+
+      <!-- Columna 4: Métodos de Pago y Ayuda -->
       <div class="flex flex-col gap-space-sm">
-        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs">Equipo del Proyecto</h3>
-        <span class="text-surface-dim text-body-sm">Diego Alarcon De Jesus</span>
-        <span class="text-surface-dim text-body-sm">Carlos Adair Bautista Godinez</span>
-        <span class="text-surface-dim text-body-sm">Cristopher Erik San Juan Piza</span>
-        <span class="text-tertiary-fixed text-body-sm font-semibold">Auditor Líder: Sebastian Muñoz Gonzales</span>
+        <h3 class="font-headline-sm text-headline-sm text-surface font-bold tracking-tight mb-space-xs flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-amber-300 text-[20px]">payments</span>
+          Métodos de Pago &amp; Ayuda
+        </h3>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="pagos-tarjetas">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Tarjetas y Meses Sin Intereses (MSI)
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="pagos-paypal">
+          <span class="material-symbols-outlined text-[16px] text-blue-300">account_balance_wallet</span>
+          <span class="text-blue-100 font-semibold">PayPal Sandbox Integrado</span>
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="facturacion">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Facturación CFDI 4.0 con IVA 16%
+        </button>
+        <button type="button" class="footer-info-btn text-left text-surface-dim hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 text-body-sm py-0.5" data-info="ayuda">
+          <span class="material-symbols-outlined text-[16px] text-secondary">chevron_right</span>
+          Centro de Ayuda al Cliente 24/7
+        </button>
       </div>
     </div>
     <div class="bg-[#0c1e3d] py-space-lg border-t border-[#1d4e9a]/20">

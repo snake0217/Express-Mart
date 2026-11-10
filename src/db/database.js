@@ -59,6 +59,37 @@ function initDatabase(customPath) {
       failed_attempts INTEGER NOT NULL DEFAULT 0,
       locked_until INTEGER DEFAULT 0,
       activo INTEGER NOT NULL DEFAULT 1,
+      membresia_premium INTEGER NOT NULL DEFAULT 0,
+      membresia_plan TEXT DEFAULT NULL,
+      membresia_expira TEXT DEFAULT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    -- Suscripciones y Membresías Premium ExpressPrime
+    CREATE TABLE IF NOT EXISTS suscripciones_premium (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      plan TEXT NOT NULL CHECK (plan IN ('1_mes', '3_meses', '1_ano')),
+      monto REAL NOT NULL,
+      moneda TEXT NOT NULL DEFAULT 'MXN',
+      metodo_pago TEXT NOT NULL,
+      referencia_pago TEXT NOT NULL,
+      fecha_inicio TEXT NOT NULL,
+      fecha_expiracion TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'activa',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    );
+
+    -- Códigos de Verificación de Dos Pasos (2FA) por Correo Electrónico (Nodemailer)
+    CREATE TABLE IF NOT EXISTS mfa_email_codes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      codigo TEXT NOT NULL,
+      proposito TEXT NOT NULL CHECK (proposito IN ('registro', 'login')),
+      payload_json TEXT,
+      expira_en INTEGER NOT NULL,
+      usado INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -168,7 +199,7 @@ function initDatabase(customPath) {
       pedido_id INTEGER NOT NULL,
       referencia_pasarela TEXT UNIQUE NOT NULL,
       proveedor_pasarela TEXT NOT NULL,
-      metodo_pago TEXT NOT NULL CHECK (metodo_pago IN ('tarjeta', 'wallet', 'msi')),
+      metodo_pago TEXT NOT NULL CHECK (metodo_pago IN ('tarjeta', 'wallet', 'msi', 'paypal')),
       meses_sin_intereses INTEGER NOT NULL DEFAULT 1,
       monto REAL NOT NULL,
       moneda TEXT NOT NULL DEFAULT 'MXN',
@@ -259,6 +290,48 @@ function initDatabase(customPath) {
     db.exec("ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT DEFAULT '';");
   } catch (_) {
     // Columna foto_perfil ya existe
+  }
+
+  try {
+    db.exec('ALTER TABLE usuarios ADD COLUMN membresia_premium INTEGER NOT NULL DEFAULT 0;');
+  } catch (_) {}
+  try {
+    db.exec('ALTER TABLE usuarios ADD COLUMN membresia_plan TEXT DEFAULT NULL;');
+  } catch (_) {}
+  try {
+    db.exec('ALTER TABLE usuarios ADD COLUMN membresia_expira TEXT DEFAULT NULL;');
+  } catch (_) {}
+
+  try {
+    const txRow = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='transacciones'").get();
+    if (txRow && txRow.sql && !txRow.sql.includes("'paypal'")) {
+      db.exec(`
+        CREATE TABLE transacciones_migrated (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          pedido_id INTEGER NOT NULL,
+          referencia_pasarela TEXT UNIQUE NOT NULL,
+          proveedor_pasarela TEXT NOT NULL,
+          metodo_pago TEXT NOT NULL CHECK (metodo_pago IN ('tarjeta', 'wallet', 'msi', 'paypal')),
+          meses_sin_intereses INTEGER NOT NULL DEFAULT 1,
+          monto REAL NOT NULL,
+          moneda TEXT NOT NULL DEFAULT 'MXN',
+          tarjeta_enmascarada TEXT NOT NULL,
+          token_pci TEXT NOT NULL,
+          boveda_cifrada TEXT NOT NULL,
+          idempotency_key TEXT UNIQUE NOT NULL,
+          estado TEXT NOT NULL CHECK (estado IN ('autorizado', 'capturado', 'rechazado', 'reembolsado')),
+          intentos_conexion INTEGER NOT NULL DEFAULT 1,
+          latencia_ms INTEGER NOT NULL DEFAULT 45,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (pedido_id) REFERENCES pedidos(id)
+        );
+        INSERT INTO transacciones_migrated SELECT * FROM transacciones;
+        DROP TABLE transacciones;
+        ALTER TABLE transacciones_migrated RENAME TO transacciones;
+      `);
+    }
+  } catch (_) {
+    // Si la tabla no existe o ya fue migrada
   }
 
   dbInstance = db;
@@ -401,7 +474,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Accesorios',
       marca: 'GameCraft',
       precio: 14999.00,
-      imagen_url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/novadeck-oled.jpg',
       especificaciones: { procesador: 'AMD Zen 4 8-Core', pantalla: '7.4" OLED 90Hz HDR', almacenamiento: '1TB NVMe SSD', bateria: '50Wh (hasta 12h)', garantia: '12 meses' },
       condiciones_envio: 'Envío ExpressPrime gratis a todo México con entrega en 24 hrs y empaque sellado.',
       stock: 20
@@ -413,7 +486,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Computo',
       marca: 'VisionMax',
       precio: 16890.00,
-      imagen_url: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/all-in-one-ultraview.jpg',
       especificaciones: { procesador: 'Intel Core i7 13700T', ram: '16GB DDR5 5200MHz', pantalla: '23.8" FHD IPS sRGB 99%', conectividad: 'Wi-Fi 6E + Bluetooth 5.3', garantia: '24 meses' },
       condiciones_envio: 'Envío frágil asegurado sin costo adicional desde CEDIS CDMX.',
       stock: 14
@@ -425,7 +498,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Audio',
       marca: 'SonicWave',
       precio: 1899.00,
-      imagen_url: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/microfono-estudio-rgb.jpg',
       especificaciones: { resolucion: '24-bit / 192kHz', patron: 'Cardioide con silenciador táctil', conexion: 'USB-C / Jack 3.5mm latencia cero', garantia: '12 meses' },
       condiciones_envio: 'Envío ExpressPrime gratis en compras a partir de $599 MXN.',
       stock: 40
@@ -437,7 +510,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Accesorios',
       marca: 'KeyMaster',
       precio: 899.00,
-      imagen_url: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/mouse-ergonomico-vertical.jpg',
       especificaciones: { conexion: 'Bluetooth + Receptor USB 2.4GHz', sensor: 'Óptico 4000 DPI ajustable', bateria: 'Batería Li-Po 500mAh (4 meses)', garantia: '12 meses' },
       condiciones_envio: 'Envío express el mismo día para pedidos antes de las 14:00 hrs.',
       stock: 55
@@ -449,7 +522,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'telefonia',
       marca: 'ApexTech',
       precio: 13499.00,
-      imagen_url: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/smartphone-apex-12-pro.jpg',
       especificaciones: { procesador: 'Snapdragon 8 Gen 3', camara: 'Triple 108MP + 50MP Telefoto', bateria: '5000 mAh Carga 120W', red: '5G Dual SIM México', garantia: '12 meses' },
       condiciones_envio: 'Envío prioritario con firma de entrega y seguro de trayecto total.',
       stock: 28
@@ -473,7 +546,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Hogar',
       marca: 'HomeElite',
       precio: 1750.00,
-      imagen_url: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/licuadora-silentblend.jpg',
       especificaciones: { potencia: '1500W Peak', vaso: 'Tritan libre de BPA 2.0 Litros', velocidades: '6 velocidades variables + Pulso', garantia: '24 meses' },
       condiciones_envio: 'Envío asegurado ExpressPrime gratis desde CEDIS Vallejo.',
       stock: 25
@@ -485,7 +558,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Accesorios',
       marca: 'KeyMaster',
       precio: 3890.00,
-      imagen_url: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/silla-ergonomica-ejecutiva.jpg',
       especificaciones: { material: 'Malla mesh transpirable + Aluminio', soporte: 'Hasta 150 kg', certificacion: 'BIFMA / ANSI', garantia: '36 meses' },
       condiciones_envio: 'Envío especializado con caja reforzada y manual de ensamble rápido.',
       stock: 19
@@ -497,7 +570,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Computo',
       marca: 'ApexTech',
       precio: 28999.00,
-      imagen_url: 'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/laptop-gamer-titan.jpg',
       especificaciones: { procesador: 'Intel Core i9-14900HX 24-Cores', gpu: 'NVIDIA RTX 4070 8GB 140W', pantalla: '16" QHD 2560x1600 240Hz', ram: '32GB DDR5 5600MHz', garantia: '12 meses' },
       condiciones_envio: 'Envío prioritario con seguro total anti-siniestro incluido.',
       stock: 12
@@ -509,7 +582,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'telefonia',
       marca: 'ApexTech',
       precio: 7499.00,
-      imagen_url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/tablet-ultrapad-pro.jpg',
       especificaciones: { pantalla: '12" 2K IPS 120Hz', almacenamiento: '128GB UFS 3.1 + MicroSD', stylus: 'Stylus activo 4096 niveles incluido', garantia: '12 meses' },
       condiciones_envio: 'Envío ExpressPrime sin costo con entrega en 24 horas hábiles.',
       stock: 30
@@ -521,7 +594,7 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Audio',
       marca: 'SonicWave',
       precio: 4699.00,
-      imagen_url: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/barra-sonido-cinemasurround.jpg',
       especificaciones: { potencia: '360W RMS Total', canales: '3.1 Canales con canal central vocal', conectividad: 'HDMI eARC + Óptico + Bluetooth 5.3', garantia: '12 meses' },
       condiciones_envio: 'Envío express protegido con espuma de polietileno de alta densidad.',
       stock: 16
@@ -533,10 +606,706 @@ function recordAuditLog(db, { usuarioId = null, rol = 'sistema', accion, modulo,
       categoria: 'Hogar',
       marca: 'HomeElite',
       precio: 2890.00,
-      imagen_url: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=800&q=80',
+      imagen_url: '/assets/productos/purificador-aire-hepa.jpg',
       especificaciones: { filtro: 'True HEPA H13 + Carbón activado', cad: '380 m³/h', nivelRuido: 'Desde 22 dB en modo noche', garantia: '24 meses' },
       condiciones_envio: 'Envío ExpressPrime gratis a toda la República Mexicana.',
       stock: 26
+    },
+    {
+      sku: 'EM-TV-021',
+      nombre: 'Pantalla SAMSUNG 75" Crystal UHD 4K Smart TV UN75AU7000FXZX',
+      descripcion: 'Pantalla inteligente gigante de 75 pulgadas Crystal UHD 4K, HDR10+, procesador Crystal 4K, sonido Q-Symphony y sistema operativo Tizen oficial.',
+      categoria: 'Electronica',
+      marca: 'Samsung',
+      precio: 14999.00,
+      imagen_url: '/assets/productos/samsung-75-crystal-uhd.jpg',
+      especificaciones: { pantalla: '75" 4K UHD 3840x2160', procesador: 'Crystal Processor 4K', hdr: 'HDR10+ / HLG', conectividad: '3x HDMI, 1x USB, Wi-Fi 5, Bluetooth', audio: '20W con Q-Symphony', garantia: '12 meses directo con Samsung México' },
+      condiciones_envio: 'Envío ExpressPrime especializado y asegurado sin costo a toda la República Mexicana.',
+      stock: 15
+    },
+    {
+      sku: 'EM-GAM-022',
+      nombre: 'Consola Nintendo Switch 2 Pantalla OLED HDR 120Hz 256GB',
+      descripcion: 'La nueva generación de Nintendo: pantalla OLED de 8 pulgadas HDR a 120Hz, Joy-Con magnéticos, retrocompatibilidad completa y salida 4K en base dock.',
+      categoria: 'Videojuegos',
+      marca: 'Nintendo',
+      precio: 9999.00,
+      imagen_url: '/assets/productos/nintendo-switch-2.webp',
+      especificaciones: { pantalla: '8" OLED HDR 1080p 120Hz', almacenamiento: '256GB UFS ultrarrápido', gpu: 'NVIDIA personalizada con DLSS y Ray Tracing', modoTv: 'Salida 4K 60fps HDMI 2.1', garantia: '12 meses oficial Nintendo México' },
+      condiciones_envio: 'Envío prioritario ExpressPrime en 24h con empaque sellado de fábrica.',
+      stock: 25
+    },
+    {
+      sku: 'EM-GAM-023',
+      nombre: 'Consola Microsoft Xbox Series S 512GB SSD All-Digital Blanco',
+      descripcion: 'Rendimiento de última generación en el diseño más compacto de Xbox con tiempos de carga instantáneos Xbox Velocity Architecture y hasta 120 FPS.',
+      categoria: 'Videojuegos',
+      marca: 'Microsoft',
+      precio: 5799.00,
+      imagen_url: '/assets/productos/xbox-series-s.png',
+      especificaciones: { procesador: 'AMD Zen 2 de 8 núcleos a 3.6 GHz', gpu: 'AMD RDNA 2 de 4 TFLOPS', almacenamiento: '512GB NVMe SSD', resolucion: '1440p hasta 120 FPS', audio: 'Dolby Atmos y Dolby Vision', garantia: '12 meses oficial Microsoft México' },
+      condiciones_envio: 'Envío ExpressPrime gratis asegurado con entrega al día siguiente.',
+      stock: 20
+    },
+    {
+      sku: 'EM-GAM-024',
+      nombre: 'Gears of War: E-Day Preventa Oficial Xbox Series X|S / PC Windows',
+      descripcion: 'El regreso a los orígenes en Unreal Engine 5. Sigue a Marcus Fenix y Dom Santiago durante las primeras 24 horas del Día de la Emergencia.',
+      categoria: 'Videojuegos',
+      marca: 'Xbox Game Studios',
+      precio: 1599.00,
+      imagen_url: '/assets/productos/gears-of-war-eday.webp',
+      especificaciones: { plataforma: 'Xbox Series X|S y PC (Play Anywhere)', motor: 'Unreal Engine 5 Lumen & Nanite', cooperativo: 'Campaña coop local y online', idioma: 'Español Latino oficial', garantia: 'Garantía oficial Xbox' },
+      condiciones_envio: 'Preventa con código DLC de bonificación y entrega garantizada en lanzamiento.',
+      stock: 40
+    },
+    {
+      sku: 'EM-LIB-025',
+      nombre: 'Libro Gears of War: El Fin de la Coalición - Novela Canónica',
+      descripcion: 'Edición oficial en español de la aclamada novela de Karen Traviss sobre la caída de la Coalición tras el hundimiento de la meseta de Jacinto.',
+      categoria: 'Libros',
+      marca: 'Timun Mas / Xbox',
+      precio: 489.00,
+      imagen_url: '/assets/productos/gears-fin-coalicion.webp',
+      especificaciones: { autor: 'Karen Traviss', paginas: '448 páginas', encuadernacion: 'Rústica con solapas acabado mate', idioma: 'Español oficial', isbn: '978-8448008892' },
+      condiciones_envio: 'Envío ExpressPrime en sobre acolchado de alta protección.',
+      stock: 35
+    },
+    {
+      sku: 'EM-PEL-026',
+      nombre: 'La Familia P. Luche Colección Completa 3 Temporadas Remasterizada DVD',
+      descripcion: 'Edición completa de colección con las 3 temporadas de la comedia más popular de la televisión mexicana creada por Eugenio Derbez.',
+      categoria: 'Entretenimiento',
+      marca: 'Televisa Home Entertainment',
+      precio: 549.00,
+      imagen_url: '/assets/productos/familia-peluche-dvd.jpg',
+      especificaciones: { formato: 'DVD Región 1 y 4 (Multizona México)', audio: 'Español Dolby Digital 2.0', discos: '6 discos DVD con estuche coleccionador', extras: 'Bloopers y detrás de cámaras', duracion: 'Aprox. 1,800 minutos' },
+      condiciones_envio: 'Envío ExpressPrime garantizado a toda la República Mexicana.',
+      stock: 30
+    },
+    {
+      sku: 'EM-DEP-027',
+      nombre: 'Proteína Dymatize Elite 100% Whey 5 lbs (2.27 kg) Rich Chocolate',
+      descripcion: '25g de proteína 100% suero de leche de absorción rápida por porción, 5.5g de BCAAs y delicioso sabor chocolate. Certificación Informed Choice.',
+      categoria: 'Deportes',
+      marca: 'Dymatize Nutrition',
+      precio: 1699.00,
+      imagen_url: '/assets/productos/elite-whey-protein.webp',
+      especificaciones: { contenidoNeto: '5 lbs (2,270 g - 63 porciones)', proteinaPorPorcion: '25 g de proteína de suero', bcaa: '5.5 g aminoácidos ramificados', sabor: 'Rich Chocolate', certificacion: 'Informed Choice / GMP' },
+      condiciones_envio: 'Envío ExpressPrime en caja sellada con precinto de seguridad intacto.',
+      stock: 28
+    },
+    {
+      sku: 'EM-AGR-028',
+      nombre: 'Llanta Para Tractor Agrícola 9.5-16 (6c) R-1 Fortmaster TT',
+      descripcion: 'Neumático agrícola de tracción profunda con barras en ángulo R-1 para tractores agrícolas y maquinaria de campo. 6 capas reforzadas contra pinchazos.',
+      categoria: 'Automotriz',
+      marca: 'Fortmaster',
+      precio: 4250.00,
+      imagen_url: '/assets/productos/llanta-tractor-fortmaster.webp',
+      especificaciones: { medida: '9.5-16', lonas: '6 Capas (6 PR)', disenoBanda: 'R-1 tracción profunda lodo/campo', tipo: 'Tube Type (TT)', cargaMaxima: 'Hasta 950 kg por neumático' },
+      condiciones_envio: 'Envío terrestre especializado de carga pesada asegurado a todo México.',
+      stock: 14
+    },
+    {
+      sku: "EM-COM-029",
+      nombre: "Router Wi-Fi 6 AX3000 Doble Banda Gigabit TP-Link Archer AX55",
+      descripcion: "Enrutador Wi-Fi 6 de última generación con velocidades combinadas de hasta 3 Gbps, tecnología OFDMA, MU-MIMO y 4 antenas de alta ganancia para cobertura completa.",
+      categoria: "Computo",
+      marca: "TP-Link",
+      precio: 1499.00,
+      imagen_url: "/assets/productos/router-wifi6-tplink.jpg",
+      especificaciones: {"velocidad":"AX3000 (2402 Mbps en 5GHz + 574 Mbps en 2.4GHz)","procesador":"Dual-Core CPU Qualcomm","puertos":"1x WAN Gigabit + 4x LAN Gigabit + 1x USB 3.0","seguridad":"WPA3 y TP-Link HomeShield","cobertura":"Casas de 3 a 4 recámaras"},
+      condiciones_envio: "Envío ExpressPrime asegurado con empaque antiestático.",
+      stock: 35
+    },
+    {
+      sku: "EM-COM-030",
+      nombre: "Monitor Curvo UltraWide 34\" WQHD 165Hz HDR400 Dell Gaming S3422DWG",
+      descripcion: "Monitor gamer curvo 1800R con resolución WQHD (3440 x 1440), panel VA con 90% DCI-P3, tasa de refresco de 165Hz y tiempo de respuesta de 1ms MPRT con AMD FreeSync Premium Pro.",
+      categoria: "Computo",
+      marca: "Dell",
+      precio: 8999.00,
+      imagen_url: "/assets/productos/monitor-curvo-ultrawide.jpg",
+      especificaciones: {"resolucion":"WQHD 3440 x 1440 (21:9)","tasaRefresco":"165Hz DisplayPort / 100Hz HDMI","curvatura":"1800R","brillo":"400 cd/m² (VESA DisplayHDR 400)","puertos":"2x HDMI 2.0, 1x DP 1.4, Hub USB 3.2"},
+      condiciones_envio: "Envío terrestre especializado para pantallas con embalaje de máxima protección.",
+      stock: 18
+    },
+    {
+      sku: "EM-COM-031",
+      nombre: "Disco Sólido SSD NVMe M.2 2TB PCIe 4.0 Samsung 990 PRO 7450MB/s",
+      descripcion: "Unidad de estado sólido NVMe Gen 4x4 de máximo rendimiento para gaming profesional y edición de video 4K/8K. Eficiencia térmica optimizada con disipador de níquel.",
+      categoria: "Computo",
+      marca: "Samsung",
+      precio: 3499.00,
+      imagen_url: "/assets/productos/ssd-nvme-samsung-990pro.jpg",
+      especificaciones: {"capacidad":"2TB (2,000 GB)","interfaz":"PCIe Gen 4.0 x4, NVMe 2.0","velocidadLectura":"Hasta 7,450 MB/s","velocidadEscritura":"Hasta 6,900 MB/s","durabilidad":"1200 TBW / 5 años garantía"},
+      condiciones_envio: "Envío inmediato en sobre de burbuja acolchado con sello de inviolabilidad.",
+      stock: 45
+    },
+    {
+      sku: "EM-COM-032",
+      nombre: "Impresora Multifuncional Tanque de Tinta Continua Wi-Fi Epson EcoTank L3250",
+      descripcion: "Impresora multifuncional 3 en 1 (imprime, copia y escanea) con sistema de tanque de tinta recargable EcoTank. Costo de impresión ultra bajo y conectividad inalámbrica con Smart Panel.",
+      categoria: "Computo",
+      marca: "Epson",
+      precio: 3899.00,
+      imagen_url: "/assets/productos/impresora-epson-ecotank.jpg",
+      especificaciones: {"rendimiento":"Hasta 4,500 páginas en negro / 7,500 a color por carga","conectividad":"Wi-Fi, Wi-Fi Direct y USB 2.0","resolucion":"5760 x 1440 dpi","velocidad":"33 ppm en negro, 15 ppm color","compatibilidad":"Windows, macOS, iOS y Android"},
+      condiciones_envio: "Envío en caja original con botellas de tinta iniciales selladas de fábrica.",
+      stock: 26
+    },
+    {
+      sku: "EM-COM-033",
+      nombre: "Memoria RAM DDR5 32GB (2x16GB) 6000MHz CL30 Corsair Vengeance RGB",
+      descripcion: "Kit de memoria RAM DDR5 de alto desempeño optimizado para plataformas Intel XMP 3.0 y AMD EXPO. Iluminación RGB dinámica direccionable de diez zonas por módulo.",
+      categoria: "Computo",
+      marca: "Corsair",
+      precio: 2299.00,
+      imagen_url: "/assets/productos/ram-ddr5-corsair-vengeance.jpg",
+      especificaciones: {"capacidad":"32GB (2x16GB)","tipo":"DDR5 288-pin UDIMM","velocidad":"6000 MHz","latencia":"CL30-36-36-76","perfiles":"Intel XMP 3.0 & AMD EXPO compatible"},
+      condiciones_envio: "Envío ExpressPrime con empaque antiestático de protección grado industrial.",
+      stock: 40
+    },
+    {
+      sku: "EM-COM-034",
+      nombre: "Cámara Web 4K Ultra HD con Micrófonos Estéreo Duales Logitech Brio 4K",
+      descripcion: "Webcam profesional para streaming y videollamadas ejecutivas con resolución 4K a 30fps o 1080p a 60fps, tecnología RightLight 3 con HDR y sensor de infrarrojos compatible con Windows Hello.",
+      categoria: "Computo",
+      marca: "Logitech",
+      precio: 2899.00,
+      imagen_url: "/assets/productos/webcam-logitech-brio-4k.jpg",
+      especificaciones: {"resolucion":"4K Ultra HD / 1080p Full HD a 60 fps","campoVision":"Ajustable a 65°, 78° y 90°","zoom":"Digital 5x en Full HD","microfonos":"Omnidireccionales dobles con reducción de ruido","conexion":"USB-C a USB-A desmontable"},
+      condiciones_envio: "Envío rápido protegido con funda de transporte y tapa de privacidad incluida.",
+      stock: 32
+    },
+    {
+      sku: "EM-COM-035",
+      nombre: "Tarjeta Madre ASUS ROG Strix B650-A Gaming WiFi Socket AM5 DDR5",
+      descripcion: "Placa base ATX para procesadores AMD Ryzen serie 7000/8000/9000 con 12+2 fases de poder, PCIe 5.0 M.2, Wi-Fi 6E integrado, disipadores plateados masivos y audio SupremeFX.",
+      categoria: "Computo",
+      marca: "ASUS",
+      precio: 4699.00,
+      imagen_url: "/assets/productos/motherboard-asus-rog-strix.jpg",
+      especificaciones: {"socket":"AMD AM5 (LGA 1718)","factorForma":"ATX","soporteMemoria":"4x DDR5 hasta 7600+(OC) MHz","conectividad":"Wi-Fi 6E + Intel 2.5Gb Ethernet","ranurasM2":"3x M.2 (1x PCIe 5.0 + 2x PCIe 4.0)"},
+      condiciones_envio: "Envío asegurado en caja sellada con precintos holográficos de fábrica.",
+      stock: 15
+    },
+    {
+      sku: "EM-COM-036",
+      nombre: "Fuente de Poder Modular 850W 80 Plus Gold Corsair RM850e ATX 3.0",
+      descripcion: "Fuente de alimentación totalmente modular de bajo ruido con certificación 80 PLUS Gold y Cybenetics Platinum. Cumple con el estándar ATX 3.0 y PCIe 5.0 con conector nativo 12VHPWR.",
+      categoria: "Computo",
+      marca: "Corsair",
+      precio: 2499.00,
+      imagen_url: "/assets/productos/fuente-corsair-rm850e.jpg",
+      especificaciones: {"potencia":"850 Watts continuos","certificacion":"80 PLUS Gold (hasta 90% de eficiencia)","estandar":"ATX 3.0 / PCIe 5.0 Ready (cable 12VHPWR incluido)","ventilador":"120mm con modo Zero RPM a baja carga","protecciones":"OVP, OCP, OTP, SCP, UVP, OPP"},
+      condiciones_envio: "Envío prioritario con bolsa de cables modulares completa y accesorios.",
+      stock: 22
+    },
+    {
+      sku: "EM-AUD-037",
+      nombre: "Audífonos Inalámbricos Over-Ear Noise Cancelling Sony WH-1000XM5 Negro",
+      descripcion: "Líder en cancelación de ruido con dos procesadores y 8 micrófonos dedicados. Audio de alta resolución LDAC, llamadas ultranítidas con IA y hasta 30 horas de batería continua.",
+      categoria: "Audio",
+      marca: "Sony",
+      precio: 6499.00,
+      imagen_url: "/assets/productos/audifonos-sony-wh1000xm5.jpg",
+      especificaciones: {"driver":"30 mm con diafragma de fibra de carbono","cancelacionRuido":"Auto NC Optimizer con doble procesador V1 y QN1","duracionBateria":"Hasta 30 hrs con ANC / Carga rápida 3 min = 3 hrs","codecs":"LDAC, AAC, SBC","peso":"250 gramos"},
+      condiciones_envio: "Envío express asegurado en estuche rígido de viaje colapsable.",
+      stock: 25
+    },
+    {
+      sku: "EM-AUD-038",
+      nombre: "Bocina Bluetooth Portátil Resistente al Agua IP67 JBL Charge 5 40W",
+      descripcion: "Altavoz inalámbrico resistente al agua y polvo con sonido JBL Original Pro Sound. Conductor de excursión larga, tweeter separado y dos radiadores pasivos de bajos.",
+      categoria: "Audio",
+      marca: "JBL",
+      precio: 2899.00,
+      imagen_url: "/assets/productos/bocina-jbl-charge-5.jpg",
+      especificaciones: {"potenciaSalida":"30W RMS woofer + 10W RMS tweeter (40W total)","resistencia":"Certificación IP67 contra agua y polvo","bateria":"Hasta 20 horas de reproducción (7500 mAh)","funcionPowerbank":"Puerto USB-A para recargar tu celular","conectividad":"Bluetooth 5.1 y JBL PartyBoost"},
+      condiciones_envio: "Envío protegido con caja sellada y cable USB-C de alta resistencia.",
+      stock: 38
+    },
+    {
+      sku: "EM-AUD-039",
+      nombre: "Auriculares In-Ear Deportivos True Wireless Jabra Elite 8 Active IP68",
+      descripcion: "Los audífonos deportivos más resistentes del mundo según estándares militares (MIL-STD-810H). Cancelación activa de ruido adaptativa y sonido espacial Dolby Audio.",
+      categoria: "Audio",
+      marca: "Jabra",
+      precio: 3299.00,
+      imagen_url: "/assets/productos/auriculares-jabra-elite-8.jpg",
+      especificaciones: {"proteccion":"IP68 a prueba de agua, sudor y caídas (estuche IP54)","bateria":"Hasta 32 horas en total con el estuche de carga","tecnologias":"Adaptive Hybrid ANC, Dolby Spatial Sound y HearThrough","conexion":"Bluetooth 5.3 con Multipoint y Fast Pair","almohadillas":"Tecnología ShakeGrip de silicona líquida"},
+      condiciones_envio: "Envío ExpressPrime garantizado con 3 pares de almohadillas EarGels.",
+      stock: 29
+    },
+    {
+      sku: "EM-AUD-040",
+      nombre: "Micrófono Lavalier Inalámbrico Dual con Cancelación de Ruido DJI Mic 2",
+      descripcion: "Sistema de audio profesional para creadores de contenido y entrevistas. Grabación interna flotante de 32 bits, cancelación de ruido inteligente y alcance de hasta 250 metros.",
+      categoria: "Audio",
+      marca: "DJI",
+      precio: 5899.00,
+      imagen_url: "/assets/productos/microfono-dji-mic-2.jpg",
+      especificaciones: {"canales":"Dual Channel (2 transmisores + 1 receptor)","grabacionInterna":"8 GB interna de audio flotante de 32 bits (14 horas)","alcance":"Hasta 250 m en línea recta sin obstáculos","compatibilidad":"Cámaras DSLR, smartphones USB-C y Lightning","autonomia":"Hasta 18 horas de uso con el estuche de carga"},
+      condiciones_envio: "Envío asegurado en estuche metálico de carga con adaptadores magnéticos.",
+      stock: 20
+    },
+    {
+      sku: "EM-AUD-041",
+      nombre: "Amplificador DAC Portátil de Alta Fidelidad FiiO BTR7 Bluetooth LDAC",
+      descripcion: "Receptor Bluetooth y DAC USB con amplificación dual THX AAA-28 balanceada. Pantalla IPS a color de 1.3 pulgadas, soporte MQA y salida balanceada de 4.4mm y 3.5mm.",
+      categoria: "Audio",
+      marca: "FiiO",
+      precio: 3799.00,
+      imagen_url: "/assets/productos/amplificador-dac-fiio-btr7.jpg",
+      especificaciones: {"dac":"Dual ES9219C x 2","amplificacion":"THX AAA-28 x 2 balanceado","salidas":"3.5mm Single Ended + 4.4mm Balanceada","resolucion":"PCM 384kHz/32bit y DSD256 nativo vía USB","bluetooth":"Bluetooth 5.1 con LDAC, aptX HD, aptX Adaptive"},
+      condiciones_envio: "Envío rápido en caja de colección con funda de cuero sintético y cables USB-C.",
+      stock: 16
+    },
+    {
+      sku: "EM-AUD-042",
+      nombre: "Barra de Sonido Compacta con Subwoofer Inalámbrico Bose TV Speaker",
+      descripcion: "Barra de sonido diseñada para ofrecer diálogos nítidos y graves profundos al instante. Conexión sencilla por cable óptico o HDMI ARC, y conectividad Bluetooth para música.",
+      categoria: "Audio",
+      marca: "Bose",
+      precio: 5499.00,
+      imagen_url: "/assets/productos/barra-sonido-bose-tv.jpg",
+      especificaciones: {"configuracion":"2 transductores de rango completo + 1 tweeter central","modoDialogo":"Realce de voz para no perder una sola palabra","entradas":"HDMI ARC, Óptico digital, Auxiliar 3.5mm, USB","dimensiones":"5.6 cm x 59.4 cm x 10.2 cm","control":"Control remoto por infrarrojos incluido"},
+      condiciones_envio: "Envío seguro en caja acolchada oficial con cable óptico incluido.",
+      stock: 24
+    },
+    {
+      sku: "EM-TEL-043",
+      nombre: "Smartphone Samsung Galaxy S24 Ultra 5G 512GB Titanium Gray",
+      descripcion: "El buque insignia de Samsung con marco de titanio, pantalla plana Dynamic AMOLED 2X de 6.8\" 120Hz, cámara de 200MP con zoom óptico 5x/10x, procesador Snapdragon 8 Gen 3 e IA Galaxy AI.",
+      categoria: "telefonia",
+      marca: "Samsung",
+      precio: 23999.00,
+      imagen_url: "/assets/productos/samsung-galaxy-s24-ultra.jpg",
+      especificaciones: {"pantalla":"6.8\" QHD+ Dynamic AMOLED 2X (2600 nits)","procesador":"Snapdragon 8 Gen 3 for Galaxy (4nm)","camaraPrincipal":"200 MP + 50 MP (periscopio 5x) + 12 MP ultra gran angular + 10 MP telefoto 3x","bateria":"5,000 mAh con carga de 45W","extras":"S-Pen integrado con latencia de 2.8ms y resistencia IP68"},
+      condiciones_envio: "Envío prioritario con seguro total de tránsito y entrega bajo firma.",
+      stock: 19
+    },
+    {
+      sku: "EM-TEL-044",
+      nombre: "Cargador Rápido GaN 100W 4 Puertos USB-C PD 3.0 UGREEN Nexode",
+      descripcion: "Cargador de pared con tecnología de nitruro de galio (GaN II) de tamaño compacto. Capaz de cargar simultáneamente 3 laptops y 1 smartphone a máxima velocidad con protección térmica.",
+      categoria: "telefonia",
+      marca: "UGREEN",
+      precio: 999.00,
+      imagen_url: "/assets/productos/cargador-gan-100w-ugreen.jpg",
+      especificaciones: {"potenciaMaxima":"100 Watts USB Power Delivery","puertos":"3x USB-C + 1x USB-A","protocolos":"PD 3.0, PPS, QC 4+, AFC, FCP","proteccion":"Thermal Guard con escaneo térmico de 800 lecturas/seg","clavija":"Plegable tipo americana ideal para viajes"},
+      condiciones_envio: "Envío ExpressPrime en paquete individual sellado.",
+      stock: 50
+    },
+    {
+      sku: "EM-TEL-045",
+      nombre: "Batería Portátil Power Bank 24,000mAh 140W Anker Prime 737",
+      descripcion: "Batería externa de alta capacidad con pantalla inteligente digital. Entrega hasta 140W de salida por un solo puerto USB-C, recargando una MacBook Pro al 50% en solo 28 minutos.",
+      categoria: "telefonia",
+      marca: "Anker",
+      precio: 2499.00,
+      imagen_url: "/assets/productos/powerbank-anker-737.jpg",
+      especificaciones: {"capacidad":"24,000 mAh / 86.4 Wh (aprobada para aviones)","salidaMaxima":"140W Power Delivery 3.1","pantalla":"OLED a color con métricas de voltaje, potencia y salud de batería","recargaRapida":"Recarga completa del power bank en solo 52 minutos a 140W","puertos":"2x USB-C bidireccionales + 1x USB-A"},
+      condiciones_envio: "Envío asegurado con empaque reglamentario para baterías de litio UN3480.",
+      stock: 30
+    },
+    {
+      sku: "EM-TEL-046",
+      nombre: "Estabilizador Gimbal Inteligente de 3 Ejes para Celular DJI Osmo Mobile 6",
+      descripcion: "Gimbal portátil con barra de extensión integrada, inicio rápido al desplegarse y seguimiento ActiveTrack 6.0 que mantiene a los sujetos siempre en el encuadre perfecto.",
+      categoria: "telefonia",
+      marca: "DJI",
+      precio: 2799.00,
+      imagen_url: "/assets/productos/gimbal-dji-osmo-mobile-6.jpg",
+      especificaciones: {"estabilizacion":"Cardán motorizado en 3 ejes de grado profesional","extension":"Brazo telescópico integrado de 215 mm","pesoSoportado":"Smartphones de hasta 290 gramos","modosGrabacion":"Timelapse, Motionlapse, Hyperlapse, DynamicZoom","conectividad":"Bluetooth 5.1 con app DJI Mimo"},
+      condiciones_envio: "Envío rápido con tripié de sobremesa, abrazadera magnética y estuche de viaje.",
+      stock: 22
+    },
+    {
+      sku: "EM-TEL-047",
+      nombre: "Soporte MagSafe de Carga Inalámbrica 3 en 1 Belkin BoostCharge Pro 15W",
+      descripcion: "Estación de carga rápida inalámbrica con certificación oficial Made for MagSafe. Suministra hasta 15W al iPhone mientras carga simultáneamente el Apple Watch y los AirPods.",
+      categoria: "telefonia",
+      marca: "Belkin",
+      precio: 1899.00,
+      imagen_url: "/assets/productos/soporte-magsafe-belkin-3en1.jpg",
+      especificaciones: {"potencia":"15W MagSafe iPhone + 5W Apple Watch + 5W AirPods","orientacion":"Modo horizontal (StandBy) o vertical","diseno":"Brazo de acero inoxidable con base pesada antiderrapante","certificacion":"Apple MFi y Qi Certified","adaptador":"Eliminador de corriente de 40W incluido"},
+      condiciones_envio: "Envío inmediato en caja original sellada con adaptador de corriente nacional.",
+      stock: 28
+    },
+    {
+      sku: "EM-ACC-048",
+      nombre: "Teclado Mecánico Custom Inalámbrico 75% Hot-Swap Keychron Q1 Pro",
+      descripcion: "Teclado mecánico premium con chasis de aluminio CNC mecanizado, perilla rotatoria programable, conectividad Bluetooth 5.1 y cable USB-C. Switches Keychron K Pro Banana pre-lubricados.",
+      categoria: "Accesorios",
+      marca: "Keychron",
+      precio: 3699.00,
+      imagen_url: "/assets/productos/teclado-keychron-q1-pro.jpg",
+      especificaciones: {"formato":"75% compacto con 81 teclas + encoder rotativo","estructura":"Doble montura por junta (Double-Gasket Mount)","compatibilidad":"Soporte total QMK/VIA para Mac y Windows","bateria":"4,000 mAh recargable (hasta 300 hrs sin luz)","teclas":"PBT Double-Shot perfil KSA"},
+      condiciones_envio: "Envío protegido con extractor de teclas, extractor de switches y cable trenzado.",
+      stock: 25
+    },
+    {
+      sku: "EM-ACC-049",
+      nombre: "Hub Adaptador USB-C 10 en 1 Multipuerto 4K HDMI 100W PD Gigabit Anker 565",
+      descripcion: "Concentrador USB-C de grado profesional que expande un solo puerto a diez conexiones simultáneas. Soporta salida de video 4K a 60Hz, transferencias a 10Gbps y carga pasante de 100W.",
+      categoria: "Accesorios",
+      marca: "Anker",
+      precio: 1199.00,
+      imagen_url: "/assets/productos/hub-usbc-anker-565.jpg",
+      especificaciones: {"puertosVideo":"1x HDMI 2.0 (4K@60Hz) + 1x DisplayPort (4K@60Hz)","puertosDatos":"1x USB-C 10Gbps, 1x USB-A 10Gbps, 2x USB-A 480Mbps","almacenamiento":"Lector de tarjetas SD y microSD UHS-I simultáneo","red":"Ethernet RJ45 Gigabit 10/100/1000 Mbps","carga":"Entrada USB-C PD hasta 100W (85W efectivos a laptop)"},
+      condiciones_envio: "Envío ExpressPrime con funda de terciopelo para transporte seguro.",
+      stock: 36
+    },
+    {
+      sku: "EM-ACC-050",
+      nombre: "Tapete de Escritorio Mouse Pad Gamer XXL 90x40cm SteelSeries QcK Prism RGB",
+      descripcion: "Alfombrilla para mouse de superficie de tela microtejida QcK legendaria con costuras reforzadas e iluminación RGB de dos zonas personalizable sincronizada con audio y juegos.",
+      categoria: "Accesorios",
+      marca: "SteelSeries",
+      precio: 899.00,
+      imagen_url: "/assets/productos/mousepad-steelseries-qck-xxl.jpg",
+      especificaciones: {"dimensiones":"900 mm x 400 mm x 4 mm","superficie":"Microfibra optimizada para sensores ópticos y láser","base":"Goma antideslizante de alta densidad","iluminacion":"PrismSync RGB dinámica de 360 grados de doble zona","conexion":"Cable USB trenzado de 1.8 metros"},
+      condiciones_envio: "Envío en tubo cilíndrico rígido de protección contra dobleces.",
+      stock: 42
+    },
+    {
+      sku: "EM-ACC-051",
+      nombre: "Base Enfriadora para Laptop con Turbina de Flujo Sellado IETS GT500 5000RPM",
+      descripcion: "Refrigerador de laptop de alto rendimiento con espuma de sellado hermético que fuerza aire presurizado a través de los conductos térmicos de la laptop, reduciendo hasta 20°C de temperatura.",
+      categoria: "Accesorios",
+      marca: "IETS",
+      precio: 1450.00,
+      imagen_url: "/assets/productos/base-enfriadora-iets-gt500.jpg",
+      especificaciones: {"ventilador":"Turbina centrífuga industrial de hasta 5,000 RPM","control":"Perilla de velocidad variable continua","filtro":"Filtro antipolvo lavable desmontable","compatibilidad":"Laptops de 13 a 17.3 pulgadas con rejillas inferiores","sellado":"Espuma viscoelástica de adaptación magnética"},
+      condiciones_envio: "Envío en caja reforzada con eliminador de corriente y sellos de repuesto.",
+      stock: 20
+    },
+    {
+      sku: "EM-ACC-052",
+      nombre: "Lápiz Óptico Stylus Universal con Rechazo de Palma Baseus Smooth Writing",
+      descripcion: "Pluma digital de alta precisión para tabletas iPad y Android con puntas de repuesto de POM intercambiables, carga rápida magnética y visualización de porcentaje de batería por Bluetooth.",
+      categoria: "Accesorios",
+      marca: "Baseus",
+      precio: 599.00,
+      imagen_url: "/assets/productos/lapiz-stylus-baseus-universal.jpg",
+      especificaciones: {"precision":"Punta ultrafina de 1.5mm sin retraso ni descalibración","sensibilidadInclinacion":"Variación de trazo según ángulo como lápiz real","bateria":"Hasta 11 horas de escritura continua (carga en 30 min)","rechazoPalma":"Apoyo natural de la mano sobre la pantalla","peso":"14.7 gramos con fijación magnética"},
+      condiciones_envio: "Envío en blíster sellado con 2 puntas de repuesto adicionales.",
+      stock: 48
+    },
+    {
+      sku: "EM-HOG-053",
+      nombre: "Cafetera Automática Espresso con Molino Cerámico Philips LatteGo Serie 3300",
+      descripcion: "Prepara 5 deliciosas bebidas de café caliente e infusionado en frío con granos frescos al pulsar un solo botón. Sistema de leche LatteGo sin tubos, el más fácil de limpiar del mercado en 15 segundos.",
+      categoria: "Hogar",
+      marca: "Philips",
+      precio: 11499.00,
+      imagen_url: "/assets/productos/cafetera-philips-lattego-3300.jpg",
+      especificaciones: {"bebidas":"Espresso, Café clásico, Cappuccino, Latte Macchiato y Iced Coffee","molino":"Cerámica 100% resistente con 12 ajustes de molienda","presion":"Bomba de 15 bares italianos","filtroAgua":"AquaClean para hasta 5,000 tazas sin descalcificar","interfaz":"Pantalla táctil intuitiva con selector de aroma e intensidad"},
+      condiciones_envio: "Envío asegurado en caja master reforzada con tira reactiva de dureza de agua.",
+      stock: 14
+    },
+    {
+      sku: "EM-HOG-054",
+      nombre: "Aspiradora Inalámbrica de Alta Succión 240AW Dyson V15 Detect Absolute",
+      descripcion: "La aspiradora inteligente más potente de Dyson. Láser revelador de polvo microscópico en pisos duros, sensor piezoeléctrico que mide y cuenta partículas y pantalla LCD con reporte en tiempo real.",
+      categoria: "Hogar",
+      marca: "Dyson",
+      precio: 16999.00,
+      imagen_url: "/assets/productos/aspiradora-dyson-v15-detect.jpg",
+      especificaciones: {"motor":"Dyson Hyperdymium a 125,000 RPM","potenciaSuccion":"240 Watts de Aire (AW)","autonomia":"Hasta 60 minutos sin pérdida de potencia","filtracion":"HEPA multiciclónica avanzada que atrapa 99.99% de partículas de 0.3 micras","cabezales":"Digital Motorbar antienredos + Fluffy Optic con iluminación"},
+      condiciones_envio: "Envío prioritario con seguro total y entrega personalizada con acuse de recibo.",
+      stock: 11
+    },
+    {
+      sku: "EM-HOG-055",
+      nombre: "Horno Tostador de Convección con Freidora de Aire Smart Ninja Foodi XL Pro",
+      descripcion: "Horno multifunción de convección envolvente de 1800W con 10 funciones en 1: freír con aire, asar, tostar, hornear, deshidratar y recalentar en dos niveles para alimentar a toda la familia.",
+      categoria: "Hogar",
+      marca: "Ninja",
+      precio: 4899.00,
+      imagen_url: "/assets/productos/horno-freidora-ninja-foodi-xl.jpg",
+      especificaciones: {"capacidad":"2 niveles de cocción (pavo de 5 kg o 2 pizzas de 30 cm)","potencia":"1800W True Surround Convection","funciones":"Air Fry, Air Roast, Bake, Whole Roast, Broil, Toast, Bagel, Dehydrate, Reheat, Pizza","temperatura":"De 30°C a 230°C con precalentamiento ultra rápido en 90 seg","accesorios":"2 rejillas, 1 charola para hornear, 1 canastilla para freír"},
+      condiciones_envio: "Envío terrestre especializado para electrodomésticos con seguro de tránsito.",
+      stock: 21
+    },
+    {
+      sku: "EM-HOG-056",
+      nombre: "Cerradura Digital Inteligente Biométrica con Huella y Teclado Wi-Fi Yale Assure Lock 2",
+      descripcion: "Cerradura electrónica para puerta principal con lector de huellas dactilares táctil, teclado retroiluminado anti-espía y módulo Wi-Fi integrado para control y apertura remota desde la app Yale Home.",
+      categoria: "Hogar",
+      marca: "Yale",
+      precio: 4299.00,
+      imagen_url: "/assets/productos/cerradura-yale-assure-lock-2.jpg",
+      especificaciones: {"accesos":"Huella biométrica, código PIN numérico, app móvil y llave física de respaldo","conectividad":"Wi-Fi 2.4 GHz + Bluetooth sin necesidad de bridges adicionales","compatibilidad":"Apple Home, Amazon Alexa, Google Home","bloqueoAutomatico":"Auto-Lock configurable por sensor DoorSense","bateria":"4 baterías AA con alerta de batería baja en app"},
+      condiciones_envio: "Envío rápido sellado de fábrica con plantilla de instalación y tornillería incluida.",
+      stock: 25
+    },
+    {
+      sku: "EM-HOG-057",
+      nombre: "Robot Limpiacristales Automático con Pulverización Ultrasónica Hutt DDC55",
+      descripcion: "Robot limpiador de ventanas y canceles de baño con sensor de presión inteligente, navegación AI y succión de vacío de 3800Pa que garantiza adherencia total a vidrios verticales.",
+      categoria: "Hogar",
+      marca: "Hutt",
+      precio: 3199.00,
+      imagen_url: "/assets/productos/robot-limpiacristales-hutt.jpg",
+      especificaciones: {"potenciaSuccion":"De 2600 a 3800 Pa con ajuste dinámico de presión","sistemaSeguridad":"Batería UPS de respaldo de 20 min ante cortes de luz + cuerda de escalada de 150 kg","navegacion":"HUTTPLANING 2.0 con detección inteligente de marcos","control":"Control remoto por infrarrojos con modos manual y automático","accesorios":"6 pares de paños de microfibra lavables incluidos"},
+      condiciones_envio: "Envío ExpressPrime con empaque antichoque reforzado.",
+      stock: 17
+    },
+    {
+      sku: "EM-HOG-058",
+      nombre: "Sistema de Purificación de Agua por Ósmosis Inversa Waterdrop G3P800 800GPD",
+      descripcion: "Purificador de agua sin tanque para debajo del fregadero con capacidad de filtrado rápido de 800 galones por día. Grifo inteligente con pantalla LED indicadora de TDS y vida útil de filtros.",
+      categoria: "Hogar",
+      marca: "Waterdrop",
+      precio: 8999.00,
+      imagen_url: "/assets/productos/purificador-agua-waterdrop-g3.jpg",
+      especificaciones: {"flujo":"800 GPD (llena un vaso de agua pura en 6 segundos)","tasaDrenaje":"3:1 ultra eficiente de ahorro de agua","etapasFiltrado":"Membrana de ósmosis inversa de 0.0001 micras + carbón activado en bloque","reduccionContaminantes":"Elimina más de 1,000 impurezas: cloro, plomo, fluoruro, metales pesados y microplásticos","certificaciones":"NSF/ANSI 58 y 372 libre de plomo"},
+      condiciones_envio: "Envío asegurado de carga pesada con kit de conexión rápida push-in.",
+      stock: 12
+    },
+    {
+      sku: "EM-HOG-059",
+      nombre: "Lámpara de Escritorio LED con Control de Temperatura de Color Xiaomi Mi Desk Lamp Pro",
+      descripcion: "Lámpara de trabajo profesional con brazo articulado en tres ejes, certificación TÜV Rheinland de luz azul reducida sin parpadeo estroboscópico y control por perilla o apps inteligentes.",
+      categoria: "Hogar",
+      marca: "Xiaomi",
+      precio: 1099.00,
+      imagen_url: "/assets/productos/lampara-xiaomi-desk-lamp-pro.jpg",
+      especificaciones: {"brillo":"Hasta 700 lúmenes con índice de reproducción cromática Ra90","temperaturaColor":"Ajustable de 2500K (cálido) a 4800K (luz día)","areaIluminacion":"Círculo amplio de hasta 1.2 metros de diámetro","compatibilidad":"Apple HomeKit, Google Assistant y Amazon Alexa","vidaUtil":"25,000 horas de iluminación LED de grado médico"},
+      condiciones_envio: "Envío en caja original con adaptador de corriente y soporte pesado antiderrapante.",
+      stock: 35
+    },
+    {
+      sku: "EM-GAM-060",
+      nombre: "Control Inalámbrico Xbox Elite Serie 2 Core Blanco/Negro",
+      descripcion: "Mando profesional de precisión con palancas de tensión ajustable, bloqueo de gatillos de alta sensibilidad, agarre envolvente de goma texturizada y componentes diseñados para durar.",
+      categoria: "Videojuegos",
+      marca: "Microsoft",
+      precio: 2699.00,
+      imagen_url: "/assets/productos/control-xbox-elite-series-2.jpg",
+      especificaciones: {"conectividad":"Xbox Wireless, Bluetooth y USB-C","bateria":"Interna recargable de hasta 40 horas de duración","personalizacion":"Hasta 3 perfiles personalizados en memoria interna","gatillos":"Hair Trigger Locks de 3 posiciones","peso":"345 gramos"},
+      condiciones_envio: "Envío ExpressPrime garantizado en caja sellada con herramienta de ajuste.",
+      stock: 30
+    },
+    {
+      sku: "EM-GAM-061",
+      nombre: "Volante de Carreras y Pedales con Force Feedback Logitech G923 TRUEFORCE",
+      descripcion: "Sistema de carreras para PC, PS5 y PS4 con tecnología de retroalimentación de fuerza TRUEFORCE de alta definición que se conecta directamente a los motores de físicas del juego a 4000 veces/seg.",
+      categoria: "Videojuegos",
+      marca: "Logitech",
+      precio: 5799.00,
+      imagen_url: "/assets/productos/volante-logitech-g923-force.jpg",
+      especificaciones: {"rotacion":"900 grados de bloqueo a bloqueo con sensor de dirección hall","materiales":"Cuero cosido a mano y levas de cambio de acero inoxidable","pedales":"Pedal de freno progresivo no lineal de resorte calibrado","dobleEmbrague":"Control de asistencia de lanzamiento programable en juegos compatibles","compatibilidad":"PlayStation 5, PlayStation 4 y PC Windows 10/11"},
+      condiciones_envio: "Envío en caja de protección pesada con fuente de poder y abrazaderas para escritorio.",
+      stock: 16
+    },
+    {
+      sku: "EM-GAM-062",
+      nombre: "Tarjeta de Captura de Video 4K60 HDR10 Passthrough USB 3.0 Elgato HD60 X",
+      descripcion: "Capturadora externa de baja latencia para transmisiones en Twitch y YouTube. Graba a 1080p60 HDR o 4K30 mientras juegas a 4K60 HDR10 o 1440p120 con tasa de refresco variable (VRR).",
+      categoria: "Videojuegos",
+      marca: "Elgato",
+      precio: 3499.00,
+      imagen_url: "/assets/productos/capturadora-elgato-hd60x.jpg",
+      especificaciones: {"entradaSalida":"HDMI 2.0 (passthrough sin retardo hasta 4K60 HDR / 1440p120 / 1080p240)","interfazPC":"USB 3.0 Type-C de ultra baja latencia (<100ms)","resolucionCaptura":"Hasta 2160p30 o 1080p60 HDR10","soporteVRR":"Variable Refresh Rate sin desgarro de pantalla","software":"Compatible con OBS Studio, Streamlabs, Discord y Elgato 4KCU"},
+      condiciones_envio: "Envío rápido con cable USB-C a USB-A 3.0 y cable HDMI de alta velocidad.",
+      stock: 24
+    },
+    {
+      sku: "EM-GAM-063",
+      nombre: "Control Inalámbrico DualSense Edge para PlayStation 5 Perfiles Personalizables",
+      descripcion: "El primer control de alto rendimiento ultra personalizable creado por PlayStation. Módulos de palancas reemplazables, botones traseros intercambiables y topes de gatillo ajustables.",
+      categoria: "Videojuegos",
+      marca: "Sony",
+      precio: 4199.00,
+      imagen_url: "/assets/productos/control-dualsense-edge-ps5.jpg",
+      especificaciones: {"modulos":"Módulos de stick analógico intercambiables disponibles por separado","botonesPosteriores":"2 juegos de botones traseros intercambiables (palancas o semidomo)","retroalimentacion":"Gatillos adaptativos hápticos con ajuste de recorrido por palanca física","estuche":"Estuche rígido con puerto de carga pasante USB-C trenzado con bloqueo","perfiles":"Botón Fn dedicado para cambiar perfiles y volumen del juego sobre la marcha"},
+      condiciones_envio: "Envío asegurado en estuche de viaje original con todos los accesorios completos.",
+      stock: 18
+    },
+    {
+      sku: "EM-GAM-064",
+      nombre: "Headset Gamer Inalámbrico DTS Spatial Audio HyperX Cloud Alpha Wireless",
+      descripcion: "Los primeros audífonos para juegos con una autonomía masiva de hasta 300 horas con una sola carga. Controladores de cámara doble de 50 mm y audio espacial DTS Headphone:X.",
+      categoria: "Videojuegos",
+      marca: "HyperX",
+      precio: 3299.00,
+      imagen_url: "/assets/productos/headset-hyperx-cloud-alpha.jpg",
+      especificaciones: {"bateria":"Hasta 300 horas ininterrumpidas de uso","transductores":"HyperX Dual Chamber de 50 mm con imanes de neodimio","microfono":"Condensador desmontable con cancelación de ruido y LED de silencio","conectividad":"Inalámbrica de 2.4 GHz sin retardo con dongle USB","estructura":"Aluminio duradero con almohadillas de espuma viscoelástica y cuero sintético"},
+      condiciones_envio: "Envío prioritario con dongle USB, cable de carga y filtro de micrófono pop.",
+      stock: 27
+    },
+    {
+      sku: "EM-GAM-065",
+      nombre: "Base Soporte de Carga Rápida Doble para Controles PS5 Razer Quick Charging Stand",
+      descripcion: "Estación de carga magnética de acoplamiento fácil con diseño curvo ergonómico a juego con la estética de PlayStation 5. Recarga mandos DualSense por completo en menos de 3 horas.",
+      categoria: "Videojuegos",
+      marca: "Razer",
+      precio: 799.00,
+      imagen_url: "/assets/productos/base-carga-razer-quick-ps5.jpg",
+      especificaciones: {"tiempoCarga":"Menos de 3 horas para recarga al 100%","proteccion":"Protección contra sobrecarga, sobrecalentamiento y cortocircuitos","conexion":"Alimentación por puerto USB de la consola PS5 o eliminador USB","base":"Goma antideslizante de alta estabilidad para colocar y retirar con una mano"},
+      condiciones_envio: "Envío en blíster sellado de fábrica con cable USB-C incluido.",
+      stock: 45
+    },
+    {
+      sku: "EM-ELE-066",
+      nombre: "Smart TV 65\" OLED 4K UHD 120Hz Dolby Vision LG OLED evo C3 OLED65C3PSA",
+      descripcion: "Pantalla OLED con píxeles autoemisivos para negros perfectos y contraste infinito. Procesador α9 AI Gen6 4K, 4 puertos HDMI 2.1 completos con compatibilidad G-Sync y FreeSync Premium.",
+      categoria: "Electronica",
+      marca: "LG",
+      precio: 28999.00,
+      imagen_url: "/assets/productos/pantalla-lg-oled-c3-65.jpg",
+      especificaciones: {"panel":"OLED evo 4K Ultra HD (3840 x 2160) a 120Hz nativos","procesador":"α9 AI 4K Gen6 con Dynamic Tone Mapping Pro","formatos":"Dolby Vision IQ, HDR10 Pro, HLG y modo Filmmaker","sonido":"Dolby Atmos de 40W 2.2 canales con virtualización 9.1.2","gaming":"4x HDMI 2.1 (4K@120Hz, VRR, ALLM, eARC) y Game Dashboard"},
+      condiciones_envio: "Envío terrestre especializado con seguro total y entrega programada en planta baja/alta.",
+      stock: 10
+    },
+    {
+      sku: "EM-ELE-067",
+      nombre: "Proyector Portátil Inteligente Full HD con Android TV Samsung The Freestyle 2nd Gen",
+      descripcion: "Proyector versátil con rotación de 180 grados para proyectar en paredes, pisos o techos de hasta 100 pulgadas. Nivelación y enfoque automático instantáneo con sonido envolvente 360°.",
+      categoria: "Electronica",
+      marca: "Samsung",
+      precio: 11999.00,
+      imagen_url: "/assets/productos/proyector-samsung-the-freestyle.jpg",
+      especificaciones: {"tamanoPantalla":"De 30 a 100 pulgadas con resolución Full HD 1080p","calibracion":"Auto Keystone, Auto Focus y Auto Leveling en menos de 3 seg","sistema":"Smart TV Tizen con Netflix, Prime Video, Disney+ y Xbox Cloud Gaming integrado","sonido":"Bocina envolvente omnidireccional de 360 grados de 5W","alimentacion":"Compatible con cargadores USB-C PD de 50W y power banks"},
+      condiciones_envio: "Envío prioritario con control remoto solar SolarCell y tapa de lente difusora.",
+      stock: 15
+    },
+    {
+      sku: "EM-ELE-068",
+      nombre: "Lector de Libros Electrónicos Pantalla E-Ink Carta 6.8\" Kindle Paperwhite 16GB",
+      descripcion: "Lector de e-books con pantalla antirreflejo de 300 ppi que se lee como papel impreso bajo la luz solar. Luz cálida ajustable, resistencia al agua IPX8 y semanas de duración de batería.",
+      categoria: "Electronica",
+      marca: "Amazon Kindle",
+      precio: 2799.00,
+      imagen_url: "/assets/productos/ereader-kindle-paperwhite-16gb.jpg",
+      especificaciones: {"pantalla":"Amazon E-Ink de 6.8 pulgadas a 300 ppi con escala de 16 niveles de grises","luzFrontal":"17 LEDs con tono de luz cálida regulable blanco a ámbar","resistenciaAgua":"IPX8 (inmersión en agua dulce hasta 2 metros por 60 min)","almacenamiento":"16 GB (almacena miles de títulos y audiolibros)","duracionBateria":"Hasta 10 semanas con una sola carga por USB-C"},
+      condiciones_envio: "Envío ExpressPrime garantizado en sobre acolchado con cable USB-C.",
+      stock: 35
+    },
+    {
+      sku: "EM-ELE-069",
+      nombre: "Cámara de Seguridad Exterior Wi-Fi 2K Pan/Tilt Solar Eufy Security SoloCam S220",
+      descripcion: "Cámara de videovigilancia sin cables con panel solar integrado que requiere solo 3 horas de sol al día para funcionar permanentemente. Resolución 2K, visión nocturna a color y sin cuotas mensuales.",
+      categoria: "Electronica",
+      marca: "Eufy",
+      precio: 2299.00,
+      imagen_url: "/assets/productos/camara-seguridad-eufy-s220.jpg",
+      especificaciones: {"resolucion":"2K HD con lente gran angular F1.6 de gran luminosidad","energia":"Batería interna con recarga solar continua por panel fotovoltaico monocristalino","almacenamiento":"8 GB de almacenamiento local eMMC cifrado AES-128 sin suscripciones","deteccionIA":"Detección precisa de humanos por Inteligencia Artificial integrada","resistencia":"IP67 apta para lluvias torrenciales y sol directo extremo"},
+      condiciones_envio: "Envío rápido con base de montaje ajustable de pared y taquetes de fijación.",
+      stock: 28
+    },
+    {
+      sku: "EM-ELE-070",
+      nombre: "Enchufe Inteligente Wi-Fi Monitoreo de Energía Pack 4 Piezas TP-Link Tapo P110",
+      descripcion: "Tomacorriente inteligente con medición de consumo eléctrico en tiempo real y cálculo de costo estimado. Programa encendidos automáticos, modo ausente y control por voz con Alexa y Google.",
+      categoria: "Electronica",
+      marca: "TP-Link",
+      precio: 749.00,
+      imagen_url: "/assets/productos/enchufes-smart-tplink-tapo.jpg",
+      especificaciones: {"corrienteMaxima":"15 Amperes / 1800 Watts a 120V AC","monitoreo":"Gráficas de consumo histórico por día, mes y año en app Tapo","conectividad":"Wi-Fi 2.4 GHz directo sin hub adicional","funciones":"Temporizador, cuenta regresiva y modo fuera de casa con encendido aleatorio","diseno":"Carcasa ignífuga compacta que no obstruye el segundo tomacorriente"},
+      condiciones_envio: "Envío express en caja sellada con 4 unidades y manual en español.",
+      stock: 45
+    },
+    {
+      sku: "EM-DEP-071",
+      nombre: "Set de Mancuernas Ajustables de 2.5 kg a 24 kg Bowflex SelectTech 552",
+      descripcion: "Par de mancuernas ajustables inteligentes que reemplazan hasta 15 pares de pesas individuales mediante un selector giratorio rápido. Molduras termoplásticas silenciosas para no dañar el piso.",
+      categoria: "Deportes",
+      marca: "Bowflex",
+      precio: 7499.00,
+      imagen_url: "/assets/productos/mancuernas-bowflex-selecttech.jpg",
+      especificaciones: {"rangoPeso":"De 2.5 kg a 24 kg (5 a 52.5 lbs) por cada mancuerna","ajustes":"15 incrementos de peso fácilmente seleccionables con dial lateral","discos":"Placas de acero cubiertas con polímero termoplástico de absorción de impacto","dimensiones":"40 cm x 20 cm x 23 cm por pieza con base incluida","garantia":"2 años oficiales en piezas mecánicas"},
+      condiciones_envio: "Envío en dos cajas reforzadas con protección de unicel industrial pesado.",
+      stock: 14
+    },
+    {
+      sku: "EM-DEP-072",
+      nombre: "Reloj Deportivo Multideporte con GPS y Mapas Topográficos Garmin Fenix 7 Solar",
+      descripcion: "Reloj GPS para triatlón y montañismo con lente de carga solar Power Glass que extiende la autonomía a semanas. Métricas avanzadas de entrenamiento, sensor de pulso óptico Gen 4 y altímetro barométrico.",
+      categoria: "Deportes",
+      marca: "Garmin",
+      precio: 14999.00,
+      imagen_url: "/assets/productos/reloj-garmin-fenix-7-solar.jpg",
+      especificaciones: {"pantalla":"1.3\" visible a plena luz solar (260 x 260 píxeles transflectiva)","bateria":"Hasta 22 días en modo smartwatch con carga solar / 73 horas con GPS","navegacion":"Multi-GNSS (GPS, GLONASS, Galileo) con mapas TopoActive precargados","sensores":"Pulsioxímetro Pulse Ox, frecuencia cardíaca, brújula de 3 ejes y termómetro","resistenciaAgua":"10 ATM (sumergible hasta 100 metros)"},
+      condiciones_envio: "Envío asegurado en caja sellada de fábrica con cable de carga de pines magnéticos.",
+      stock: 16
+    },
+    {
+      sku: "EM-DEP-073",
+      nombre: "Tapete de Yoga Profesional Antideslizante Caucho Natural 5mm Lululemon The Mat",
+      descripcion: "Esterilla de yoga de 5mm con base de caucho natural amortiguador y superficie superior de poliuretano suave absorbente que incrementa el agarre cuando las manos transpiran durante sesiones intensas.",
+      categoria: "Deportes",
+      marca: "Lululemon",
+      precio: 1599.00,
+      imagen_url: "/assets/productos/tapete-yoga-lululemon-mat.jpg",
+      especificaciones: {"dimensiones":"180 cm x 66 cm con grosor premium de 5 mm","materiales":"Base de caucho natural con certificación FSC + capa superior de poliuretano","tratamiento":"Antimicrobiano integrado que previene moho y malos olores","peso":"2.38 kg para máxima estabilidad en piso sin enrollamiento en bordes","cuidado":"Fácil limpieza con paño húmedo y secado al aire libre"},
+      condiciones_envio: "Envío en empaque tubular protegido con correa de transporte de cortesía.",
+      stock: 35
+    },
+    {
+      sku: "EM-DEP-074",
+      nombre: "Bicicleta Fija de Spinning Magnética con Pantalla 10.1\" Yesoul S3 Pro",
+      descripcion: "Bicicleta estática silenciosa de resistencia magnética inteligente con 100 niveles de ajuste. Pantalla HD táctil de 10.1 pulgadas para clases guiadas en vivo y métricas de potencia por vatios en tiempo real.",
+      categoria: "Deportes",
+      marca: "Yesoul",
+      precio: 9299.00,
+      imagen_url: "/assets/productos/bicicleta-spinning-yesoul-s3.jpg",
+      especificaciones: {"volanteInercia":"Aluminio fundido de 7.5 kg con freno de emergencia por presión","resistencia":"Magnética de 100 niveles por perilla micrométrica silenciosa","transmision":"Banda acanalada de alta durabilidad sin mantenimiento de cadena","pantalla":"10.1 pulgadas táctil con app Yesoul Fitness y mirroring de pantalla","pesoSoportado":"Hasta 120 kg de usuario"},
+      condiciones_envio: "Envío de carga terrestre con servicio a domicilio con caja flejada y kit de herramientas.",
+      stock: 12
+    },
+    {
+      sku: "EM-AUT-075",
+      nombre: "Arrancador de Batería Portátil de Emergencia 2000A Jump Starter 12V NOCO Boost Plus GB40",
+      descripcion: "Potente arrancador de litio ultra seguro de 2000 amperios con tecnología a prueba de chispas y protección de polaridad inversa para arrancar autos y camionetas de hasta 6.0L gasolina y 3.0L diésel.",
+      categoria: "Automotriz",
+      marca: "NOCO",
+      precio: 2399.00,
+      imagen_url: "/assets/productos/arrancador-noco-boost-gb40.jpg",
+      especificaciones: {"corrientePico":"2,000 Amperios de arranque en frío","compatibilidad":"Motores a gasolina de hasta 6.0L y diésel de hasta 3.0L","linterna":"LED ultrabrillante de 100 lúmenes con 7 modos (SOS y estrobo)","salidas":"Puerto USB de 2.1A para recargar celulares y tablets en carretera","clasificacion":"IP65 resistente a lluvia y polvo con tapas de caucho"},
+      condiciones_envio: "Envío ExpressPrime con pinzas de uso rudo Precision HD y bolsa de microfibra.",
+      stock: 30
+    },
+    {
+      sku: "EM-AUT-076",
+      nombre: "Compresor de Aire Portátil Digital Inflador de Llantas 150 PSI Xiaomi Air Pump 2",
+      descripcion: "Bomba de aire digital recargable de alta velocidad capaz de inflar una llanta de auto vacía en solo 8 minutos. Pantalla digital con apagado automático por detección precisa de presión preestablecida.",
+      categoria: "Automotriz",
+      marca: "Xiaomi",
+      precio: 899.00,
+      imagen_url: "/assets/productos/compresor-xiaomi-air-pump-2.jpg",
+      especificaciones: {"presionMaxima":"Hasta 150 PSI (10.3 Bares) con precisión de ±1 PSI","modosPreestablecidos":"Coche, Moto, Bicicleta, Balón y Modo Libre configurable","bateria":"Batería de litio 2000 mAh recargable vía USB Type-C","luzAuxiliar":"Luz LED frontal para emergencias mecánicas nocturnas","adaptadores":"Válvula Schrader (auto), válvula Presta y aguja para balones"},
+      condiciones_envio: "Envío inmediato en caja original con funda de transporte y boquillas.",
+      stock: 45
+    },
+    {
+      sku: "EM-AUT-077",
+      nombre: "Cámara para Auto Dash Cam Frontal y Trasera 4K Ultra HD con GPS y Wi-Fi 70mai A810",
+      descripcion: "Cámara de parabrisas con sensor Sony Starvis 2 IMX678 de visión nocturna HDR insuperable en 4K. Incluye cámara trasera 1080p, GPS integrado para registro de velocidad y modo estacionamiento 24/7.",
+      categoria: "Automotriz",
+      marca: "70mai",
+      precio: 2799.00,
+      imagen_url: "/assets/productos/dashcam-70mai-a810-4k.jpg",
+      especificaciones: {"sensor":"Sony STARVIS 2 IMX678 con apertura F1.8 y 6 lentes de cristal","resolucion":"Frontal 4K UHD (3840x2160) a 60fps + Trasera 1080p HDR","anguloVision":"150 grados que cubre 3 carriles completos de tráfico","seguridadVial":"Sistema ADAS con alerta de cambio de carril y colisión frontal","conectividad":"Wi-Fi para descarga instantánea de videos al celular con la app 70mai"},
+      condiciones_envio: "Envío prioritario con adhesivo electrostático para parabrisas y cargador de encendedor.",
+      stock: 25
+    },
+    {
+      sku: "EM-AUT-078",
+      nombre: "Aspiradora Inalámbrica Portátil para Auto con Motor Ciclónico Baseus A3 15000Pa",
+      descripcion: "Aspiradora de mano ultracompacta para interiores automotrices con 15,000 Pa de potencia de succión, filtro de acero inoxidable lavable combinado con filtro HEPA y luz LED integrada.",
+      categoria: "Automotriz",
+      marca: "Baseus",
+      precio: 999.00,
+      imagen_url: "/assets/productos/aspiradora-auto-baseus-a3.jpg",
+      especificaciones: {"potenciaSuccion":"15,000 Pa en modo turbo / 10,000 Pa modo estándar","motor":"Motor sin escobillas Brushless a 80,000 RPM de 135W","autonomia":"Hasta 45 minutos de limpieza con batería de 8000 mAh","filtracion":"Doble filtro: malla metálica de acero + filtro HEPA lavable","accesorios":"Boquilla 2 en 1 con cepillo para rejillas de aire acondicionado y ranuras"},
+      condiciones_envio: "Envío en blíster sellado con cable de carga rápida USB-C y bolsa de guardado.",
+      stock: 38
     }
   ];
 
@@ -751,6 +1520,33 @@ const reviewsDataset = {
   'EM-HOG-020': [
     { calificacion: 5, comentario: 'El aire de la recámara se siente fresco y libre de olores de cocina y polvo. El sensor PM2.5 es muy útil.' },
     { calificacion: 5, comentario: 'En modo nocturno es completamente silencioso y la luz indicadora se apaga sola.' }
+  ],
+  'EM-TV-021': [
+    { calificacion: 5, comentario: 'Pantalla enorme de 75 pulgadas, los colores 4K y el sonido son una maravilla en la sala.' },
+    { calificacion: 5, comentario: 'Excelente compra, llegó perfectamente empacada por ExpressPrime y se configuró en minutos.' }
+  ],
+  'EM-GAM-022': [
+    { calificacion: 5, comentario: '¡Increíble la Switch 2! La pantalla OLED a 120Hz se ve espectacular y los Joy-Con se sienten súper firmes.' },
+    { calificacion: 5, comentario: 'Llegó sellada y en menos de 24 horas. Los juegos corren con una fluidez impresionante.' }
+  ],
+  'EM-GAM-023': [
+    { calificacion: 5, comentario: 'La mejor relación calidad-precio. Silenciosa, rápida y con Game Pass es insuperable.' },
+    { calificacion: 5, comentario: 'Muy compacta y bonita. Carga los juegos en cuestión de segundos gracias al SSD.' }
+  ],
+  'EM-GAM-024': [
+    { calificacion: 5, comentario: '¡El regreso de Marcus y Dom! La preventa me llegó con el código de regalo al instante.' }
+  ],
+  'EM-LIB-025': [
+    { calificacion: 5, comentario: 'Imprescindible para cualquier fan de Gears. La portada y la traducción al español son excelentes.' }
+  ],
+  'EM-PEL-026': [
+    { calificacion: 5, comentario: '¡Qué joya de colección! Trae todos los capítulos clásicos de La Familia P. Luche con gran calidad de imagen.' }
+  ],
+  'EM-DEP-027': [
+    { calificacion: 5, comentario: 'Excelente proteína, se disuelve al instante sin grumos y el sabor a chocolate es delicioso.' }
+  ],
+  'EM-AGR-028': [
+    { calificacion: 5, comentario: 'Llanta de excelente agarre para el tractor en terracería y lodo. Muy resistente y llegó rápido al rancho.' }
   ]
 };
 

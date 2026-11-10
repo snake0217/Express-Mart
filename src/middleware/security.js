@@ -77,7 +77,7 @@ function securityHeadersMiddleware(req, res, next) {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data: https://lh3.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com"
+    "default-src 'self'; img-src 'self' data: https://lh3.googleusercontent.com https://images.unsplash.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com"
   );
   res.setHeader('X-XSS-Protection', '0');
   next();
@@ -188,7 +188,7 @@ function authenticateRequest(req, res, next) {
 
   const db = getDb();
   const session = db.prepare(`
-    SELECT s.*, u.email, u.nombre, u.mfa_enabled, u.activo
+    SELECT s.*, u.email, u.nombre, u.mfa_enabled, u.activo, u.membresia_premium, u.membresia_expira
     FROM sesiones s
     JOIN usuarios u ON u.id = s.usuario_id
     WHERE s.token_id = ?
@@ -203,6 +203,13 @@ function authenticateRequest(req, res, next) {
     return res.status(401).json({ error: 'La sesión ha expirado por seguridad. Inicie sesión nuevamente (SEG-03).' });
   }
 
+  // Renovar ventana de expiración en solicitudes activas válidas (Sliding Session TTL)
+  const { sessionTtlMinutes } = getConfig();
+  const renovadoExpira = Date.now() + sessionTtlMinutes * 60 * 1000;
+  db.prepare('UPDATE sesiones SET expira_en = ? WHERE token_id = ?').run(renovadoExpira, token);
+
+  const isPremium = Boolean(session.membresia_premium && (!session.membresia_expira || new Date(session.membresia_expira) > new Date()));
+
   req.user = {
     id: session.usuario_id,
     email: session.email,
@@ -210,6 +217,7 @@ function authenticateRequest(req, res, next) {
     rol: session.rol,
     mfaEnabled: Boolean(session.mfa_enabled),
     mfaVerificado: Boolean(session.mfa_verificado),
+    membresiaPremium: isPremium,
     tokenId: session.token_id
   };
   next();

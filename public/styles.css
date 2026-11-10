@@ -516,3 +516,73 @@ input:user-invalid ~ .error-msg {
 img[src=""], img:not([src]) {
   visibility: hidden;
 }
+
+/* ===============================================================
+   EFECTO HOJAS DE OTOÑO CAYENDO (FALLING LEAVES) Y SWITCH
+   =============================================================== */
+.falling-leaves-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 45;
+  transition: opacity 0.4s ease;
+}
+
+.falling-leaves-canvas.hidden-leaves {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.leaves-toggle-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.leaves-switch-track {
+  position: relative;
+  width: 2.25rem;
+  height: 1.25rem;
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.leaves-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1rem;
+  height: 1rem;
+  background-color: #ffffff;
+  border-radius: 9999px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.leaves-switch-input:checked + .leaves-switch-track {
+  background-color: #f59e0b;
+}
+
+.leaves-switch-input:checked + .leaves-switch-track .leaves-switch-thumb {
+  transform: translateX(1rem);
+}
+
+.leaves-switch-input:focus-visible + .leaves-switch-track {
+  outline: 2px solid #fcd34d;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .falling-leaves-canvas {
+    display: none !important;
+  }
+}
+

@@ -1,0 +1,111 @@
+digraph CasosDeUso {
+    graph [rankdir=LR, splines=spline, nodesep=0.4, ranksep=1.0, fontname="DejaVu Sans", fontsize=11, bgcolor="#FFFFFF"];
+    node [fontname="DejaVu Sans", fontsize=9];
+    edge [fontname="DejaVu Sans", fontsize=8, color="#4A5568", penwidth=1.2, arrowsize=0.7];
+
+    labelloc="t";
+    label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
+        <TR><TD><B><FONT POINT-SIZE="16" COLOR="#1A365D">EXPRESS MART MÉXICO — DIAGRAMA DE CASOS DE USO (UML)</FONT></B></TD></TR>
+        <TR><TD><FONT POINT-SIZE="11" COLOR="#718096">Casos de Uso de Comercio Electrónico, RBAC, Tokenización PCI DSS, Auditoría SHA-256 y Notificaciones</FONT></TD></TR>
+    </TABLE>>;
+
+    // ACTORES (Estilo UML)
+    node [shape=rect, style="rounded,filled", fillcolor="#EBF8FF", color="#2B6CB0", penwidth=1.5];
+    ActorCliente [label=<<B>«Actor»</B><BR/><FONT POINT-SIZE="11"><B>Cliente / Comprador</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">Navegador Web / Mobile</FONT>>];
+    ActorVendedor [label=<<B>«Actor»</B><BR/><FONT POINT-SIZE="11"><B>Vendedor</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">Portal Comercial</FONT>>];
+    ActorAdmin [label=<<B>«Actor»</B><BR/><FONT POINT-SIZE="11"><B>Administrador</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">Panel GUI &amp; Finanzas</FONT>>, fillcolor="#FEFCBF", color="#D69E2E"];
+    ActorAuditor [label=<<B>«Actor»</B><BR/><FONT POINT-SIZE="11"><B>Auditor de Sistemas</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">Seguridad &amp; Forense</FONT>>, fillcolor="#C6F6D5", color="#276749"];
+
+    // ACTORES EXTERNOS
+    node [fillcolor="#FED7D7", color="#E53E3E"];
+    ActorPasarela [label=<<B>«Sistema Externo»</B><BR/><FONT POINT-SIZE="10"><B>Pasarela PCI DSS</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">Stripe / Openpay</FONT>>];
+    ActorSMTP [label=<<B>«Sistema Externo»</B><BR/><FONT POINT-SIZE="10"><B>Servidor SMTP</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">Nodemailer Gmail</FONT>>, fillcolor="#E2E8F0", color="#4A5568"];
+    ActorCourier [label=<<B>«Sistema Externo»</B><BR/><FONT POINT-SIZE="10"><B>Paquetería</B></FONT><BR/><FONT POINT-SIZE="8" COLOR="#718096">DHL / FedEx</FONT>>, fillcolor="#FEFCBF", color="#D69E2E"];
+
+    // LÍMITE DEL SISTEMA (System Boundary)
+    subgraph cluster_expressmart {
+        label=<<B><FONT COLOR="#1A365D" POINT-SIZE="13">Límite del Sistema: Plataforma Express Mart v2.0</FONT></B>>;
+        style="filled,rounded";
+        fillcolor="#F7FAFC";
+        color="#1A365D";
+        penwidth=2.0;
+
+        node [shape=ellipse, style="filled", fillcolor="#FFFFFF", color="#2B6CB0", penwidth=1.3, fontname="DejaVu Sans", fontsize=9];
+
+        // Casos de Uso Autenticación & Cuenta
+        UC01 [label="CU-01: Registrarse con Verificación"];
+        UC02 [label="CU-02: Iniciar Sesión con 2FA OTP"];
+        UC03 [label="CU-03: Contratar Membresía ExpressPrime"];
+        UC04 [label="CU-04: Ejercer Derechos ARCO (LFPDPPP)"];
+        UC_OTP [label="«include»<BR/>Despachar Código OTP", style="filled,dashed", fillcolor="#EDF2F7", color="#718096"];
+
+        // Casos de Uso Compra y Catálogo
+        UC05 [label="CU-05: Buscar y Filtrar en Catálogo (&lt; 2s)"];
+        UC06 [label="CU-06: Gestionar Carrito Persistente"];
+        UC07 [label="CU-07: Aplicar Cupones y Beneficios Prime"];
+        UC08 [label="CU-08: Checkout y Pago Seguro (PCI DSS)"];
+        UC_TOKEN [label="«include»<BR/>Tokenizar Tarjeta en Iframe", style="filled,dashed", fillcolor="#FED7D7", color="#E53E3E"];
+        UC_STOCK [label="«include»<BR/>Reserva Atómica de Stock", style="filled,dashed", fillcolor="#EDF2F7", color="#718096"];
+
+        // Casos de Uso Post-Compra
+        UC09 [label="CU-09: Rastrear Envío y Paquetería"];
+        UC10 [label="CU-10: Emitir Reseña Verificada"];
+
+        // Casos de Uso Vendedor
+        UC11 [label="CU-11: Publicar y Editar en Catálogo"];
+        UC12 [label="CU-12: Monitorear Existencias de Inventario"];
+
+        // Casos de Uso Administrador
+        UC13 [label="CU-13: Gestionar Usuarios y Roles RBAC"];
+        UC14 [label="CU-14: Operar Panel GUI y Finanzas"];
+        UC15 [label="CU-15: Crear Cuentas de Admin/Auditor"];
+
+        // Casos de Uso Auditor
+        UC16 [label="CU-16: Consultar Bitácora Criptográfica D8"];
+        UC17 [label="CU-17: Verificar Cadena de Hashes SHA-256"];
+        UC18 [label="CU-18: Generar Reportes y Log de Ventas"];
+    }
+
+    // CONEXIONES CLIENTE
+    ActorCliente -> UC01;
+    ActorCliente -> UC02;
+    ActorCliente -> UC03;
+    ActorCliente -> UC04;
+    ActorCliente -> UC05;
+    ActorCliente -> UC06;
+    ActorCliente -> UC07;
+    ActorCliente -> UC08;
+    ActorCliente -> UC09;
+    ActorCliente -> UC10;
+
+    // CONEXIONES VENDEDOR
+    ActorVendedor -> UC02;
+    ActorVendedor -> UC11;
+    ActorVendedor -> UC12;
+
+    // CONEXIONES ADMINISTRADOR
+    ActorAdmin -> UC02;
+    ActorAdmin -> UC13;
+    ActorAdmin -> UC14;
+    ActorAdmin -> UC15;
+    ActorAdmin -> UC18;
+
+    // CONEXIONES AUDITOR
+    ActorAuditor -> UC02;
+    ActorAuditor -> UC16;
+    ActorAuditor -> UC17;
+    ActorAuditor -> UC18;
+
+    // INCLUDES & EXTENDS INTERNOS
+    UC01 -> UC_OTP [style="dashed", label="«include»"];
+    UC02 -> UC_OTP [style="dashed", label="«include»"];
+    UC08 -> UC_TOKEN [style="dashed", label="«include»"];
+    UC08 -> UC_STOCK [style="dashed", label="«include»"];
+    UC07 -> UC06 [style="dashed", label="«extend»"];
+
+    // CONEXIONES EXTERNAS
+    UC_OTP -> ActorSMTP [color="#3182CE", label="Envía Correo"];
+    UC_TOKEN -> ActorPasarela [color="#E53E3E", label="Tokeniza PAN"];
+    UC08 -> ActorPasarela [color="#E53E3E", label="Autoriza Cargo"];
+    UC09 -> ActorCourier [color="#D69E2E", label="Consulta API"];
+}

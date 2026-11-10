@@ -19,7 +19,8 @@
     "audit:verify": "node scripts/audit-verifier.js",
     "db:console": "node scripts/db-console.js",
     "db:query": "node scripts/db-console.js",
-    "security:panel": "bash run_security_panel.sh"
+    "security:panel": "bash run_security_panel.sh",
+    "admin:panel": "bash run_admin_panel.sh"
   },
   "keywords": [
     "ecommerce",
@@ -37,7 +38,8 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "nodemailer": "^10.4.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",

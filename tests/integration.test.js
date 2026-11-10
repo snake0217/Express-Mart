@@ -363,5 +363,153 @@ describe('Pruebas Funcionales y de Integración End-to-End (CP-RF-01 a CP-RF-10)
         .send({ calificacion: 9, comentario: 'Invalido' })).status
     ).toBe(400);
   });
+
+  test('CP-RF-12: Pasarela y checkout con PayPal Sandbox Oficial en MXN (RF-05 / Apartado 25)', async () => {
+    // 1. Verificar endpoint de configuración pública de PayPal Sandbox
+    const configRes = await request(app).get('/api/payment/paypal-config');
+    expect(configRes.status).toBe(200);
+    expect(configRes.body.clientId).toBe('Ac1DHKE068BKREloy9_v2y2mb5PawyS-0dX32ko2XKrwfYxyejUYXfMjoUaEkRpmloEN6kf3SlgGrdw_');
+    expect(configRes.body.sandboxEmail).toBe('bancochido@banco.com');
+    expect(configRes.body.region).toBe('MX');
+    expect(configRes.body.currency).toBe('MXN');
+
+    // 2. Realizar checkout con método paypal
+    const checkoutPaypalRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        items: [{ productoId: 2, cantidad: 1 }],
+        direccionEnvio: 'Av. Chapultepec 500, Roma Norte, Cuauhtémoc, CDMX',
+        metodoPago: 'paypal',
+        pasosCheckout: 3
+      });
+
+    expect(checkoutPaypalRes.status).toBe(201);
+    expect(checkoutPaypalRes.body.order.folio).toMatch(/^EM-ORD-/);
+    expect(checkoutPaypalRes.body.order.pago.proveedor).toMatch(/PayPal Sandbox/);
+    expect(checkoutPaypalRes.body.order.pago.metodoPago).toBe('paypal');
+    expect(checkoutPaypalRes.body.order.pago.tarjetaEnmascarada).toContain('bancochido@banco.com');
+    expect(checkoutPaypalRes.body.order.pago.referenciaPasarela).toMatch(/^PAYPAL-SBX-/);
+  });
+
+  test('CP-RF-13: Planes de membresía ExpressPrime, activación, envíos gratis y 5% de cashback en compras', async () => {
+    // 1. Un usuario nuevo se registra sin membresía premium
+    const newReg = await request(app).post('/api/auth/register').send({
+      nombre: 'Carlos Prime Test',
+      email: 'carlos.prime@example.com',
+      password: 'PasswordSegura2026!',
+      direccion: 'Av. Insurgentes Sur 1234, CDMX',
+      telefono: '+52 55 9988 7766',
+      consentimientoPrivacidad: true
+    });
+    expect(newReg.status).toBe(201);
+    expect(newReg.body.user.membresiaPremium).toBe(false);
+    const primeUserToken = newReg.body.token;
+
+    // 2. Consultar catálogo de planes de suscripción
+    const plansRes = await request(app).get('/api/membership/plans');
+    expect(plansRes.status).toBe(200);
+    expect(plansRes.body.plans.length).toBe(3);
+    const plan1Mes = plansRes.body.plans.find((p) => p.id === '1_mes');
+    const plan3Meses = plansRes.body.plans.find((p) => p.id === '3_meses');
+    const plan1Ano = plansRes.body.plans.find((p) => p.id === '1_ano');
+    expect(plan1Mes.precio).toBe(99.00);
+    expect(plan3Meses.precio).toBe(249.00);
+    expect(plan1Ano.precio).toBe(899.00);
+
+    // 3. Status inicial: inactiva
+    const initialStatus = await request(app)
+      .get('/api/membership/status')
+      .set('Authorization', `Bearer ${primeUserToken}`);
+    expect(initialStatus.status).toBe(200);
+    expect(initialStatus.body.activa).toBe(false);
+
+    // 4. Suscribirse al plan 3 meses con simulación de pago
+    const subRes = await request(app)
+      .post('/api/membership/subscribe')
+      .set('Authorization', `Bearer ${primeUserToken}`)
+      .send({
+        plan: '3_meses',
+        metodoPago: 'tarjeta',
+        cardNumber: '4111111111114242'
+      });
+    expect(subRes.status).toBe(200);
+    expect(subRes.body.success).toBe(true);
+    expect(subRes.body.plan.id).toBe('3_meses');
+    expect(subRes.body.user.membresiaPremium).toBe(true);
+
+    // 5. Verificar que el perfil refleje la membresía activa
+    const profRes = await request(app)
+      .get('/api/auth/profile')
+      .set('Authorization', `Bearer ${primeUserToken}`);
+    expect(profRes.body.user.membresiaPremium).toBe(true);
+    expect(profRes.body.user.membresiaPlan).toBe('3_meses');
+
+    // 6. Calcular carrito para miembro premium:
+    // Debe tener envío GRATIS ($0) y 5% de cashback en montos de compra
+    const cartRes = await request(app)
+      .post('/api/cart/calculate')
+      .set('Authorization', `Bearer ${primeUserToken}`)
+      .send({
+        items: [{ productoId: 1, cantidad: 1 }]
+      });
+    expect(cartRes.status).toBe(200);
+    expect(cartRes.body.isPremium).toBe(true);
+    expect(cartRes.body.costoEnvio).toBe(0);
+    expect(cartRes.body.cashback).toBeGreaterThan(0);
+    expect(cartRes.body.cashback).toBe(Number((cartRes.body.subtotal * 0.05).toFixed(2)));
+
+    // 7. Checkout con cuenta premium: el cashback y envío gratis se desglosan en la orden y se valida el hash de integridad
+    const checkoutRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${primeUserToken}`)
+      .send({
+        items: [{ productoId: 1, cantidad: 1 }],
+        direccionEnvio: 'Av. Insurgentes Sur 1234, CDMX',
+        metodoPago: 'tarjeta'
+      });
+    expect(checkoutRes.status).toBe(201);
+    expect(checkoutRes.body.order.isPremium).toBe(true);
+    expect(checkoutRes.body.order.costoEnvio).toBe(0);
+    expect(checkoutRes.body.order.cashback).toBe(cartRes.body.cashback);
+
+    // 8. Cancelar membresía
+    const cancelRes = await request(app)
+      .post('/api/membership/cancel')
+      .set('Authorization', `Bearer ${primeUserToken}`);
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.success).toBe(true);
+
+    const postCancelProf = await request(app)
+      .get('/api/auth/profile')
+      .set('Authorization', `Bearer ${primeUserToken}`);
+    expect(postCancelProf.body.user.membresiaPremium).toBe(false);
+  });
+
+  test('CP-RF-12: Verificación de dos pasos (2FA) por correo, reenvío y validación', async () => {
+    expect((await request(app).post('/api/auth/resend-code').send({})).status).toBe(400);
+    expect((await request(app).post('/api/auth/verify-mfa').send({})).status).toBe(400);
+
+    const resendRes = await request(app).post('/api/auth/resend-code').send({
+      email: 'admin@expressmart.mx',
+      purpose: 'login'
+    });
+    expect(resendRes.status).toBe(200);
+
+    const badVerify = await request(app).post('/api/auth/verify-mfa').send({
+      email: 'admin@expressmart.mx',
+      code: '000000',
+      purpose: 'login'
+    });
+    expect(badVerify.status).toBe(400);
+
+    const okVerify = await request(app).post('/api/auth/verify-mfa').send({
+      email: 'admin@expressmart.mx',
+      code: '123456',
+      purpose: 'login'
+    });
+    expect(okVerify.status).toBe(200);
+    expect(okVerify.body.token).toBeDefined();
+  });
 });
 
