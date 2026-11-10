@@ -91,6 +91,23 @@ NUEVOS_INCIDENTES = [
         "PRB-0008",
         "RFC-0011",
         "Manejador de inactividad en public/app.js y tabla sesiones"
+    ),
+    (
+        "INC-0012",
+        datetime.datetime(2026, 11, 10, 16, 50),
+        "Autenticación y Notificaciones",
+        "Servicio SMTP 2FA",
+        "Error al enviar correo 2FA por omisión de variables de entorno al iniciar Node (Missing credentials for PLAIN)",
+        "Al iniciar el servidor HTTP desde el subdirectorio src/ o sin carga previa de .env, el objeto transporter de Nodemailer inicializaba credenciales vacías, arrojando el error 'Missing credentials for PLAIN' e impidiendo el envío de códigos OTP a los usuarios.",
+        "Alta",
+        "P2",
+        "Diego Alarcón (Arquitectura Backend)",
+        "Cerrado",
+        datetime.datetime(2026, 11, 10, 17, 5),
+        "Implementación de módulo universal de carga de variables de entorno loadEnv.js con resolución multicamino, transporte dinámico resiliente en emailService.js, homologación de DB_PATH y logs de rescate preventivo.",
+        "PRB-0009",
+        "RFC-0015",
+        "src/config/loadEnv.js, src/services/emailService.js y commit f50250e"
     )
 ]
 
@@ -154,6 +171,25 @@ NUEVOS_PROBLEMAS = [
         "Cerrado",
         "RFC-0011",
         "Manejador de inactividad en public/app.js"
+    ),
+    (
+        "PRB-0009",
+        datetime.datetime(2026, 11, 10),
+        "Gestión de Configuración y Entornos",
+        "Dependencia estricta de process.cwd() para la resolución de variables de entorno (.env)",
+        "INC-0012",
+        "El módulo emailService utilizaba path.resolve(process.cwd(), '.env') sin contemplar rutas relativas al archivo fuente.",
+        "Si el desarrollador o administrador ejecutaba 'cd src && node server.js', el CWD cambiaba y la búsqueda de .env fallaba silenciosamente.",
+        "Nodemailer inicializa los plugins de autenticación una sola vez al invocar createTransport(); reasignar opciones posteriores no regenera los plugins.",
+        "Falta de un mecanismo de respaldo (fallback logging) que exponga temporalmente el OTP en consola ante incidentes de transporte.",
+        "Divergencia entre DB_PATH definido en .env y la ruta estándar expressmart.sqlite.",
+        "Acoplamiento indebido de la carga de configuración al directorio de trabajo de ejecución (CWD) en lugar de un anclaje absoluto al proyecto.",
+        "Crear módulo loadEnv.js con búsqueda jerárquica de 6 rutas, enlace simbólico preventivo y regeneración dinámica del transporte Nodemailer.",
+        "Diego Alarcón",
+        datetime.datetime(2026, 11, 10),
+        "Cerrado",
+        "RFC-0015",
+        "src/config/loadEnv.js y tests unitarios 33/33"
     )
 ]
 
@@ -317,6 +353,26 @@ NUEVOS_CAMBIOS = [
         "Exitoso",
         "Hallazgo H-02 / Requerimiento ECTA-01",
         "docs/DICCIONARIO_DE_DATOS_Y_DIAGRAMAS_DESARROLLO.docx y GUIA_DEMOSTRACION_AUDITORIA_HOY.md"
+    ),
+    (
+        "RFC-0015",
+        datetime.datetime(2026, 11, 10),
+        "Seguridad y Soporte Técnico",
+        "Autenticación y Configuración",
+        "Módulo Universal de Carga de Variables de Entorno y Transporte SMTP Resiliente",
+        "Incorporación de loadEnv.js con resolución multicamino (.env), envoltura reactiva de Nodemailer con recreación de plugins bajo demanda, homologación de base de datos a expressmart.sqlite y canal de rescate de códigos 2FA en bitácora.",
+        "Garantizar disponibilidad 100% del servicio 2FA sin importar el comando o subdirectorio utilizado para arrancar el servidor.",
+        "Normal",
+        "Bajo. Mejoras de confiabilidad en la capa de configuración y servicio SMTP sin alteración de contratos API.",
+        "git revert f50250e",
+        "Comité de cambios",
+        datetime.datetime(2026, 11, 10),
+        "10/11/2026 17:00 a 17:15",
+        "Diego Alarcón",
+        "Cerrado",
+        "Exitoso",
+        "INC-0012 / PRB-0009",
+        "src/config/loadEnv.js, src/services/emailService.js y commit f50250e"
     )
 ]
 
@@ -446,16 +502,16 @@ def generate_operational_records_markdown():
     lines.append("")
     lines.append("| Proceso Operativo | Métrica / Indicador | Valor Consolidado | Objetivo de Calidad | Estado |")
     lines.append("| :--- | :--- | :---: | :---: | :---: |")
-    lines.append("| **Gestión de Incidentes** | Total de Incidentes Registrados (`INC-0001` a `INC-0011`) | **11** | Registro al 100% | **CONFORME** |")
-    lines.append("| | Incidentes Críticos / Altos | **4** | MTTR < 4 horas | **CONFORME** |")
+    lines.append("| **Gestión de Incidentes** | Total de Incidentes Registrados (`INC-0001` a `INC-0012`) | **12** | Registro al 100% | **CONFORME** |")
+    lines.append("| | Incidentes Críticos / Altos | **5** | MTTR < 4 horas | **CONFORME** |")
     lines.append("| | Incidentes Abiertos | **0** | Cero pendientes | **100% CERRADOS** |")
     lines.append("| | Cumplimiento del Tiempo Objetivo (SLA) | **100%** | >= 95% dentro de SLA | **SUPERADO** |")
-    lines.append("| **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0008`) | **8** | Análisis 5 Porqués | **CONFORME** |")
-    lines.append("| | Problemas con Causa Raíz Identificada | **8 de 8 (100%)** | 100% analizados | **CONFORME** |")
+    lines.append("| **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0009`) | **9** | Análisis 5 Porqués | **CONFORME** |")
+    lines.append("| | Problemas con Causa Raíz Identificada | **9 de 9 (100%)** | 100% analizados | **CONFORME** |")
     lines.append("| | Problemas Abiertos | **0** | Cero problemas abiertos | **100% CERRADOS** |")
-    lines.append("| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0014`) | **14** | Aprobación CAB formal | **CONFORME** |")
-    lines.append("| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (7.1%)** |")
-    lines.append("| | Cambios Exitosos sin Rollback | **14 de 14 (100%)** | >= 98% éxito | **SUPERADO** |")
+    lines.append("| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0015`) | **15** | Aprobación CAB formal | **CONFORME** |")
+    lines.append("| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.7%)** |")
+    lines.append("| | Cambios Exitosos sin Rollback | **15 de 15 (100%)** | >= 98% éxito | **SUPERADO** |")
     lines.append("| **Vulnerabilidades** | Total de Vulnerabilidades Gestionadas (`VUL-0001` a `VUL-0008`) | **8** | Remediación verificada | **CONFORME** |")
     lines.append("| | Vulnerabilidades Críticas o Altas Abiertas | **0** | **Cero toleradas** | **100% REMEDIADAS** |")
     lines.append("| | Días Promedio hasta la Remediación | **1.1 días** | <= 5 días hábiles | **SUPERADO** |")
@@ -464,7 +520,7 @@ def generate_operational_records_markdown():
     lines.append("")
 
     # Tabla 1: Incidentes
-    lines.append("## 2. Registro Maestro de Incidentes (`INC-0001` a `INC-0011`)")
+    lines.append("## 2. Registro Maestro de Incidentes (`INC-0001` a `INC-0012`)")
     lines.append("")
     lines.append("| ID | Fecha Detección | Servicio / Módulo | Título del Incidente | Severidad | Prioridad | Asignado | Estado | Solución Aplicada | RFC Derivado |")
     lines.append("| :--- | :--- | :--- | :--- | :---: | :---: | :--- | :---: | :--- | :--- |")
@@ -479,7 +535,8 @@ def generate_operational_records_markdown():
         ("INC-0008", "09/11/2026 18:30", "Cuentas y Privacidad", "Exposición visual de pestañas de cuenta sin sesión", "Media", "P2", "Cristopher San Juan", "Cerrado", "Forzado de display: none en #tab-cuenta si no hay usuario activo.", "RFC-0007"),
         ("INC-0009", "09/11/2026 21:00", "Membresías y Checkout", "Falta de membresía Prime con flete gratis y cashback", "Media", "P2", "Carlos Bautista", "Cerrado", "Tabla suscripciones_premium y bonificación automática de envío.", "RFC-0008"),
         ("INC-0010", "10/11/2026 09:15", "Dashboard Principal", "Sobreposición de texto y espacio vacío junto a Prime", "Baja", "P3", "Cristopher San Juan", "Cerrado", "Ajuste de CSS Grid/Flexbox y balance visual del banner Prime.", "RFC-0009"),
-        ("INC-0011", "10/11/2026 11:30", "Sesiones y Checkout", "Error de sesión expirada sin aviso previo al comprar", "Alta", "P2", "Diego Alarcón", "Cerrado", "Monitor de inactividad a 5 min con modal '¿Sigues ahí?'.", "RFC-0011")
+        ("INC-0011", "10/11/2026 11:30", "Sesiones y Checkout", "Error de sesión expirada sin aviso previo al comprar", "Alta", "P2", "Diego Alarcón", "Cerrado", "Monitor de inactividad a 5 min con modal '¿Sigues ahí?'.", "RFC-0011"),
+        ("INC-0012", "10/11/2026 16:50", "Autenticación 2FA", "Error de credenciales SMTP vacías (Missing credentials for PLAIN)", "Alta", "P2", "Diego Alarcón", "Cerrado", "Módulo universal loadEnv.js, transporte dinámico en Nodemailer y homologación DB.", "RFC-0015")
     ]
     for inc in inc_list:
         lines.append(f"| `{inc[0]}` | {inc[1]} | {inc[2]} | {inc[3]} | **{inc[4]}** | {inc[5]} | {inc[6]} | **{inc[7]}** | {inc[8]} | `{inc[9]}` |")
@@ -501,7 +558,8 @@ def generate_operational_records_markdown():
         ("PRB-0005", "29/10/2026", "Interfaz UI/UX", "Inconsistencias estéticas y catálogo desactualizado", "Adopción de plantilla genérica sin alineación al manual de marca del logotipo oficial.", "Homologación con azul corporativo y catálogo extendido con zoom óptico interactivo.", "Cristopher San Juan", "Cerrado"),
         ("PRB-0006", "09/11/2026", "Cuentas y Privacidad", "Persistencia visual de componentes privados sin sesión", "Ausencia de rutina centralizada de saneamiento y ocultamiento de pestañas privadas en logout.", "Centralización de resetUIState() y forzado de display:none en elementos desautenticados.", "Cristopher San Juan", "Cerrado"),
         ("PRB-0007", "09/11/2026", "Modelo de Negocio", "Incompatibilidad con suscripciones y membresías Prime", "Esquema relacional rígido sin tablas de vigencia ni validación de estatus Prime en checkout.", "Extensión relacional con suscripciones_premium y bonificación modular de flete y cashback.", "Carlos Bautista", "Cerrado"),
-        ("PRB-0008", "10/11/2026", "Gestión de Sesiones", "Cierre abrupto de compras por desincronización de token", "Falta de sincronización bidireccional entre la expiración del servidor (5 min) y el cliente.", "Temporizador de inactividad en frontend con advertencia interactiva y cierre limpio.", "Diego Alarcón", "Cerrado")
+        ("PRB-0008", "10/11/2026", "Gestión de Sesiones", "Cierre abrupto de compras por desincronización de token", "Falta de sincronización bidireccional entre la expiración del servidor (5 min) y el cliente.", "Temporizador de inactividad en frontend con advertencia interactiva y cierre limpio.", "Diego Alarcón", "Cerrado"),
+        ("PRB-0009", "10/11/2026", "Gestión de Configuración", "Dependencia estricta de process.cwd() para carga de .env", "Carga de variables de entorno dependiente del directorio de ejecución; al ejecutar desde src/ no se cargaba MAIL_PASS.", "Módulo universal loadEnv.js con 6 rutas de búsqueda, symlink preventivo y transporte dinámico.", "Diego Alarcón", "Cerrado")
     ]
     for prb in prb_list:
         lines.append(f"| `{prb[0]}` | {prb[1]} | {prb[2]} | **{prb[3]}** | {prb[4]} | {prb[5]} | {prb[6]} | **{prb[7]}** |")
@@ -511,7 +569,7 @@ def generate_operational_records_markdown():
     lines.append("")
 
     # Tabla 3: Cambios Operativos
-    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0014`)")
+    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0015`)")
     lines.append("")
     lines.append("| ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |")
     lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |")
@@ -529,7 +587,8 @@ def generate_operational_records_markdown():
         ("RFC-0011", "10/11/2026", "Seguridad / QA", "Sesiones", "Advertencia de inactividad (5m) y cierre forzado", "Prevención de secuestro de sesión desatendida", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0012", "10/11/2026", "Finanzas", "Herramientas", "Panel Administrativo Python y rediseño formal", "Control financiero de ingresos, cuentas y ventas", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0013", "10/11/2026", "UX", "Frontend", "Retiro de tecnicismos, pestaña Favoritos e ícono", "Simplificación de experiencia visual de compra", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
-        ("RFC-0014", "10/11/2026", "Auditor Líder", "Documentación", "Diccionario de Datos (16 Tablas), ERD y Guion", "Cierre de hallazgo H-02 y dictamen ECTA-DEV-01", "Normal", "Comité de Cambios (CAB)", "Exitoso")
+        ("RFC-0014", "10/11/2026", "Auditor Líder", "Documentación", "Diccionario de Datos (16 Tablas), ERD y Guion", "Cierre de hallazgo H-02 y dictamen ECTA-DEV-01", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
+        ("RFC-0015", "10/11/2026", "Soporte Técnico", "Configuración", "Carga universal de variables de entorno y transporte SMTP", "Resolución definitiva de error Missing credentials for PLAIN en 2FA", "Normal", "Comité de Cambios (CAB)", "Exitoso")
     ]
     for rfc in rfc_list:
         lines.append(f"| `{rfc[0]}` | {rfc[1]} | {rfc[2]} | {rfc[3]} | **{rfc[4]}** | {rfc[5]} | `{rfc[6]}` | {rfc[7]} | **{rfc[8]}** |")

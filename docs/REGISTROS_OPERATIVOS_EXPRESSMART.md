@@ -15,23 +15,23 @@
 
 | Proceso Operativo | Métrica / Indicador | Valor Consolidado | Objetivo de Calidad | Estado |
 | :--- | :--- | :---: | :---: | :---: |
-| **Gestión de Incidentes** | Total de Incidentes Registrados (`INC-0001` a `INC-0011`) | **11** | Registro al 100% | **CONFORME** |
-| | Incidentes Críticos / Altos | **4** | MTTR < 4 horas | **CONFORME** |
+| **Gestión de Incidentes** | Total de Incidentes Registrados (`INC-0001` a `INC-0012`) | **12** | Registro al 100% | **CONFORME** |
+| | Incidentes Críticos / Altos | **5** | MTTR < 4 horas | **CONFORME** |
 | | Incidentes Abiertos | **0** | Cero pendientes | **100% CERRADOS** |
 | | Cumplimiento del Tiempo Objetivo (SLA) | **100%** | >= 95% dentro de SLA | **SUPERADO** |
-| **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0008`) | **8** | Análisis 5 Porqués | **CONFORME** |
-| | Problemas con Causa Raíz Identificada | **8 de 8 (100%)** | 100% analizados | **CONFORME** |
+| **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0009`) | **9** | Análisis 5 Porqués | **CONFORME** |
+| | Problemas con Causa Raíz Identificada | **9 de 9 (100%)** | 100% analizados | **CONFORME** |
 | | Problemas Abiertos | **0** | Cero problemas abiertos | **100% CERRADOS** |
-| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0014`) | **14** | Aprobación CAB formal | **CONFORME** |
-| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (7.1%)** |
-| | Cambios Exitosos sin Rollback | **14 de 14 (100%)** | >= 98% éxito | **SUPERADO** |
+| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0015`) | **15** | Aprobación CAB formal | **CONFORME** |
+| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.7%)** |
+| | Cambios Exitosos sin Rollback | **15 de 15 (100%)** | >= 98% éxito | **SUPERADO** |
 | **Vulnerabilidades** | Total de Vulnerabilidades Gestionadas (`VUL-0001` a `VUL-0008`) | **8** | Remediación verificada | **CONFORME** |
 | | Vulnerabilidades Críticas o Altas Abiertas | **0** | **Cero toleradas** | **100% REMEDIADAS** |
 | | Días Promedio hasta la Remediación | **1.1 días** | <= 5 días hábiles | **SUPERADO** |
 
 ---
 
-## 2. Registro Maestro de Incidentes (`INC-0001` a `INC-0011`)
+## 2. Registro Maestro de Incidentes (`INC-0001` a `INC-0012`)
 
 | ID | Fecha Detección | Servicio / Módulo | Título del Incidente | Severidad | Prioridad | Asignado | Estado | Solución Aplicada | RFC Derivado |
 | :--- | :--- | :--- | :--- | :---: | :---: | :--- | :---: | :--- | :--- |
@@ -46,6 +46,7 @@
 | `INC-0009` | 09/11/2026 21:00 | Membresías y Checkout | Falta de membresía Prime con flete gratis y cashback | **Media** | P2 | Carlos Bautista | **Cerrado** | Tabla suscripciones_premium y bonificación automática de envío. | `RFC-0008` |
 | `INC-0010` | 10/11/2026 09:15 | Dashboard Principal | Sobreposición de texto y espacio vacío junto a Prime | **Baja** | P3 | Cristopher San Juan | **Cerrado** | Ajuste de CSS Grid/Flexbox y balance visual del banner Prime. | `RFC-0009` |
 | `INC-0011` | 10/11/2026 11:30 | Sesiones y Checkout | Error de sesión expirada sin aviso previo al comprar | **Alta** | P2 | Diego Alarcón | **Cerrado** | Monitor de inactividad a 5 min con modal '¿Sigues ahí?'. | `RFC-0011` |
+| `INC-0012` | 10/11/2026 16:50 | Autenticación 2FA | Error de credenciales SMTP vacías (Missing credentials for PLAIN) | **Alta** | P2 | Diego Alarcón | **Cerrado** | Módulo universal loadEnv.js, transporte dinámico en Nodemailer y homologación DB. | `RFC-0015` |
 
 ---
 
@@ -61,10 +62,11 @@
 | `PRB-0006` | 09/11/2026 | Cuentas y Privacidad | **Persistencia visual de componentes privados sin sesión** | Ausencia de rutina centralizada de saneamiento y ocultamiento de pestañas privadas en logout. | Centralización de resetUIState() y forzado de display:none en elementos desautenticados. | Cristopher San Juan | **Cerrado** |
 | `PRB-0007` | 09/11/2026 | Modelo de Negocio | **Incompatibilidad con suscripciones y membresías Prime** | Esquema relacional rígido sin tablas de vigencia ni validación de estatus Prime en checkout. | Extensión relacional con suscripciones_premium y bonificación modular de flete y cashback. | Carlos Bautista | **Cerrado** |
 | `PRB-0008` | 10/11/2026 | Gestión de Sesiones | **Cierre abrupto de compras por desincronización de token** | Falta de sincronización bidireccional entre la expiración del servidor (5 min) y el cliente. | Temporizador de inactividad en frontend con advertencia interactiva y cierre limpio. | Diego Alarcón | **Cerrado** |
+| `PRB-0009` | 10/11/2026 | Gestión de Configuración | **Dependencia estricta de process.cwd() para carga de .env** | Carga de variables de entorno dependiente del directorio de ejecución; al ejecutar desde src/ no se cargaba MAIL_PASS. | Módulo universal loadEnv.js con 6 rutas de búsqueda, symlink preventivo y transporte dinámico. | Diego Alarcón | **Cerrado** |
 
 ---
 
-## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0014`)
+## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0015`)
 
 | ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |
@@ -82,6 +84,7 @@
 | `RFC-0012` | 10/11/2026 | Finanzas | Herramientas | **Panel Administrativo Python y rediseño formal** | Control financiero de ingresos, cuentas y ventas | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0013` | 10/11/2026 | UX | Frontend | **Retiro de tecnicismos, pestaña Favoritos e ícono** | Simplificación de experiencia visual de compra | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0014` | 10/11/2026 | Auditor Líder | Documentación | **Diccionario de Datos (16 Tablas), ERD y Guion** | Cierre de hallazgo H-02 y dictamen ECTA-DEV-01 | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
+| `RFC-0015` | 10/11/2026 | Soporte Técnico | Configuración | **Carga universal de variables de entorno y transporte SMTP** | Resolución definitiva de error Missing credentials for PLAIN en 2FA | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 
 ---
 
