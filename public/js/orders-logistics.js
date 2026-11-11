@@ -177,7 +177,7 @@ async function loadOrders() {
                   ? '<span class="badge badge-ok">Reembolso Aprobado en MXN</span>'
                   : o.solicitudReembolso && o.solicitudReembolso.estado === 'denegada'
                   ? `<div class="text-right"><span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">Reembolso Denegado</span><div class="text-[11px] text-secondary mt-0.5">${escapeHtml(o.solicitudReembolso.respuesta_admin || '')}</div></div>`
-                  : `<button type="button" class="btn btn-sm btn-outline return-order-btn cursor-pointer" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
+                  : `<button type="button" class="btn btn-sm btn-outline return-order-btn cursor-pointer" data-id="${o.id}" data-folio="${escapeHtml(o.folio)}" data-total="${Number(o.total || 0)}" data-payment="${escapeHtml(o.pago ? o.pago.tarjeta_enmascarada : (o.metodo_pago || 'Método original'))}">Solicitar Devolución y Reembolso en MXN</button>`
               }
             </div>
           </div>
@@ -206,34 +206,46 @@ async function loadOrders() {
     });
 
     box.querySelectorAll('.return-order-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const orderId = btn.dataset.id;
-        const motivo = window.prompt(
-          'Indica el motivo de la devolución o reembolso (garantía de satisfacción de 30 días):',
-          'El producto no cumplió con mis expectativas y solicito devolución bajo garantía LFPC.'
-        );
-        if (motivo === null) return;
-
-        try {
-          const res = await apiFetch(`/api/orders/${orderId}/refund-request`, {
-            method: 'POST',
-            body: JSON.stringify({ motivo: motivo.trim() || 'Devolución dentro de garantía LFPC' })
-          });
-          showAlert(res.message || 'Petición de reembolso enviada al administrador.');
-          showToast({
-            title: 'Petición enviada',
-            message: 'Tu solicitud de reembolso fue recibida y está en revisión.',
-            imageUrl: '/assets/logo.png'
-          });
-          loadOrders();
-        } catch (err) {
-          showAlert(err.message, true);
-        }
+        const folio = btn.dataset.folio || `Pedido #${orderId}`;
+        const total = Number(btn.dataset.total || 0);
+        const payment = btn.dataset.payment || 'Tarjeta / PayPal Original';
+        openRefundRequestModal(orderId, folio, total, payment);
       });
     });
   } catch (err) {
     box.innerHTML = `<p class="alert alert-error">${err.message}</p>`;
   }
+}
+
+function openRefundRequestModal(orderId, folio, total, payment) {
+  const dialog = document.getElementById('refund-request-dialog');
+  if (!dialog) return;
+
+  const orderIdInput = document.getElementById('refund-modal-order-id');
+  const folioEl = document.getElementById('refund-modal-folio');
+  const amountEl = document.getElementById('refund-modal-amount');
+  const paymentEl = document.getElementById('refund-modal-payment');
+  const reasonEl = document.getElementById('refund-modal-reason');
+
+  if (orderIdInput) orderIdInput.value = String(orderId);
+  if (folioEl) folioEl.textContent = folio;
+  if (amountEl) amountEl.textContent = formatMxn(total);
+  if (paymentEl) paymentEl.textContent = payment;
+  if (reasonEl) {
+    reasonEl.value = 'El producto no cumplió con mis expectativas y solicito devolución bajo garantía de satisfacción de 30 días.';
+  }
+
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+  setTimeout(() => {
+    if (reasonEl) {
+      reasonEl.focus();
+      reasonEl.select();
+    }
+  }, 80);
 }
 
 // ============================================================================
@@ -563,9 +575,67 @@ function initOrdersLogisticsEvents() {
   if (btnRefresh) {
     btnRefresh.addEventListener('click', loadOrders);
   }
+
+  const refundDialog = document.getElementById('refund-request-dialog');
+  const closeRefundModal = () => {
+    if (refundDialog && refundDialog.open) {
+      refundDialog.close();
+    }
+  };
+
+  document.getElementById('btn-close-refund-modal')?.addEventListener('click', closeRefundModal);
+  document.getElementById('btn-cancel-refund-modal')?.addEventListener('click', closeRefundModal);
+
+  document.querySelectorAll('.refund-reason-preset').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const reasonEl = document.getElementById('refund-modal-reason');
+      if (reasonEl && chip.dataset.reason) {
+        reasonEl.value = chip.dataset.reason;
+        reasonEl.focus();
+      }
+    });
+  });
+
+  const refundForm = document.getElementById('refund-request-form');
+  if (refundForm) {
+    refundForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const orderId = document.getElementById('refund-modal-order-id')?.value;
+      const reasonEl = document.getElementById('refund-modal-reason');
+      const submitBtn = document.getElementById('btn-submit-refund-modal');
+      const motivo = reasonEl ? reasonEl.value.trim() : '';
+
+      if (!orderId) return;
+      if (!motivo || motivo.length < 5) {
+        showAlert('Por favor escribe el motivo de tu devolución (mínimo 5 caracteres).', true);
+        return;
+      }
+
+      try {
+        if (submitBtn) submitBtn.disabled = true;
+        const res = await apiFetch(`/api/orders/${orderId}/refund-request`, {
+          method: 'POST',
+          body: JSON.stringify({ motivo })
+        });
+        closeRefundModal();
+        showAlert(res.message || 'Petición de reembolso enviada al administrador.');
+        showToast({
+          title: 'Solicitud de reembolso enviada',
+          message: 'Tu solicitud fue recibida con éxito y está en revisión administrativa.',
+          imageUrl: '/assets/logo.png'
+        });
+        loadOrders();
+      } catch (err) {
+        showAlert(err.message, true);
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
 }
 
 window.loadOrders = loadOrders;
+window.openRefundRequestModal = openRefundRequestModal;
 window.closeCustomerTrackingModal = closeCustomerTrackingModal;
 window.initCustomerTrackingModal = initCustomerTrackingModal;
 window.openCustomerTrackingModal = openCustomerTrackingModal;

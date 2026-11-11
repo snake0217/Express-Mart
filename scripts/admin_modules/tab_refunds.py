@@ -346,14 +346,16 @@ class RefundsTabMixin:
                 "detalles": {"requestId": req_id, "monto": order["total"], "folio": order["folio"]}
             })
 
+            acuse_ok = f"ACK-REFUND-OK-{req_id}-{int(datetime.utcnow().timestamp())}"
             con.execute("""
-                INSERT INTO notificaciones (usuario_id, pedido_id, evento, canal, asunto, mensaje, entregada, created_at)
-                VALUES (?, ?, 'REEMBOLSO_APROBADO', 'sistema', ?, ?, 1, ?)
+                INSERT INTO notificaciones (usuario_id, pedido_id, canal, evento, asunto, mensaje, estado_envio, acuse_recibo, created_at)
+                VALUES (?, ?, 'correo', 'REEMBOLSO_APROBADO', ?, ?, 'entregado', ?, ?)
             """, (
                 order["usuario_id"],
                 order["id"],
                 f"Reembolso aprobado para el pedido {order['folio']}",
                 f"Tu solicitud de reembolso del pedido {order['folio']} por ${order['total']:,.2f} MXN fue aprobada exitosamente.",
+                acuse_ok,
                 now_iso
             ))
 
@@ -433,14 +435,16 @@ class RefundsTabMixin:
             })
 
             if order:
+                acuse_deny = f"ACK-REFUND-DENY-{req_id}-{int(datetime.utcnow().timestamp())}"
                 con.execute("""
-                    INSERT INTO notificaciones (usuario_id, pedido_id, evento, canal, asunto, mensaje, entregada, created_at)
-                    VALUES (?, ?, 'REEMBOLSO_DENEGADO', 'sistema', ?, ?, 1, ?)
+                    INSERT INTO notificaciones (usuario_id, pedido_id, canal, evento, asunto, mensaje, estado_envio, acuse_recibo, created_at)
+                    VALUES (?, ?, 'correo', 'REEMBOLSO_DENEGADO', ?, ?, 'entregado', ?, ?)
                 """, (
                     order["usuario_id"],
                     order["id"],
                     f"Actualización de solicitud de reembolso - Pedido {order['folio']}",
                     f"Tu solicitud de reembolso del pedido {order['folio']} fue denegada. Motivo: {motivo.strip()}",
+                    acuse_deny,
                     now_iso
                 ))
 

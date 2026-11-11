@@ -2738,6 +2738,124 @@
     </div>
   </dialog>
 
+  <!-- ===============================================================
+       MODAL DE SOLICITUD DE DEVOLUCIÓN Y REEMBOLSO EN MXN (LFPC 30 DÍAS)
+       =============================================================== -->
+  <dialog id="refund-request-dialog" class="modal modal-wide" aria-label="Solicitar Devolución y Reembolso en MXN">
+    <form id="refund-request-form" class="modal-box max-w-2xl flex flex-col gap-3.5">
+      <input type="hidden" id="refund-modal-order-id" value="" />
+
+      <!-- Encabezado -->
+      <div class="flex items-start justify-between gap-3 pb-3 border-b border-surface-container">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[24px]">assignment_return</span>
+          </div>
+          <div>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold text-[10px] uppercase tracking-wider">
+              Garantía de Satisfacción de 30 Días · LFPC
+            </span>
+            <h3 class="font-headline-sm text-lg font-extrabold text-on-surface mt-0.5">
+              Solicitar Devolución y Reembolso en MXN
+            </h3>
+          </div>
+        </div>
+        <button type="button" id="btn-close-refund-modal" class="w-8 h-8 rounded-full bg-surface-container hover:bg-error hover:text-white flex items-center justify-center text-on-surface transition-colors cursor-pointer" title="Cerrar ventana">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Resumen del pedido a reembolsar -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-surface-container-low p-3 rounded-xl border border-surface-container">
+        <div>
+          <span class="text-secondary uppercase font-bold text-[10px] block">Folio del Pedido</span>
+          <strong id="refund-modal-folio" class="font-mono text-on-surface text-xs">EM-ORD-0000</strong>
+        </div>
+        <div>
+          <span class="text-secondary uppercase font-bold text-[10px] block">Importe a Reembolsar</span>
+          <strong id="refund-modal-amount" class="text-primary font-extrabold text-sm">$0.00 MXN</strong>
+        </div>
+        <div>
+          <span class="text-secondary uppercase font-bold text-[10px] block">Destino del Reintegro</span>
+          <strong id="refund-modal-payment" class="text-emerald-700 dark:text-emerald-400 font-bold text-xs">Tarjeta / PayPal Original</strong>
+        </div>
+      </div>
+
+      <!-- Instrucciones claras para hacer el reembolso -->
+      <div class="p-3.5 rounded-xl bg-blue-50/80 dark:bg-slate-900/70 border border-blue-200 dark:border-blue-800/60 space-y-2 text-xs">
+        <div class="font-extrabold text-[#1d4e9a] dark:text-sky-300 flex items-center gap-1.5 text-xs uppercase tracking-wide">
+          <span class="material-symbols-outlined text-[17px]">info</span>
+          <span>Instrucciones paso a paso para tu Devolución y Reembolso</span>
+        </div>
+        <ol class="space-y-1.5 text-slate-700 dark:text-slate-300 list-none pl-0">
+          <li class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+            <span><strong>Indica el motivo de devolución:</strong> Selecciona una causa rápida abajo o redacta detalladamente el motivo en el recuadro para que quede asentado en tu expediente de garantía.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+            <span><strong>Prepara el paquete sin costo:</strong> Conserva el artículo con sus accesorios y empaque original. Al enviar esta solicitud se genera tu orden de retorno gratuito a nuestro almacén CEDIS.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+            <span><strong>Autorización y abono del 100% en MXN:</strong> El Administrador revisará tu petición en el Panel de Reembolsos. Al aprobarse, el monto íntegro se reintegrará automáticamente al saldo de tu plástico simulado / cuenta PayPal y recibirás una notificación.</span>
+          </li>
+        </ol>
+      </div>
+
+      <!-- Selección rápida de motivos -->
+      <div class="space-y-1.5">
+        <span class="text-xs font-extrabold text-on-surface block">
+          Selecciona una causa frecuente (opcional) o escribe directamente abajo:
+        </span>
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="El producto presenta un defecto de fábrica o falla técnica y solicito reembolso bajo garantía LFPC.">
+            🔧 Defecto o falla técnica
+          </button>
+          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="El empaque o el artículo llegó con daño estético durante el envío.">
+            📦 Empaque o producto dañado
+          </button>
+          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="El producto no cumplió con mis expectativas y solicito devolución dentro de los 30 días de garantía.">
+            🔄 No cumplió expectativas
+          </button>
+          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="Recibí un modelo, color o especificación diferente al que solicité en mi pedido.">
+            📋 Producto diferente al pedido
+          </button>
+          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="Compré este artículo por equivocación y deseo cancelar/devolver la compra para reembolso.">
+            🛒 Compra por equivocación
+          </button>
+        </div>
+      </div>
+
+      <!-- Cuadro de texto para escribir el motivo -->
+      <div class="field">
+        <label for="refund-modal-reason" class="font-bold text-xs text-on-surface flex items-center justify-between">
+          <span>Describe el motivo de tu devolución o reembolso *</span>
+          <span class="text-[10px] text-secondary font-normal">Mínimo 5 caracteres</span>
+        </label>
+        <textarea
+          id="refund-modal-reason"
+          rows="3"
+          required
+          minlength="5"
+          placeholder="Escribe aquí detalladamente el motivo por el cual solicitas la devolución y el reembolso de tu pedido..."
+          class="text-xs rounded-xl p-2.5 border border-surface-dim bg-surface-container-lowest focus:border-primary"
+        >El producto no cumplió con mis expectativas y solicito devolución bajo garantía de satisfacción de 30 días.</textarea>
+      </div>
+
+      <!-- Pie del modal con botones -->
+      <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-surface-container">
+        <button type="button" id="btn-cancel-refund-modal" class="btn btn-outline btn-sm px-4 py-2 cursor-pointer">
+          Cancelar
+        </button>
+        <button type="submit" id="btn-submit-refund-modal" class="btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">send</span>
+          <span>Enviar Solicitud de Reembolso en MXN</span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
 
   <!-- ===============================================================
        FOOTER GLOBAL EXPRESSMART CON AZUL CORPORATIVO (LOGO OFICIAL #1d4e9a)

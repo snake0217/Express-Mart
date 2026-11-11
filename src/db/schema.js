@@ -230,7 +230,8 @@ function createAllTables(db) {
       asunto TEXT NOT NULL,
       mensaje TEXT NOT NULL,
       estado_envio TEXT NOT NULL DEFAULT 'entregado',
-      acuse_recibo TEXT NOT NULL,
+      acuse_recibo TEXT NOT NULL DEFAULT 'ACK-SISTEMA',
+      entregada INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
       FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     );
@@ -351,6 +352,32 @@ function createAllTables(db) {
         INSERT INTO transacciones_migrated SELECT * FROM transacciones;
         DROP TABLE transacciones;
         ALTER TABLE transacciones_migrated RENAME TO transacciones;
+      `);
+    }
+  } catch (_) {}
+
+  try {
+    const notifRow = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notificaciones'").get();
+    if (notifRow && notifRow.sql && !notifRow.sql.includes('entregada')) {
+      db.exec(`
+        CREATE TABLE notificaciones_migrated (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          usuario_id INTEGER NOT NULL,
+          pedido_id INTEGER,
+          canal TEXT NOT NULL DEFAULT 'correo',
+          evento TEXT NOT NULL,
+          asunto TEXT NOT NULL,
+          mensaje TEXT NOT NULL,
+          estado_envio TEXT NOT NULL DEFAULT 'entregado',
+          acuse_recibo TEXT NOT NULL DEFAULT 'ACK-SISTEMA',
+          entregada INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        );
+        INSERT INTO notificaciones_migrated (id, usuario_id, pedido_id, canal, evento, asunto, mensaje, estado_envio, acuse_recibo, created_at)
+        SELECT id, usuario_id, pedido_id, canal, evento, asunto, mensaje, estado_envio, COALESCE(acuse_recibo, 'ACK-SISTEMA'), created_at FROM notificaciones;
+        DROP TABLE notificaciones;
+        ALTER TABLE notificaciones_migrated RENAME TO notificaciones;
       `);
     }
   } catch (_) {}

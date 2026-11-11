@@ -156,6 +156,11 @@ def ensure_refund_requests_table(con):
             con.commit()
     except Exception:
         pass
+    try:
+        con.execute("ALTER TABLE notificaciones ADD COLUMN entregada INTEGER NOT NULL DEFAULT 1")
+        con.commit()
+    except Exception:
+        pass
 
 
 def record_audit_log_entry(con, usuario_id, rol, accion, modulo, entidad_id, detalles):
