@@ -1,0 +1,452 @@
+/**
+ * Módulo de Pedidos, Devoluciones y Rastreos Logísticos en Vivo con OpenStreetMap.
+ * Simulación de camión/auto, rutas polilínea y georreferenciación CEDIS.
+ */
+// PEDIDOS, PERFIL, ADMIN Y AUDITORÍA EN MXN
+// ============================================================================
+async function loadOrders() {
+  const box = document.getElementById('orders-list');
+  if (!state.token) {
+    box.innerHTML =
+      '<p class="muted p-4 rounded-xl bg-surface-container-low">Inicie sesión para consultar sus pedidos en MXN, guías DHL/FedEx y gestionar devoluciones.</p>';
+    return;
+  }
+  try {
+    const data = await apiFetch('/api/orders');
+    if (!data.orders || !data.orders.length) {
+      box.innerHTML = `
+        <div class="p-8 rounded-2xl bg-surface-container-low text-center border border-dashed border-surface-container">
+          <span class="material-symbols-outlined text-[48px] text-secondary mb-2 block">receipt_long</span>
+          <p class="font-bold text-on-surface text-base">Aún no tienes pedidos registrados</p>
+          <p class="text-xs text-secondary mt-1 mb-4">Explora nuestro catálogo de productos en MXN y realiza tu primera compra con envío ExpressPrime gratis.</p>
+          <button type="button" class="btn-nav-catalog px-5 py-2 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs transition-colors cursor-pointer">
+            Ir al Catálogo de Productos
+          </button>
+        </div>
+      `;
+      box.querySelector('.btn-nav-catalog')?.addEventListener('click', () => switchTab('view-catalog'));
+      return;
+    }
+
+    box.innerHTML = data.orders
+      .map((o) => {
+        const itemsHtml = (o.items || [])
+          .map((item) => {
+            const imgUrl = item.imagen_url || '/assets/logo.png';
+            const unitPrice = Number(item.precio_unitario || item.precio || 0);
+            const subtotal = Number(item.subtotal || unitPrice * item.cantidad);
+            return `
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-container-lowest border border-surface-container hover:border-primary/40 transition-all">
+              <div class="relative w-16 h-16 rounded-lg bg-white p-1 border border-surface-dim shrink-0 overflow-hidden cursor-pointer order-item-view-trigger" data-prod-id="${item.producto_id}" title="Ver ficha técnica">
+                <img
+                  src="${imgUrl}"
+                  alt="${item.nombre_producto}"
+                  class="w-full h-full object-contain hover:scale-105 transition-transform"
+                  onerror="this.src='/assets/logo.png'"
+                />
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  ${item.categoria ? `<span class="px-2 py-0.2 rounded bg-surface-container-high text-on-surface font-label-xs text-[10px] font-bold uppercase">${item.categoria}</span>` : ''}
+                  ${item.marca ? `<span class="text-secondary text-xs">${item.marca}</span>` : ''}
+                  ${item.sku ? `<span class="text-secondary text-[11px] font-mono">(${item.sku})</span>` : ''}
+                </div>
+                <h4
+                  class="font-headline-sm text-sm text-on-surface font-bold truncate cursor-pointer hover:text-primary transition-colors order-item-view-trigger"
+                  data-prod-id="${item.producto_id}"
+                  title="Ver ficha técnica"
+                >
+                  ${item.nombre_producto}
+                </h4>
+                <div class="flex items-center gap-2 text-xs text-secondary mt-1">
+                  <span>Cantidad: <strong class="text-on-surface">${item.cantidad} ${item.cantidad === 1 ? 'unidad' : 'unidades'}</strong></span>
+                  <span>·</span>
+                  <span>Precio unitario: <strong class="text-on-surface">${formatMxn(unitPrice)}</strong></span>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="font-label-xs text-secondary text-[11px] block">Subtotal</span>
+                <span class="font-bold text-on-surface text-sm">${formatMxn(subtotal)}</span>
+                <button
+                  type="button"
+                  class="mt-1 px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-[11px] font-bold flex items-center gap-1 transition-colors order-item-view-trigger cursor-pointer ml-auto"
+                  data-prod-id="${item.producto_id}"
+                >
+                  <span class="material-symbols-outlined text-[14px]">visibility</span>
+                  Ver Producto
+                </button>
+              </div>
+            </div>
+          `;
+          })
+          .join('');
+
+        const estadoColor =
+          o.estado === 'entregado'
+            ? 'bg-tertiary-fixed text-on-tertiary-fixed font-bold'
+            : o.estado === 'devuelto' || o.estado === 'cancelado'
+            ? 'bg-error-container text-on-error-container font-bold'
+            : 'bg-primary-fixed text-on-primary-fixed font-bold';
+
+        return `
+        <div class="p-space-lg rounded-2xl bg-surface-container-low border border-surface-container flex flex-col gap-3 shadow-sm">
+          <!-- Encabezado del Pedido -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-surface-container">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-label-xs text-label-xs uppercase text-secondary font-bold">Folio:</span>
+                <strong class="font-headline-sm text-headline-sm text-on-surface">${o.folio}</strong>
+                <span class="px-2.5 py-0.5 rounded-full text-xs uppercase ${estadoColor}">
+                  ${o.estado.toUpperCase()}
+                </span>
+              </div>
+              <div class="text-xs text-secondary mt-0.5">
+                Fecha: ${o.created_at ? o.created_at.split('T')[0] : 'Reciente'} · Compra protegida por garantía oficial ExpressMart
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-label-xs text-secondary text-xs block">Total Pagado en MXN</span>
+              <span class="font-headline-sm text-lg text-primary font-extrabold">${formatMxn(o.total)}</span>
+            </div>
+          </div>
+
+          <!-- Detalles de los Productos Comprados -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-label-sm text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px] text-primary">inventory_2</span>
+                Detalles del Producto (${o.items ? o.items.length : 0} ${o.items && o.items.length === 1 ? 'artículo' : 'artículos'}):
+              </span>
+              <span class="text-xs text-tertiary font-bold flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">verified</span>
+                Envío ExpressPrime
+              </span>
+            </div>
+            <div class="space-y-2">
+              ${itemsHtml || '<p class="text-xs text-secondary italic">No se encontraron artículos registrados para este pedido.</p>'}
+            </div>
+          </div>
+
+          <!-- Datos de Envío y Pago -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2 border-t border-surface-container text-xs text-on-surface">
+            <div class="p-2.5 rounded-lg bg-surface-container-lowest border border-surface-container space-y-1">
+              <div class="text-secondary font-bold uppercase text-[10px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">local_shipping</span>
+                Información de Logística y Envío:
+              </div>
+              <div><strong>Guía ExpressPrime:</strong> ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía en CEDIS'}</div>
+              <div class="text-secondary truncate"><strong>Dirección:</strong> ${o.direccion_envio}</div>
+              ${o.envio ? `
+                <div class="pt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    class="track-osm-btn px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
+                    data-order-id="${o.id}"
+                    data-folio="${o.folio}"
+                  >
+                    <span class="material-symbols-outlined text-[14px]">map</span>
+                    Rastrear Envío en Vivo (OpenStreetMap)
+                  </button>
+                  ${o.envio.simulacion_activa ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 animate-pulse">🚚 Simulación en vivo</span>' : ''}
+                </div>
+              ` : ''}
+            </div>
+            <div class="p-2.5 rounded-lg bg-surface-container-lowest border border-surface-container space-y-1">
+              <div class="text-secondary font-bold uppercase text-[10px] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px] text-primary">credit_card</span>
+                Método de Pago Seguro:
+              </div>
+              <div><strong>Transacción:</strong> ${o.pago ? `${o.pago.tarjeta_enmascarada} (${o.pago.referencia_pasarela})` : o.metodo_pago}</div>
+              <div class="text-secondary"><strong>IVA Trasladado:</strong> 16% incluido en el total pagado</div>
+            </div>
+          </div>
+
+          <!-- Botón de Devolución -->
+          <div class="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-surface-container">
+            <span class="text-xs text-secondary">
+              Garantía de satisfacción de 30 días para devoluciones sin costo.
+            </span>
+            <div>
+              ${
+                o.estado === 'devuelto' || o.estado === 'cancelado'
+                  ? '<span class="badge badge-ok">Reembolsado en MXN / Devolución completada</span>'
+                  : o.solicitudReembolso && o.solicitudReembolso.estado === 'pendiente'
+                  ? '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Petición de reembolso en revisión</span>'
+                  : o.solicitudReembolso && o.solicitudReembolso.estado === 'aprobada'
+                  ? '<span class="badge badge-ok">Reembolso Aprobado en MXN</span>'
+                  : o.solicitudReembolso && o.solicitudReembolso.estado === 'denegada'
+                  ? `<div class="text-right"><span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">Reembolso Denegado</span><div class="text-[11px] text-secondary mt-0.5">${escapeHtml(o.solicitudReembolso.respuesta_admin || '')}</div></div>`
+                  : `<button type="button" class="btn btn-sm btn-outline return-order-btn cursor-pointer" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+      })
+      .join('');
+
+    box.querySelectorAll('.order-item-view-trigger').forEach((el) => {
+      el.addEventListener('click', () => {
+        const prodId = Number(el.dataset.prodId);
+        if (prodId) {
+          openProductDetailPage(prodId);
+        }
+      });
+    });
+
+    box.querySelectorAll('.track-osm-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const orderId = Number(btn.dataset.orderId);
+        const folio = btn.dataset.folio;
+        if (orderId) {
+          openCustomerTrackingModal(orderId, folio);
+        }
+      });
+    });
+
+    box.querySelectorAll('.return-order-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const orderId = btn.dataset.id;
+        const motivo = window.prompt(
+          'Indica el motivo de la devolución o reembolso (garantía de satisfacción de 30 días):',
+          'El producto no cumplió con mis expectativas y solicito devolución bajo garantía LFPC.'
+        );
+        if (motivo === null) return;
+
+        try {
+          const res = await apiFetch(`/api/orders/${orderId}/refund-request`, {
+            method: 'POST',
+            body: JSON.stringify({ motivo: motivo.trim() || 'Devolución dentro de garantía LFPC' })
+          });
+          showAlert(res.message || 'Petición de reembolso enviada al administrador.');
+          showToast({
+            title: 'Petición enviada',
+            message: 'Tu solicitud de reembolso fue recibida y está en revisión.',
+            imageUrl: '/assets/logo.png'
+          });
+          loadOrders();
+        } catch (err) {
+          showAlert(err.message, true);
+        }
+      });
+    });
+  } catch (err) {
+    box.innerHTML = `<p class="alert alert-error">${err.message}</p>`;
+  }
+}
+
+// ============================================================================
+// RASTREO Y SIMULACIÓN EN VIVO OPENSTREETMAP (CLIENTE)
+// ============================================================================
+let customerMapInstance = null;
+let customerVehicleMarker = null;
+let customerRoutePolyline = null;
+let customerOriginMarker = null;
+let customerDestMarker = null;
+let customerTrackingInterval = null;
+
+function initCustomerTrackingModal() {
+  const dialog = document.getElementById('modal-rastreo-envio');
+  const btnClose = document.getElementById('btn-close-rastreo-modal');
+  const btnAccept = document.getElementById('btn-accept-rastreo-modal');
+
+  const closeDialog = () => {
+    if (customerTrackingInterval) {
+      clearInterval(customerTrackingInterval);
+      customerTrackingInterval = null;
+    }
+    if (dialog && dialog.open) {
+      dialog.close();
+    }
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeDialog);
+  if (btnAccept) btnAccept.addEventListener('click', closeDialog);
+  if (dialog) {
+    dialog.addEventListener('cancel', closeDialog);
+  }
+}
+
+async function openCustomerTrackingModal(orderId, fallbackFolio) {
+  const dialog = document.getElementById('modal-rastreo-envio');
+  if (!dialog) return;
+
+  if (customerTrackingInterval) {
+    clearInterval(customerTrackingInterval);
+    customerTrackingInterval = null;
+  }
+
+  dialog.showModal();
+
+  const mapContainer = document.getElementById('customer-osm-map');
+  const folioEl = document.getElementById('cust-track-folio');
+  const guiaEl = document.getElementById('cust-track-guia');
+  const almacenEl = document.getElementById('cust-track-almacen');
+  const vehiculoEl = document.getElementById('cust-track-vehiculo');
+  const progresoEl = document.getElementById('cust-track-progreso-txt');
+  const progressBar = document.getElementById('cust-track-progress-bar');
+  const simStatusEl = document.getElementById('cust-track-sim-status');
+  const destinoEl = document.getElementById('cust-track-destino');
+  const liveBadge = document.getElementById('cust-track-live-badge');
+
+  if (folioEl) folioEl.textContent = fallbackFolio || `#${orderId}`;
+
+  // Inicializar Leaflet si aún no está instanciado
+  if (typeof L !== 'undefined' && !customerMapInstance && mapContainer) {
+    customerMapInstance = L.map('customer-osm-map', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([19.4326, -99.1332], 7);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(customerMapInstance);
+  }
+
+  setTimeout(() => {
+    if (customerMapInstance) customerMapInstance.invalidateSize();
+  }, 250);
+
+  const renderData = (shipment) => {
+    if (!shipment) return;
+    if (folioEl) folioEl.textContent = shipment.folio_pedido || fallbackFolio || `#${orderId}`;
+    if (guiaEl) guiaEl.textContent = shipment.numero_guia || 'Pendiente';
+    if (almacenEl) almacenEl.textContent = shipment.almacen_origen || shipment.almacen_codigo || 'CEDIS Vallejo';
+    if (destinoEl) destinoEl.textContent = shipment.direccion_destino || 'Destino del cliente';
+
+    const progress = Math.min(100, Math.max(0, shipment.progreso_simulacion || 0));
+    if (progresoEl) progresoEl.textContent = `${progress}%`;
+    if (progressBar) progressBar.style.width = `${progress}%`;
+
+    const isTruck = shipment.tipo_vehiculo !== 'auto';
+    const vehicleIconChar = isTruck ? '🚚' : '🚗';
+    const vehicleLabel = isTruck ? 'Camión ExpressPrime' : 'Auto Utilitario Express';
+    if (vehiculoEl) vehiculoEl.innerHTML = `<span class="text-base">${vehicleIconChar}</span> <span>${vehicleLabel}</span>`;
+
+    if (shipment.simulacion_activa) {
+      if (simStatusEl) {
+        simStatusEl.textContent = 'En Tránsito (Simulación Activa)';
+        simStatusEl.className = 'font-bold text-emerald-600 block mt-0.5 animate-pulse';
+      }
+      if (liveBadge) {
+        liveBadge.textContent = 'En Ruta En Vivo';
+        liveBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 animate-pulse';
+      }
+    } else {
+      if (simStatusEl) {
+        simStatusEl.textContent = shipment.estado_envio === 'entregado' ? 'Entregado' : 'Detenida / En Almacén';
+        simStatusEl.className = 'font-bold text-secondary block mt-0.5';
+      }
+      if (liveBadge) {
+        liveBadge.textContent = shipment.estado_envio ? shipment.estado_envio.toUpperCase() : 'PREPARANDO';
+        liveBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-surface-container-high text-on-surface';
+      }
+    }
+
+    if (typeof L === 'undefined' || !customerMapInstance) return;
+
+    // Limpiar marcadores y polilíneas anteriores
+    if (customerRoutePolyline) {
+      customerMapInstance.removeLayer(customerRoutePolyline);
+      customerRoutePolyline = null;
+    }
+    if (customerOriginMarker) {
+      customerMapInstance.removeLayer(customerOriginMarker);
+      customerOriginMarker = null;
+    }
+    if (customerDestMarker) {
+      customerMapInstance.removeLayer(customerDestMarker);
+      customerDestMarker = null;
+    }
+    if (customerVehicleMarker) {
+      customerMapInstance.removeLayer(customerVehicleMarker);
+      customerVehicleMarker = null;
+    }
+
+    const route = shipment.ruta_puntos || [];
+    if (route.length > 0) {
+      const latLngs = route.map((p) => [p.lat, p.lng]);
+      customerRoutePolyline = L.polyline(latLngs, {
+        color: '#0284c7',
+        weight: 5,
+        opacity: 0.85
+      }).addTo(customerMapInstance);
+
+      // Marcador CEDIS Origen
+      const originIcon = L.divIcon({
+        className: 'cedis-map-marker',
+        html: `<div style="background:#1d4e9a; color:#fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏬</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      customerOriginMarker = L.marker([route[0].lat, route[0].lng], { icon: originIcon })
+        .bindPopup(`<strong>${escapeHtml(shipment.almacen_origen || 'CEDIS Origen')}</strong><br>Salida de almacén`)
+        .addTo(customerMapInstance);
+
+      // Marcador Destino
+      const destPoint = route[route.length - 1];
+      const destIcon = L.divIcon({
+        className: 'dest-map-marker',
+        html: `<div style="background:#059669; color:#fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      customerDestMarker = L.marker([destPoint.lat, destPoint.lng], { icon: destIcon })
+        .bindPopup(`<strong>Destino de Entrega</strong><br>${escapeHtml(shipment.direccion_destino || '')}`)
+        .addTo(customerMapInstance);
+
+      // Marcador de Posición del Vehículo
+      const currentLat = Number(shipment.lat_actual) || route[0].lat;
+      const currentLng = Number(shipment.lng_actual) || route[0].lng;
+      const vehicleHtml = `
+        <div class="simulation-truck-marker" style="display:flex; align-items:center; justify-content:center; position:relative;">
+          ${shipment.simulacion_activa ? '<div class="radar-pulse-ring" style="position:absolute; width:44px; height:44px; border-radius:50%; background:rgba(2,132,199,0.3); animation:pulse 1.5s infinite;"></div>' : ''}
+          <div style="background:#0284c7; color:#fff; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:18px; border:2px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.4); z-index:2;">
+            ${vehicleIconChar}
+          </div>
+        </div>
+      `;
+      const vehicleDivIcon = L.divIcon({
+        className: 'vehicle-marker-wrapper',
+        html: vehicleHtml,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+      customerVehicleMarker = L.marker([currentLat, currentLng], { icon: vehicleDivIcon })
+        .bindPopup(`<strong>${vehicleLabel}</strong><br>Progreso: ${progress}%<br>Estado: ${escapeHtml(shipment.estado_envio || 'en_transito')}`)
+        .addTo(customerMapInstance);
+
+      customerMapInstance.fitBounds(L.latLngBounds(latLngs), { padding: [40, 40] });
+    }
+  };
+
+  const fetchStatus = async () => {
+    try {
+      const data = await apiFetch(`/api/logistics/shipments/${orderId}`);
+      if (data && data.shipment) {
+        renderData(data.shipment);
+      }
+    } catch (err) {
+      console.warn('Error al consultar rastreo de envío:', err.message);
+    }
+  };
+
+  await fetchStatus();
+
+  // Actualización periódica cada 2.5 segundos si la simulación está en marcha
+  customerTrackingInterval = setInterval(fetchStatus, 2500);
+}
+
+
+function initOrdersLogisticsEvents() {
+  const btnRefresh = document.getElementById('btn-refresh-orders');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', loadOrders);
+  }
+}
+
+window.loadOrders = loadOrders;
+window.initCustomerTrackingModal = initCustomerTrackingModal;
+window.openCustomerTrackingModal = openCustomerTrackingModal;
+window.initOrdersLogisticsEvents = initOrdersLogisticsEvents;
