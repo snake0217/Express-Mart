@@ -58,9 +58,6 @@ async function loadAuditCenter() {
 
 
 function initAdminAuditEvents() {
-    });
-  }
-
   // Alta de Producto en Panel Administrativo
   document.getElementById('admin-product-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -107,10 +104,114 @@ function initAdminAuditEvents() {
       showAlert(err.message, true);
     }
   });
+}
 
+function requireWebPanelAuth(panelTitle, allowedRoles, onAuthenticated) {
+  let dlg = document.getElementById('web-panel-auth-dialog');
+  if (!dlg) {
+    dlg = document.createElement('dialog');
+    dlg.id = 'web-panel-auth-dialog';
+    dlg.className = 'modal rounded-2xl p-0 max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden';
+    dlg.innerHTML = `
+      <div class="bg-[#0a2540] text-white px-6 py-4 flex items-center justify-between">
+        <div>
+          <h3 id="web-panel-auth-title" class="text-base font-extrabold tracking-tight">🔐 Control de Acceso al Panel</h3>
+          <p class="text-[11px] text-slate-300 mt-0.5">Ingrese usuario y contraseña cada vez que abra este panel</p>
+        </div>
+        <button type="button" id="btn-close-web-panel-auth" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white font-bold cursor-pointer">✕</button>
+      </div>
+      <form id="form-web-panel-auth" class="p-6 bg-white space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Usuario / Correo Electrónico</label>
+          <input type="text" id="web-panel-auth-email" required placeholder="admin@expressmart.mx" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Contraseña</label>
+          <input type="password" id="web-panel-auth-pass" required placeholder="••••••••••••" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:border-primary" />
+        </div>
+        <div id="web-panel-auth-error" class="hidden p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold"></div>
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="text-[11px] font-bold text-slate-500 mb-1.5">Autocompletar credenciales autorizadas:</div>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" data-u="admin@expressmart.mx" data-p="AdminPassword123!" class="web-panel-quick-cred px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-[11px] font-bold text-slate-800 cursor-pointer">⚡ Admin</button>
+            <button type="button" data-u="vendedor@expressmart.mx" data-p="VendedorPassword123!" class="web-panel-quick-cred px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-[11px] font-bold text-slate-800 cursor-pointer">📦 Vendedor</button>
+            <button type="button" data-u="auditor@expressmart.mx" data-p="AuditorPassword123!" class="web-panel-quick-cred px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-[11px] font-bold text-slate-800 cursor-pointer">🔍 Auditor</button>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="btn-cancel-web-panel-auth" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-primary text-white text-xs font-extrabold hover:bg-primary-container cursor-pointer">🔓 Acceder al Panel</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dlg);
 
+    dlg.querySelectorAll('.web-panel-quick-cred').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.getElementById('web-panel-auth-email').value = btn.dataset.u || '';
+        document.getElementById('web-panel-auth-pass').value = btn.dataset.p || '';
+        document.getElementById('web-panel-auth-error').classList.add('hidden');
+      });
+    });
+
+    const closeFn = () => dlg.close();
+    document.getElementById('btn-close-web-panel-auth').addEventListener('click', closeFn);
+    document.getElementById('btn-cancel-web-panel-auth').addEventListener('click', closeFn);
+  }
+
+  const titleEl = document.getElementById('web-panel-auth-title');
+  if (titleEl) titleEl.textContent = `🔐 Acceso — ${panelTitle}`;
+  const errEl = document.getElementById('web-panel-auth-error');
+  if (errEl) errEl.classList.add('hidden');
+
+  const emailInput = document.getElementById('web-panel-auth-email');
+  const passInput = document.getElementById('web-panel-auth-pass');
+  if (emailInput) emailInput.value = state.user?.email || '';
+  if (passInput) passInput.value = '';
+
+  const form = document.getElementById('form-web-panel-auth');
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    if (errEl) errEl.classList.add('hidden');
+    try {
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+      const res = await fetch('/api/logistics/panel-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Credenciales inválidas.');
+      }
+      if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(data.user.rol)) {
+        throw new Error(`Tu rol (${data.user.rol}) no tiene permisos para abrir ${panelTitle}.`);
+      }
+      state.token = data.token;
+      state.user = data.user;
+      localStorage.setItem('em_token', data.token);
+      localStorage.setItem('em_user', JSON.stringify(data.user));
+      updateSessionUI();
+      dlg.close();
+      if (typeof onAuthenticated === 'function') onAuthenticated();
+    } catch (err) {
+      if (errEl) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+  };
+
+  if (typeof dlg.showModal === 'function') {
+    if (!dlg.open) dlg.showModal();
+  } else {
+    dlg.setAttribute('open', 'open');
+  }
 }
 
 window.loadAdminReports = loadAdminReports;
 window.loadAuditCenter = loadAuditCenter;
 window.initAdminAuditEvents = initAdminAuditEvents;
+window.requireWebPanelAuth = requireWebPanelAuth;
+

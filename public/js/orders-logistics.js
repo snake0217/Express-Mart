@@ -135,7 +135,8 @@ async function loadOrders() {
                 Información de Logística y Envío:
               </div>
               <div><strong>Guía ExpressPrime:</strong> ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía en CEDIS'}</div>
-              <div class="text-secondary truncate"><strong>Dirección:</strong> ${o.direccion_envio}</div>
+              ${o.envio ? `<div class="text-secondary text-[11px]"><strong>🏢 Almacén Salida:</strong> ${escapeHtml(o.envio.almacen_origen || 'CEDIS Vallejo')} — ${escapeHtml(o.envio.almacen_direccion || 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, CDMX')}</div>` : ''}
+              <div class="text-secondary truncate"><strong>📍 Dirección Entrega:</strong> ${escapeHtml(o.direccion_envio || '')}</div>
               ${o.envio ? `
                 <div class="pt-2 flex flex-wrap items-center gap-2">
                   <button
@@ -244,26 +245,43 @@ let customerRoutePolyline = null;
 let customerOriginMarker = null;
 let customerDestMarker = null;
 let customerTrackingInterval = null;
+let currentCustomerTrackedOrderId = null;
+
+function closeCustomerTrackingModal() {
+  if (customerTrackingInterval) {
+    clearInterval(customerTrackingInterval);
+    customerTrackingInterval = null;
+  }
+  currentCustomerTrackedOrderId = null;
+  const dialog = document.getElementById('modal-rastreo-envio');
+  if (dialog) {
+    try {
+      if (dialog.open) dialog.close();
+    } catch (_) {}
+    dialog.removeAttribute('open');
+  }
+  if (typeof loadOrders === 'function') {
+    loadOrders();
+  }
+}
 
 function initCustomerTrackingModal() {
   const dialog = document.getElementById('modal-rastreo-envio');
   const btnClose = document.getElementById('btn-close-rastreo-modal');
   const btnAccept = document.getElementById('btn-accept-rastreo-modal');
 
-  const closeDialog = () => {
-    if (customerTrackingInterval) {
-      clearInterval(customerTrackingInterval);
-      customerTrackingInterval = null;
-    }
-    if (dialog && dialog.open) {
-      dialog.close();
-    }
-  };
-
-  if (btnClose) btnClose.addEventListener('click', closeDialog);
-  if (btnAccept) btnAccept.addEventListener('click', closeDialog);
+  if (btnClose) btnClose.onclick = closeCustomerTrackingModal;
+  if (btnAccept) btnAccept.onclick = closeCustomerTrackingModal;
   if (dialog) {
-    dialog.addEventListener('cancel', closeDialog);
+    dialog.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeCustomerTrackingModal();
+    });
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) {
+        closeCustomerTrackingModal();
+      }
+    });
   }
 }
 
@@ -276,17 +294,27 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
     customerTrackingInterval = null;
   }
 
-  dialog.showModal();
+  currentCustomerTrackedOrderId = orderId;
+  const btnClose = document.getElementById('btn-close-rastreo-modal');
+  const btnAccept = document.getElementById('btn-accept-rastreo-modal');
+  if (btnClose) btnClose.onclick = closeCustomerTrackingModal;
+  if (btnAccept) btnAccept.onclick = closeCustomerTrackingModal;
+
+  if (!dialog.open) {
+    dialog.showModal();
+  }
 
   const mapContainer = document.getElementById('customer-osm-map');
   const folioEl = document.getElementById('cust-track-folio');
   const guiaEl = document.getElementById('cust-track-guia');
   const almacenEl = document.getElementById('cust-track-almacen');
+  const almacenDirEl = document.getElementById('cust-track-almacen-dir');
   const vehiculoEl = document.getElementById('cust-track-vehiculo');
   const progresoEl = document.getElementById('cust-track-progreso-txt');
   const progressBar = document.getElementById('cust-track-progress-bar');
   const simStatusEl = document.getElementById('cust-track-sim-status');
   const destinoEl = document.getElementById('cust-track-destino');
+  const coordsLiveEl = document.getElementById('cust-track-coords-live');
   const liveBadge = document.getElementById('cust-track-live-badge');
 
   if (folioEl) folioEl.textContent = fallbackFolio || `#${orderId}`;
@@ -296,50 +324,108 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
     customerMapInstance = L.map('customer-osm-map', {
       zoomControl: true,
       scrollWheelZoom: true
-    }).setView([19.4326, -99.1332], 7);
+    }).setView([19.4326, -99.1332], 11);
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(customerMapInstance);
+
+    // Permitir al comprador hacer clic en el mapa para actualizar las coordenadas de destino
+    customerMapInstance.on('click', async (ev) => {
+      if (!currentCustomerTrackedOrderId) return;
+      const clickedLat = Number(ev.latlng.lat.toFixed(5));
+      const clickedLng = Number(ev.latlng.lng.toFixed(5));
+      const currentDestTxt = destinoEl ? destinoEl.textContent.replace(/\s*\[Lat:.*?\]/g, '').trim() : 'Domicilio seleccionado en mapa';
+      const newAddressWithCoords = `${currentDestTxt} [Lat: ${clickedLat}, Lng: ${clickedLng}]`;
+      try {
+        await apiFetch(`/api/logistics/shipments/${currentCustomerTrackedOrderId}/destination`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            direccion: newAddressWithCoords,
+            latDestino: clickedLat,
+            lngDestino: clickedLng
+          })
+        });
+        showToast({
+          title: '📍 Destino actualizado en el mapa',
+          message: `Coordenadas guardadas: ${clickedLat}, ${clickedLng}`,
+          imageUrl: '/assets/logo.png'
+        });
+        initialFitDone = false;
+        await fetchStatus();
+      } catch (err) {
+        console.warn('No se pudo actualizar el punto de entrega:', err.message);
+      }
+    });
   }
+
+  let initialFitDone = false;
 
   setTimeout(() => {
     if (customerMapInstance) customerMapInstance.invalidateSize();
-  }, 250);
+  }, 200);
+
+  const normalizeLatLng = (p) => {
+    if (Array.isArray(p) && p.length >= 2) {
+      return [Number(p[0]), Number(p[1])];
+    }
+    if (p && typeof p === 'object' && p.lat !== undefined && p.lng !== undefined) {
+      return [Number(p.lat), Number(p.lng)];
+    }
+    return null;
+  };
 
   const renderData = (shipment) => {
     if (!shipment) return;
-    if (folioEl) folioEl.textContent = shipment.folio_pedido || fallbackFolio || `#${orderId}`;
-    if (guiaEl) guiaEl.textContent = shipment.numero_guia || 'Pendiente';
-    if (almacenEl) almacenEl.textContent = shipment.almacen_origen || shipment.almacen_codigo || 'CEDIS Vallejo';
-    if (destinoEl) destinoEl.textContent = shipment.direccion_destino || 'Destino del cliente';
+    if (folioEl) folioEl.textContent = shipment.folio_pedido || shipment.pedidoFolio || fallbackFolio || `#${orderId}`;
+    if (guiaEl) guiaEl.textContent = shipment.numero_guia || shipment.numeroGuia || 'Pendiente';
+    const warehouseName = shipment.almacen_origen || shipment.almacenOrigen || shipment.almacen_codigo || 'CEDIS CDMX Norte (Vallejo)';
+    const warehouseAddr = shipment.almacen_direccion || shipment.almacenDireccion || 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX';
+    if (almacenEl) almacenEl.textContent = warehouseName;
+    if (almacenDirEl) almacenDirEl.textContent = `${warehouseName} — ${warehouseAddr}`;
 
-    const progress = Math.min(100, Math.max(0, shipment.progreso_simulacion || 0));
-    if (progresoEl) progresoEl.textContent = `${progress}%`;
+    const destLat = Number(shipment.lat_destino ?? shipment.latDestino ?? 19.3907);
+    const destLng = Number(shipment.lng_destino ?? shipment.lngDestino ?? -99.1636);
+    const destText = shipment.direccion_destino || shipment.direccionEnvio || 'Domicilio del comprador';
+    if (destinoEl) {
+      destinoEl.textContent = destText.includes('Lat:')
+        ? destText
+        : `${destText} (${destLat.toFixed(4)}, ${destLng.toFixed(4)})`;
+    }
+
+    const progress = Math.min(100, Math.max(0, Number(shipment.progreso_simulacion ?? shipment.progresoSimulacion ?? 0)));
+    if (progresoEl) progresoEl.textContent = `${progress.toFixed(1)}%`;
     if (progressBar) progressBar.style.width = `${progress}%`;
 
-    const isTruck = shipment.tipo_vehiculo !== 'auto';
+    const isTruck = (shipment.tipo_vehiculo || shipment.tipoVehiculo) !== 'auto';
     const vehicleIconChar = isTruck ? '🚚' : '🚗';
     const vehicleLabel = isTruck ? 'Camión ExpressPrime' : 'Auto Utilitario Express';
     if (vehiculoEl) vehiculoEl.innerHTML = `<span class="text-base">${vehicleIconChar}</span> <span>${vehicleLabel}</span>`;
 
-    if (shipment.simulacion_activa) {
+    const isSimActive = Boolean(shipment.simulacion_activa || shipment.simulacionActiva);
+    const estadoEnvio = shipment.estado_envio || shipment.estadoEnvio || 'preparando';
+
+    if (isSimActive) {
       if (simStatusEl) {
-        simStatusEl.textContent = 'En Tránsito (Simulación Activa)';
+        simStatusEl.textContent = 'En Ruta (Simulación Activa)';
         simStatusEl.className = 'font-bold text-emerald-600 block mt-0.5 animate-pulse';
       }
       if (liveBadge) {
-        liveBadge.textContent = 'En Ruta En Vivo';
+        liveBadge.textContent = 'Simulación en Vivo';
         liveBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 animate-pulse';
       }
     } else {
       if (simStatusEl) {
-        simStatusEl.textContent = shipment.estado_envio === 'entregado' ? 'Entregado' : 'Detenida / En Almacén';
+        simStatusEl.textContent = estadoEnvio === 'entregado'
+          ? 'Entregado en Destino'
+          : estadoEnvio === 'preparando'
+          ? 'Preparando en Almacén'
+          : 'Pausada / En Espera';
         simStatusEl.className = 'font-bold text-secondary block mt-0.5';
       }
       if (liveBadge) {
-        liveBadge.textContent = shipment.estado_envio ? shipment.estado_envio.toUpperCase() : 'PREPARANDO';
+        liveBadge.textContent = estadoEnvio.replace('_', ' ').toUpperCase();
         liveBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-surface-container-high text-on-surface';
       }
     }
@@ -364,64 +450,92 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
       customerVehicleMarker = null;
     }
 
-    const route = shipment.ruta_puntos || [];
-    if (route.length > 0) {
-      const latLngs = route.map((p) => [p.lat, p.lng]);
-      customerRoutePolyline = L.polyline(latLngs, {
-        color: '#0284c7',
-        weight: 5,
-        opacity: 0.85
-      }).addTo(customerMapInstance);
+    const origLat = Number(shipment.lat_origen ?? shipment.latOrigen ?? 19.4895);
+    const origLng = Number(shipment.lng_origen ?? shipment.lngOrigen ?? -99.1645);
+    const rawRoute = shipment.ruta_puntos || shipment.rutaPuntos || [];
+    let latLngs = rawRoute
+      .map(normalizeLatLng)
+      .filter((pt) => pt && Number.isFinite(pt[0]) && Number.isFinite(pt[1]));
 
-      // Marcador CEDIS Origen
-      const originIcon = L.divIcon({
-        className: 'cedis-map-marker',
-        html: `<div style="background:#1d4e9a; color:#fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏬</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      });
-      customerOriginMarker = L.marker([route[0].lat, route[0].lng], { icon: originIcon })
-        .bindPopup(`<strong>${escapeHtml(shipment.almacen_origen || 'CEDIS Origen')}</strong><br>Salida de almacén`)
-        .addTo(customerMapInstance);
+    if (latLngs.length < 2) {
+      latLngs = [
+        [origLat, origLng],
+        [(origLat + destLat) / 2 + 0.008, (origLng + destLng) / 2 - 0.006],
+        [destLat, destLng]
+      ];
+    }
 
-      // Marcador Destino
-      const destPoint = route[route.length - 1];
-      const destIcon = L.divIcon({
-        className: 'dest-map-marker',
-        html: `<div style="background:#059669; color:#fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
-      });
-      customerDestMarker = L.marker([destPoint.lat, destPoint.lng], { icon: destIcon })
-        .bindPopup(`<strong>Destino de Entrega</strong><br>${escapeHtml(shipment.direccion_destino || '')}`)
-        .addTo(customerMapInstance);
+    customerRoutePolyline = L.polyline(latLngs, {
+      color: '#0284c7',
+      weight: 5,
+      opacity: 0.85,
+      dashArray: isSimActive ? '10, 8' : null
+    }).addTo(customerMapInstance);
 
-      // Marcador de Posición del Vehículo
-      const currentLat = Number(shipment.lat_actual) || route[0].lat;
-      const currentLng = Number(shipment.lng_actual) || route[0].lng;
-      const vehicleHtml = `
-        <div class="simulation-truck-marker" style="display:flex; align-items:center; justify-content:center; position:relative;">
-          ${shipment.simulacion_activa ? '<div class="radar-pulse-ring" style="position:absolute; width:44px; height:44px; border-radius:50%; background:rgba(2,132,199,0.3); animation:pulse 1.5s infinite;"></div>' : ''}
-          <div style="background:#0284c7; color:#fff; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:18px; border:2px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.4); z-index:2;">
-            ${vehicleIconChar}
-          </div>
+    // Marcador CEDIS Origen con dirección falsa completa
+    const originCoord = latLngs[0];
+    const originIcon = L.divIcon({
+      className: 'cedis-map-marker',
+      html: `<div style="background:#1d4e9a; color:#fff; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.35);">🏢</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    customerOriginMarker = L.marker(originCoord, { icon: originIcon })
+      .bindPopup(`<strong>🏢 ${escapeHtml(warehouseName)}</strong><br><span style="font-size:11px;">${escapeHtml(warehouseAddr)}</span><br><small>Coordenadas: ${originCoord[0].toFixed(4)}, ${originCoord[1].toFixed(4)}</small>`)
+      .addTo(customerMapInstance);
+
+    // Marcador Destino del Comprador
+    const destCoord = latLngs[latLngs.length - 1];
+    const destIcon = L.divIcon({
+      className: 'dest-map-marker',
+      html: `<div style="background:#059669; color:#fff; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.35);">📍</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    customerDestMarker = L.marker(destCoord, { icon: destIcon })
+      .bindPopup(`<strong>📍 Domicilio de Entrega</strong><br><span style="font-size:11px;">${escapeHtml(destText)}</span><br><small>Coordenadas: ${destCoord[0].toFixed(4)}, ${destCoord[1].toFixed(4)}</small>`)
+      .addTo(customerMapInstance);
+
+    // Calcular posición actual del vehículo a partir de progreso o lat_actual/lng_actual
+    const pointIdx = Math.min(latLngs.length - 1, Math.max(0, Math.floor((progress / 100) * (latLngs.length - 1))));
+    const fallbackPt = latLngs[pointIdx] || originCoord;
+    const currentLat = Number.isFinite(Number(shipment.lat_actual)) && progress > 0 ? Number(shipment.lat_actual) : fallbackPt[0];
+    const currentLng = Number.isFinite(Number(shipment.lng_actual)) && progress > 0 ? Number(shipment.lng_actual) : fallbackPt[1];
+
+    if (coordsLiveEl) {
+      coordsLiveEl.textContent = `${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`;
+    }
+
+    const vehicleHtml = `
+      <div class="simulation-truck-marker" style="display:flex; align-items:center; justify-content:center; position:relative;">
+        ${isSimActive ? '<div class="radar-pulse-ring" style="position:absolute; width:46px; height:46px; border-radius:50%; background:rgba(16,185,129,0.35); animation:pulse 1.5s infinite;"></div>' : ''}
+        <div style="background:${isSimActive ? '#059669' : '#0284c7'}; color:#fff; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:20px; border:2px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,0.45); z-index:2;">
+          ${vehicleIconChar}
         </div>
-      `;
-      const vehicleDivIcon = L.divIcon({
-        className: 'vehicle-marker-wrapper',
-        html: vehicleHtml,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
-      });
-      customerVehicleMarker = L.marker([currentLat, currentLng], { icon: vehicleDivIcon })
-        .bindPopup(`<strong>${vehicleLabel}</strong><br>Progreso: ${progress}%<br>Estado: ${escapeHtml(shipment.estado_envio || 'en_transito')}`)
-        .addTo(customerMapInstance);
+      </div>
+    `;
+    const vehicleDivIcon = L.divIcon({
+      className: 'vehicle-marker-wrapper',
+      html: vehicleHtml,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19]
+    });
+    customerVehicleMarker = L.marker([currentLat, currentLng], { icon: vehicleDivIcon })
+      .bindPopup(`<strong>${vehicleIconChar} ${vehicleLabel}</strong><br>Avance: <strong>${progress.toFixed(1)}%</strong><br>Estado: ${escapeHtml(estadoEnvio)}<br><small>Ubicación: ${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}</small>`)
+      .addTo(customerMapInstance);
 
-      customerMapInstance.fitBounds(L.latLngBounds(latLngs), { padding: [40, 40] });
+    if (!initialFitDone) {
+      customerMapInstance.invalidateSize();
+      customerMapInstance.fitBounds(L.latLngBounds(latLngs), { padding: [45, 45], maxZoom: 15 });
+      initialFitDone = true;
     }
   };
 
   const fetchStatus = async () => {
+    if (!dialog.open) {
+      closeCustomerTrackingModal();
+      return;
+    }
     try {
       const data = await apiFetch(`/api/logistics/shipments/${orderId}`);
       if (data && data.shipment) {
@@ -434,10 +548,9 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
 
   await fetchStatus();
 
-  // Actualización periódica cada 2.5 segundos si la simulación está en marcha
-  customerTrackingInterval = setInterval(fetchStatus, 2500);
+  // Actualización periódica cada 2 segundos para reflejar avances o cambios de estado del admin en vivo
+  customerTrackingInterval = setInterval(fetchStatus, 2000);
 }
-
 
 function initOrdersLogisticsEvents() {
   const btnRefresh = document.getElementById('btn-refresh-orders');
@@ -447,6 +560,7 @@ function initOrdersLogisticsEvents() {
 }
 
 window.loadOrders = loadOrders;
+window.closeCustomerTrackingModal = closeCustomerTrackingModal;
 window.initCustomerTrackingModal = initCustomerTrackingModal;
 window.openCustomerTrackingModal = openCustomerTrackingModal;
 window.initOrdersLogisticsEvents = initOrdersLogisticsEvents;

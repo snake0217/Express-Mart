@@ -25,6 +25,8 @@ function createAllTables(db) {
       membresia_premium INTEGER NOT NULL DEFAULT 0,
       membresia_plan TEXT DEFAULT NULL,
       membresia_expira TEXT DEFAULT NULL,
+      latitud REAL DEFAULT 19.3789,
+      longitud REAL DEFAULT -99.1670,
       created_at TEXT NOT NULL
     );
 
@@ -188,6 +190,7 @@ function createAllTables(db) {
       historial_rastreo_json TEXT NOT NULL,
       almacen_origen TEXT NOT NULL DEFAULT 'CEDIS CDMX Norte (Vallejo)',
       almacen_codigo TEXT NOT NULL DEFAULT 'CEDIS-CDMX-01',
+      almacen_direccion TEXT NOT NULL DEFAULT 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX',
       lat_origen REAL NOT NULL DEFAULT 19.5186,
       lng_origen REAL NOT NULL DEFAULT -99.1645,
       lat_destino REAL NOT NULL DEFAULT 19.3458,

@@ -143,6 +143,162 @@ async function refreshCartModal() {
 
 // ============================================================================
 
+const EXPRESSMART_WAREHOUSES = [
+  {
+    codigo: 'CEDIS-CDMX-01',
+    nombre: 'CEDIS CDMX Norte (Vallejo)',
+    direccion: 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX',
+    lat: 19.4895,
+    lng: -99.1645
+  },
+  {
+    codigo: 'CEDIS-CDMX-02',
+    nombre: 'CEDIS CDMX Oriente (Iztapalapa)',
+    direccion: 'Calz. Ignacio Zaragoza 1820, Nave 12, Col. Juan Escutia, C.P. 09100, Iztapalapa, CDMX',
+    lat: 19.3621,
+    lng: -99.0721
+  },
+  {
+    codigo: 'CEDIS-GDL-01',
+    nombre: 'CEDIS Occidente (Guadalajara)',
+    direccion: 'Anillo Periférico Sur Manuel Gómez Morín 7850, Parque Industrial Santa María, C.P. 45601, Tlaquepaque, Jal.',
+    lat: 20.6597,
+    lng: -103.3496
+  },
+  {
+    codigo: 'CEDIS-MTY-01',
+    nombre: 'CEDIS Noreste (Monterrey)',
+    direccion: 'Carretera Miguel Alemán Km 21.5, Parque Industrial Stiva, C.P. 66600, Apodaca, N.L.',
+    lat: 25.6866,
+    lng: -100.3161
+  },
+  {
+    codigo: 'CEDIS-PUE-01',
+    nombre: 'CEDIS Centro-Sur (Puebla)',
+    direccion: 'Autopista México-Puebla Km 118.4, Corredor Industrial FINSA, C.P. 72700, Cuautlancingo, Pue.',
+    lat: 19.0414,
+    lng: -98.2063
+  }
+];
+
+function findNearestCedisWarehouse(lat, lng) {
+  let best = EXPRESSMART_WAREHOUSES[0];
+  let minD = Infinity;
+  for (const w of EXPRESSMART_WAREHOUSES) {
+    const d = Math.hypot(w.lat - lat, w.lng - lng);
+    if (d < minD) {
+      minD = d;
+      best = w;
+    }
+  }
+  return best;
+}
+
+let checkoutPickerMap = null;
+let checkoutDestMarker = null;
+let checkoutPreviewLine = null;
+
+function setCheckoutMapCoordinates(lat, lng, customAddressText) {
+  const cleanLat = Number(Number(lat).toFixed(5));
+  const cleanLng = Number(Number(lng).toFixed(5));
+  state.checkoutCoords = { lat: cleanLat, lng: cleanLng };
+
+  const latInput = document.getElementById('checkout-lat');
+  const lngInput = document.getElementById('checkout-lng');
+  const coordsDisp = document.getElementById('checkout-coords-display');
+  const whAssigned = document.getElementById('checkout-warehouse-assigned');
+  const whAddrInfo = document.getElementById('checkout-warehouse-address-info');
+  const addrInput = document.getElementById('checkout-address');
+
+  if (latInput) latInput.value = String(cleanLat);
+  if (lngInput) lngInput.value = String(cleanLng);
+  if (coordsDisp) coordsDisp.textContent = `${cleanLat}, ${cleanLng}`;
+
+  const nearestWh = findNearestCedisWarehouse(cleanLat, cleanLng);
+  if (whAssigned) whAssigned.textContent = `🏢 Salida: ${nearestWh.nombre}`;
+  if (whAddrInfo) {
+    whAddrInfo.innerHTML = `🏭 Dirección del Almacén de Salida: <strong class="text-on-surface">${escapeHtml(nearestWh.nombre)} — ${escapeHtml(nearestWh.direccion)}</strong>`;
+  }
+
+  if (addrInput) {
+    const baseAddr = customAddressText
+      ? customAddressText
+      : (addrInput.value.replace(/\s*\[Lat:.*?\]/g, '').trim() || `Av. Insurgentes Sur 1602, Col. Crédito Constructor, CDMX`);
+    addrInput.value = `${baseAddr} [Lat: ${cleanLat}, Lng: ${cleanLng}]`;
+  }
+
+  if (checkoutPickerMap && typeof L !== 'undefined') {
+    if (checkoutDestMarker) {
+      checkoutDestMarker.setLatLng([cleanLat, cleanLng]);
+    } else {
+      const destIcon = L.divIcon({
+        className: 'checkout-dest-pin',
+        html: `<div style="background:#059669; color:#fff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:15px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.35);">📍</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+      checkoutDestMarker = L.marker([cleanLat, cleanLng], { icon: destIcon })
+        .bindPopup(`<strong>📍 Punto de Entrega Seleccionado</strong><br>Coordenadas: ${cleanLat}, ${cleanLng}`)
+        .addTo(checkoutPickerMap);
+    }
+
+    if (checkoutPreviewLine) {
+      checkoutPickerMap.removeLayer(checkoutPreviewLine);
+    }
+    checkoutPreviewLine = L.polyline([[nearestWh.lat, nearestWh.lng], [cleanLat, cleanLng]], {
+      color: '#0284c7',
+      weight: 4,
+      dashArray: '8, 6',
+      opacity: 0.85
+    }).addTo(checkoutPickerMap);
+  }
+}
+
+function initCheckoutOsmPicker() {
+  const mapEl = document.getElementById('checkout-osm-picker-map');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  const initLat = Number(state.user?.latitud) || state.checkoutCoords?.lat || 19.3907;
+  const initLng = Number(state.user?.longitud) || state.checkoutCoords?.lng || -99.1636;
+
+  if (!checkoutPickerMap) {
+    checkoutPickerMap = L.map('checkout-osm-picker-map', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([initLat, initLng], 11);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(checkoutPickerMap);
+
+    // Pintar todos los almacenes CEDIS con su dirección falsa
+    EXPRESSMART_WAREHOUSES.forEach((wh) => {
+      const whIcon = L.divIcon({
+        className: 'checkout-wh-pin',
+        html: `<div style="background:#1d4e9a; color:#fff; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:13px; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.3);">🏢</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      L.marker([wh.lat, wh.lng], { icon: whIcon })
+        .bindPopup(`<strong>🏢 ${escapeHtml(wh.nombre)}</strong><br><span style="font-size:11px;">${escapeHtml(wh.direccion)}</span>`)
+        .addTo(checkoutPickerMap);
+    });
+
+    checkoutPickerMap.on('click', (ev) => {
+      setCheckoutMapCoordinates(ev.latlng.lat, ev.latlng.lng);
+    });
+  }
+
+  setCheckoutMapCoordinates(initLat, initLng);
+  setTimeout(() => {
+    if (checkoutPickerMap) {
+      checkoutPickerMap.invalidateSize();
+      checkoutPickerMap.setView([initLat, initLng], 11);
+    }
+  }, 220);
+}
+
 function initCartCheckoutEvents() {
   // Modal de Carrito y Checkout en 3 pasos
   const cartDialog = document.getElementById('cart-dialog');
@@ -150,8 +306,34 @@ function initCartCheckoutEvents() {
     setCheckoutStep(1);
     refreshCartModal();
     cartDialog.showModal();
+    initCheckoutOsmPicker();
   });
   document.getElementById('btn-close-cart').addEventListener('click', () => cartDialog.close());
+
+  const btnToggleCheckoutMap = document.getElementById('btn-toggle-checkout-map');
+  if (btnToggleCheckoutMap) {
+    btnToggleCheckoutMap.addEventListener('click', () => {
+      const wrap = document.getElementById('checkout-osm-picker-wrapper');
+      if (wrap) {
+        wrap.classList.toggle('hidden');
+        if (!wrap.classList.contains('hidden')) {
+          initCheckoutOsmPicker();
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.checkout-preset-zone').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lat = Number(btn.dataset.lat);
+      const lng = Number(btn.dataset.lng);
+      const addr = btn.dataset.addr || '';
+      setCheckoutMapCoordinates(lat, lng, addr);
+      if (checkoutPickerMap) {
+        checkoutPickerMap.setView([lat, lng], 12);
+      }
+    });
+  });
 
   document.getElementById('btn-apply-coupon').addEventListener('click', () => {
     state.coupon = document.getElementById('cart-coupon').value.trim();
@@ -405,12 +587,16 @@ function initCartCheckoutEvents() {
       btnConfirm.textContent = 'Procesando pago seguro...';
 
       const isPaypal = document.getElementById('payment-method').value === 'paypal';
+      const latVal = document.getElementById('checkout-lat')?.value || state.checkoutCoords?.lat || state.user?.latitud || null;
+      const lngVal = document.getElementById('checkout-lng')?.value || state.checkoutCoords?.lng || state.user?.longitud || null;
       const res = await apiFetch('/api/checkout', {
         method: 'POST',
         body: JSON.stringify({
           items: state.cart,
           cuponCodigo: state.coupon,
           direccionEnvio: document.getElementById('checkout-address').value.trim(),
+          latDestino: latVal ? Number(latVal) : null,
+          lngDestino: lngVal ? Number(lngVal) : null,
           metodoPago: document.getElementById('payment-method').value,
           mesesSinIntereses: Number(document.getElementById('payment-msi').value || 1),
           cardHolder: isPaypal ? 'CLIENTE PAYPAL SANDBOX' : document.getElementById('card-holder').value,
@@ -448,6 +634,7 @@ function initCartCheckoutEvents() {
           <div class="text-xs">Método: <strong>${pagoDesc}</strong> · Pasarela: <strong>${res.order?.pago?.referenciaPasarela || 'CAPTURED'}</strong></div>
           ${cardSimDeductedInfo}
           <div class="text-xs">Guía ExpressPrime: <strong>${res.order.envio.numeroGuia}</strong> (${res.order.envio.proveedorPaqueteria})</div>
+          <div class="text-xs">🏢 Almacén Salida: <strong>${escapeHtml(res.order.envio.almacenOrigen || 'CEDIS Vallejo')}</strong> (${escapeHtml(res.order.envio.almacenDireccion || '')})</div>
           <div class="text-xs text-secondary">Recibirás la confirmación de tu pedido por correo electrónico.</div>
         </div>
       `;
@@ -479,18 +666,10 @@ function initCartCheckoutEvents() {
       resultBox.innerHTML = `<div class="alert alert-error">Error en la transacción: ${err.message}</div>`;
     }
   });
-
-  // Carga y modificación de Foto de Perfil en "Mi Cuenta"
-  const fileInputPhoto = document.getElementById('input-profile-photo');
-  const btnTriggerPhoto = document.getElementById('btn-trigger-photo');
-  const btnUploadDirect = document.getElementById('btn-upload-photo-direct');
-  const profileAvatarBox = document.getElementById('profile-avatar-box');
-  const btnRemovePhoto = document.getElementById('btn-remove-photo');
-
-  const triggerFileSelect = () => {
-
 }
 
+window.EXPRESSMART_WAREHOUSES = EXPRESSMART_WAREHOUSES;
+window.findNearestCedisWarehouse = findNearestCedisWarehouse;
 window.setCheckoutStep = setCheckoutStep;
 window.refreshCartModal = refreshCartModal;
 window.initCartCheckoutEvents = initCartCheckoutEvents;

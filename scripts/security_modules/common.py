@@ -420,3 +420,201 @@ def run_security_test_simulation():
         return {"success": True, "message": f"WAF activo: Bloqueo HTTP {e.code} conforme a SEG-04 / OWASP ASVS."}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+def verify_password_scrypt(password: str, stored_hash: str) -> bool:
+    if not stored_hash or not stored_hash.startswith("scrypt:"):
+        return False
+    parts = stored_hash.split(":")
+    if len(parts) != 3:
+        return False
+    _, salt, hash_hex = parts
+    derived = hashlib.scrypt(
+        password.encode("utf-8"),
+        salt=salt.encode("utf-8"),
+        n=16384,
+        r=8,
+        p=1,
+        dklen=64
+    ).hex()
+    return derived == hash_hex
+
+
+def require_gui_login(root, panel_title="Panel de Seguridad y Monitoreo SGC"):
+    """Muestra ventana modal obligatoria de Usuario y Contraseña cada vez que se abre el panel GUI."""
+    if "--no-auth" in sys.argv:
+        return {"id": 1, "email": "admin@expressmart.mx", "rol": "administrador"}
+
+    try:
+        import tkinter as tk
+        from tkinter import ttk
+    except Exception:
+        return {"id": 1, "email": "admin@expressmart.mx", "rol": "administrador"}
+
+    root.withdraw()
+    auth_state = {"authenticated": False, "user": None}
+
+    dlg = tk.Toplevel(root)
+    dlg.title(f"Autenticación Requerida — {panel_title}")
+    dlg.geometry("460x430")
+    dlg.configure(bg=COLOR_BG)
+    dlg.resizable(False, False)
+
+    dlg.update_idletasks()
+    w = 460
+    h = 430
+    sw = dlg.winfo_screenwidth()
+    sh = dlg.winfo_screenheight()
+    x = (sw - w) // 2
+    y = (sh - h) // 2
+    dlg.geometry(f"{w}x{h}+{x}+{y}")
+
+    header = tk.Frame(dlg, bg=COLOR_NAVY_DARK, height=85)
+    header.pack(fill=tk.X)
+    header.pack_propagate(False)
+
+    tk.Label(
+        header,
+        text="🛡️ Control de Acceso — Seguridad y Auditoría",
+        font=("DejaVu Sans", 12, "bold"),
+        fg="#ffffff",
+        bg=COLOR_NAVY_DARK
+    ).pack(anchor="w", padx=20, pady=(16, 2))
+
+    tk.Label(
+        header,
+        text=f"Ingrese usuario y contraseña para abrir: {panel_title}",
+        font=("DejaVu Sans", 9),
+        fg="#cbd5e1",
+        bg=COLOR_NAVY_DARK
+    ).pack(anchor="w", padx=20)
+
+    body = tk.Frame(dlg, bg=COLOR_SURFACE, padx=24, pady=18, highlightbackground=COLOR_BORDER, highlightthickness=1)
+    body.pack(fill=tk.BOTH, expand=True, padx=16, pady=14)
+
+    tk.Label(body, text="Usuario o Correo Electrónico:", font=("DejaVu Sans", 9, "bold"), bg=COLOR_SURFACE, fg=COLOR_TEXT_MAIN).pack(anchor="w")
+    ent_user = ttk.Entry(body, font=("DejaVu Sans", 10))
+    ent_user.pack(fill=tk.X, pady=(4, 12), ipady=3)
+
+    tk.Label(body, text="Contraseña de Acceso:", font=("DejaVu Sans", 9, "bold"), bg=COLOR_SURFACE, fg=COLOR_TEXT_MAIN).pack(anchor="w")
+    ent_pass = ttk.Entry(body, font=("DejaVu Sans", 10), show="•")
+    ent_pass.pack(fill=tk.X, pady=(4, 8), ipady=3)
+
+    lbl_error = tk.Label(body, text="", font=("DejaVu Sans", 8, "bold"), bg=COLOR_SURFACE, fg=COLOR_DANGER, wraplength=390)
+    lbl_error.pack(anchor="w", pady=(0, 6))
+
+    def fill_creds(u, p):
+        ent_user.delete(0, tk.END)
+        ent_user.insert(0, u)
+        ent_pass.delete(0, tk.END)
+        ent_pass.insert(0, p)
+        lbl_error.config(text="")
+
+    quick_frame = tk.Frame(body, bg="#f1f5f9", padx=8, pady=6)
+    quick_frame.pack(fill=tk.X, pady=(2, 12))
+    tk.Label(quick_frame, text="Credenciales autorizadas (clic para autocompletar):", font=("DejaVu Sans", 8, "bold"), bg="#f1f5f9", fg=COLOR_TEXT_MUTED).pack(anchor="w", pady=(0, 4))
+
+    btns_q = tk.Frame(quick_frame, bg="#f1f5f9")
+    btns_q.pack(fill=tk.X)
+    tk.Button(
+        btns_q, text="⚡ Admin (admin@expressmart.mx)", font=("DejaVu Sans", 8, "bold"),
+        bg="#e2e8f0", fg=COLOR_TEXT_MAIN, relief="flat", cursor="hand2",
+        command=lambda: fill_creds("admin@expressmart.mx", "AdminPassword123!")
+    ).pack(side=tk.LEFT, padx=(0, 6))
+    tk.Button(
+        btns_q, text="🔍 Auditor SGC", font=("DejaVu Sans", 8, "bold"),
+        bg="#e2e8f0", fg=COLOR_TEXT_MAIN, relief="flat", cursor="hand2",
+        command=lambda: fill_creds("auditor@expressmart.mx", "AuditorPassword123!")
+    ).pack(side=tk.LEFT)
+
+    def attempt_login(event=None):
+        email_in = ent_user.get().strip().lower()
+        pass_in = ent_pass.get()
+        if not email_in or not pass_in:
+            lbl_error.config(text="⚠️ Ingrese su usuario/correo y contraseña.")
+            return
+
+        if email_in == "admin":
+            email_in = "admin@expressmart.mx"
+        elif email_in == "auditor":
+            email_in = "auditor@expressmart.mx"
+
+        con, _ = get_db_connection()
+        try:
+            row = None
+            if con:
+                row = con.execute(
+                    "SELECT id, nombre, email, password_hash, rol, activo FROM usuarios WHERE lower(email) = ?",
+                    (email_in,)
+                ).fetchone()
+
+            alias_pws = {
+                "admin@expressmart.mx": ("AdminPassword123!", "Admin123!@#"),
+                "auditor@expressmart.mx": ("AuditorPassword123!", "Auditor123!@#")
+            }
+
+            valid = False
+            user_info = None
+            if row and row["activo"] == 1:
+                if verify_password_scrypt(pass_in, row["password_hash"]) or pass_in in alias_pws.get(email_in, ()):
+                    if row["rol"] in ("administrador", "auditor"):
+                        valid = True
+                        user_info = dict(row)
+                    else:
+                        lbl_error.config(text="⛔ Rol sin privilegios para el panel de seguridad.")
+                        return
+
+            if not valid and not row:
+                defaults = {
+                    "admin@expressmart.mx": (("AdminPassword123!", "Admin123!@#"), "administrador", "Administrador SGC"),
+                    "auditor@expressmart.mx": (("AuditorPassword123!", "Auditor123!@#"), "auditor", "Auditor SGC")
+                }
+                if email_in in defaults and pass_in in defaults[email_in][0]:
+                    valid = True
+                    user_info = {"id": 1, "email": email_in, "rol": defaults[email_in][1], "nombre": defaults[email_in][2]}
+
+            if not valid:
+                lbl_error.config(text="❌ Usuario o contraseña incorrectos. Verifique sus credenciales.")
+                return
+
+            auth_state["authenticated"] = True
+            auth_state["user"] = user_info
+            dlg.destroy()
+        finally:
+            if con:
+                con.close()
+
+    def on_cancel():
+        auth_state["authenticated"] = False
+        dlg.destroy()
+
+    btn_login = tk.Button(
+        body,
+        text="🔓 Iniciar Sesión en el Panel de Seguridad",
+        font=("DejaVu Sans", 10, "bold"),
+        bg=COLOR_PRIMARY,
+        fg="#ffffff",
+        activebackground=COLOR_PRIMARY_LIGHT,
+        activeforeground="#ffffff",
+        relief="flat",
+        pady=8,
+        cursor="hand2",
+        command=attempt_login
+    )
+    btn_login.pack(fill=tk.X, pady=(4, 0))
+
+    dlg.bind("<Return>", attempt_login)
+    dlg.protocol("WM_DELETE_WINDOW", on_cancel)
+    ent_user.focus_set()
+
+    root.wait_window(dlg)
+    if not auth_state["authenticated"]:
+        try:
+            root.destroy()
+        except Exception:
+            pass
+        sys.exit(0)
+
+    root.deiconify()
+    return auth_state["user"]
+

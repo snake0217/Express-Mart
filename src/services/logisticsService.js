@@ -5,16 +5,16 @@
 
 const crypto = require('crypto');
 
-// Catálogo Maestro de Centros de Distribución (CEDIS) y Almacenes ExpressMart
+// Catálogo Maestro de Centros de Distribución (CEDIS) y Almacenes ExpressMart con Direcciones Completas
 const WAREHOUSES = [
   {
     codigo: 'CEDIS-CDMX-01',
     nombre: 'CEDIS ExpressMart CDMX Norte (Vallejo)',
     tipo: 'CEDIS Principal Hub',
-    direccion: 'Av. Ceylán 450, Col. Industrial Vallejo, Azcapotzalco, CDMX',
+    direccion: 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX',
     ciudad: 'Ciudad de México',
     estado: 'CDMX',
-    latitud: 19.5186,
+    latitud: 19.4895,
     longitud: -99.1645,
     telefono: '+52 55 5876 1100',
     horario: '24/7 Operaciones Continuas',
@@ -26,7 +26,7 @@ const WAREHOUSES = [
     codigo: 'CEDIS-CDMX-02',
     nombre: 'CEDIS ExpressMart CDMX Sur (Coyoacán)',
     tipo: 'CEDIS Metropolitano Sur',
-    direccion: 'Calzada del Hueso 800, Granjas Coapa, Coyoacán, CDMX',
+    direccion: 'Calzada del Hueso 820, Nave Sur-12, Col. Granjas Coapa, C.P. 14330, Coyoacán, CDMX',
     ciudad: 'Ciudad de México',
     estado: 'CDMX',
     latitud: 19.3032,
@@ -41,7 +41,7 @@ const WAREHOUSES = [
     codigo: 'CEDIS-GDL-01',
     nombre: 'CEDIS ExpressMart Guadalajara (Occidente)',
     tipo: 'CEDIS Regional Occidente',
-    direccion: 'Av. de la Solidaridad Iberoamericana 7000, El Salto, Jalisco',
+    direccion: 'Av. Solidaridad Iberoamericana 7020, Parque Industrial Occidente, C.P. 45680, El Salto, Jalisco',
     ciudad: 'Guadalajara / El Salto',
     estado: 'Jalisco',
     latitud: 20.5833,
@@ -56,7 +56,7 @@ const WAREHOUSES = [
     codigo: 'CEDIS-MTY-01',
     nombre: 'CEDIS ExpressMart Monterrey (Noreste)',
     tipo: 'CEDIS Regional Norte',
-    direccion: 'Parque Industrial Kronos, Apodaca, Nuevo León',
+    direccion: 'Blvd. TLC 300, Parque Industrial Kronos, Nave 8, C.P. 66600, Apodaca, Nuevo León',
     ciudad: 'Monterrey / Apodaca',
     estado: 'Nuevo León',
     latitud: 25.7785,
@@ -71,10 +71,10 @@ const WAREHOUSES = [
     codigo: 'CEDIS-PUE-01',
     nombre: 'CEDIS ExpressMart Puebla (Centro-Oriente)',
     tipo: 'CEDIS Regional FINSA',
-    direccion: 'Autopista México-Puebla Km 115, Parque FINSA, Cuautlancingo, Puebla',
+    direccion: 'Autopista México-Puebla Km 115.5, Parque Industrial FINSA, Bodega 3, C.P. 72710, Cuautlancingo, Puebla',
     ciudad: 'Puebla',
     estado: 'Puebla',
-    latitud: 19.0833,
+    latitud: 19.1150,
     longitud: -98.2500,
     telefono: '+52 22 2240 5500',
     horario: '07:00 - 21:00 hrs',
@@ -86,21 +86,59 @@ const WAREHOUSES = [
 
 // Zonas y coordenadas de destino de referencia en México
 const REFERENCE_DESTINATIONS = [
-  { clave: 'coyoacan', lat: 19.3458, lng: -99.1617, zona: 'Coyoacán / Universidad, CDMX' },
-  { clave: 'polanco', lat: 19.4326, lng: -99.1950, zona: 'Polanco / Miguel Hidalgo, CDMX' },
-  { clave: 'roma_condesa', lat: 19.4140, lng: -99.1680, zona: 'Roma Norte / Cuauhtémoc, CDMX' },
-  { clave: 'del_valle', lat: 19.3789, lng: -99.1670, zona: 'Col. Del Valle / Benito Juárez, CDMX' },
-  { clave: 'centro', lat: 19.4326, lng: -99.1332, zona: 'Centro Histórico, CDMX' },
-  { clave: 'santa_fe', lat: 19.3590, lng: -99.2590, zona: 'Santa Fe / Cuajimalpa, CDMX' },
-  { clave: 'guadalajara', lat: 20.6767, lng: -103.3496, zona: 'Guadalajara Centro, Jalisco' },
-  { clave: 'monterrey', lat: 25.6866, lng: -100.3161, zona: 'Monterrey Centro, Nuevo León' },
-  { clave: 'puebla', lat: 19.0414, lng: -98.2063, zona: 'Puebla Centro, Puebla' }
+  { clave: 'coyoacan', lat: 19.3458, lng: -99.1617, zona: 'Av. Miguel Ángel de Quevedo 420, Coyoacán, CDMX' },
+  { clave: 'polanco', lat: 19.4326, lng: -99.1950, zona: 'Av. Presidente Masaryk 215, Polanco, Miguel Hidalgo, CDMX' },
+  { clave: 'roma_condesa', lat: 19.4140, lng: -99.1680, zona: 'Av. Álvaro Obregón 154, Col. Roma Norte, Cuauhtémoc, CDMX' },
+  { clave: 'del_valle', lat: 19.3789, lng: -99.1670, zona: 'Av. Insurgentes Sur 1180, Col. Del Valle, Benito Juárez, CDMX' },
+  { clave: 'centro', lat: 19.4326, lng: -99.1332, zona: 'Av. Francisco I. Madero 55, Centro Histórico, CDMX' },
+  { clave: 'santa_fe', lat: 19.3590, lng: -99.2590, zona: 'Av. Vasco de Quiroga 3800, Santa Fe, Cuajimalpa, CDMX' },
+  { clave: 'guadalajara', lat: 20.6767, lng: -103.3496, zona: 'Av. Vallarta 1450, Col. Americana, Guadalajara, Jalisco' },
+  { clave: 'monterrey', lat: 25.6866, lng: -100.3161, zona: 'Av. Constitución 950, Centro, Monterrey, Nuevo León' },
+  { clave: 'puebla', lat: 19.0414, lng: -98.2063, zona: 'Av. Juárez 1905, Zona Esmeralda, Puebla, Pue.' }
 ];
+
+/**
+ * Obtiene los detalles completos del almacén por código o nombre
+ */
+function getWarehouseDetails(codeOrName = '') {
+  const q = String(codeOrName || '').toLowerCase();
+  const found = WAREHOUSES.find(
+    (w) =>
+      w.codigo.toLowerCase() === q ||
+      w.nombre.toLowerCase().includes(q) ||
+      q.includes(w.codigo.toLowerCase()) ||
+      (q.includes('sur') && w.codigo === 'CEDIS-CDMX-02') ||
+      (q.includes('guadalajara') && w.codigo === 'CEDIS-GDL-01') ||
+      (q.includes('monterrey') && w.codigo === 'CEDIS-MTY-01') ||
+      (q.includes('puebla') && w.codigo === 'CEDIS-PUE-01')
+  );
+  return found || WAREHOUSES[0];
+}
 
 /**
  * Deduce o asigna coordenadas geográficas realistas a partir de la dirección de entrega
  */
-function resolveDestinationCoordinates(direccion = '') {
+function resolveDestinationCoordinates(direccion = '', explicitLat = null, explicitLng = null) {
+  const numLat = Number(explicitLat);
+  const numLng = Number(explicitLng);
+  if (Number.isFinite(numLat) && Number.isFinite(numLng) && Math.abs(numLat) > 1 && Math.abs(numLng) > 1) {
+    return {
+      lat: Number(numLat.toFixed(6)),
+      lng: Number(numLng.toFixed(6)),
+      zona: direccion || 'Ubicación seleccionada en Mapa OpenStreetMap'
+    };
+  }
+
+  // Extraer coordenadas si vienen embebidas en el texto de la dirección: "[Lat: 19.4326, Lng: -99.1332]"
+  const coordMatch = String(direccion).match(/lat[:\s]*(-?\d+\.\d+)[,\s]+(?:lng|lon)[:\s]*(-?\d+\.\d+)/i);
+  if (coordMatch) {
+    return {
+      lat: Number(parseFloat(coordMatch[1]).toFixed(6)),
+      lng: Number(parseFloat(coordMatch[2]).toFixed(6)),
+      zona: direccion
+    };
+  }
+
   const dirLow = String(direccion).toLowerCase();
   if (dirLow.includes('coyoac') || dirLow.includes('universidad') || dirLow.includes('coapa')) {
     return { lat: 19.3458, lng: -99.1617, zona: 'Coyoacán, CDMX' };
@@ -126,8 +164,8 @@ function resolveDestinationCoordinates(direccion = '') {
 
   // Si no coincide con palabras clave, genera un destino determinista pero variado en CDMX
   const hash = crypto.createHash('md5').update(direccion || 'CDMX').digest('hex');
-  const latOffset = (parseInt(hash.slice(0, 4), 16) % 120 - 60) / 1000; // +- 0.06
-  const lngOffset = (parseInt(hash.slice(4, 8), 16) % 120 - 60) / 1000;
+  const latOffset = ((parseInt(hash.slice(0, 4), 16) % 120) - 60) / 1000;
+  const lngOffset = ((parseInt(hash.slice(4, 8), 16) % 120) - 60) / 1000;
   return {
     lat: Number((19.3900 + latOffset).toFixed(5)),
     lng: Number((-99.1600 + lngOffset).toFixed(5)),
@@ -160,26 +198,21 @@ function resolveWarehouseForDestination(destCoords) {
  */
 function generateRouteCoordinates(origin, destination, waypointCount = 40) {
   const points = [];
-  const startLat = origin.latitud || origin.lat;
-  const startLng = origin.longitud || origin.lng;
-  const endLat = destination.lat;
-  const endLng = destination.lng;
+  const startLat = Number(origin.latitud || origin.lat || 19.4895);
+  const startLng = Number(origin.longitud || origin.lng || -99.1645);
+  const endLat = Number(destination.lat || destination.latitud || 19.3458);
+  const endLng = Number(destination.lng || destination.longitud || -99.1617);
 
-  // Calculamos vector base
   const totalSteps = Math.max(20, Math.min(80, waypointCount));
-
-  // Generamos pequeños desvíos simulando avenidas y giros vehiculares (Manhattan-like o curvas suaves)
   const seed = Math.abs(startLat * 1000 + endLng * 1000);
   const midLat = (startLat + endLat) / 2 + Math.sin(seed) * 0.012;
   const midLng = (startLng + endLng) / 2 + Math.cos(seed) * 0.012;
 
   for (let i = 0; i <= totalSteps; i++) {
     const t = i / totalSteps;
-    // Curva cuadrática de Bézier para emular trazo de avenida
     const lat = (1 - t) * (1 - t) * startLat + 2 * (1 - t) * t * midLat + t * t * endLat;
     const lng = (1 - t) * (1 - t) * startLng + 2 * (1 - t) * t * midLng + t * t * endLng;
 
-    // Pequeño jitter para realismo de calles
     const microJitterLat = Math.sin(i * 1.5) * 0.0004;
     const microJitterLng = Math.cos(i * 1.5) * 0.0004;
 
@@ -193,7 +226,82 @@ function generateRouteCoordinates(origin, destination, waypointCount = 40) {
 }
 
 /**
- * Inicializa la tabla almacenes y siembra los CEDIS si la tabla está vacía
+ * Avanza automáticamente las simulaciones activas en la base de datos según el tiempo transcurrido
+ */
+function advanceActiveSimulations(db, filterPedidoId = null) {
+  try {
+    let sql = 'SELECT * FROM envios WHERE simulacion_activa = 1';
+    const params = [];
+    if (filterPedidoId) {
+      sql += ' AND pedido_id = ?';
+      params.push(Number(filterPedidoId));
+    }
+    const activeRows = db.prepare(sql).all(...params);
+    if (!activeRows || activeRows.length === 0) return;
+
+    const nowMs = Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+
+    for (const row of activeRows) {
+      let updatedMs = row.updated_at ? Date.parse(row.updated_at) : nowMs - 2000;
+      if (Number.isNaN(updatedMs)) updatedMs = nowMs - 2000;
+      const elapsedSec = Math.max(0, (nowMs - updatedMs) / 1000);
+
+      // Si han pasado al menos 0.8 segundos desde el último paso, avanzamos la simulación (~4% por segundo)
+      if (elapsedSec < 0.8) continue;
+
+      const wh = getWarehouseDetails(row.almacen_codigo || row.almacen_origen);
+      const origin = { latitud: row.lat_origen || wh.latitud, longitud: row.lng_origen || wh.longitud };
+      const dest = { lat: row.lat_destino || 19.3458, lng: row.lng_destino || -99.1617 };
+
+      let route = [];
+      try {
+        route = JSON.parse(row.ruta_puntos_json || '[]');
+      } catch (_) {
+        route = [];
+      }
+      if (!Array.isArray(route) || route.length < 2) {
+        route = generateRouteCoordinates(origin, dest, 40);
+      }
+
+      const currentProgress = Number(row.progreso_simulacion || 0);
+      const deltaProgress = Math.min(25, Math.max(3.5, elapsedSec * 4.5));
+      const nextProgress = Math.min(100, Number((currentProgress + deltaProgress).toFixed(1)));
+
+      // Interpolar posición sobre la polilínea de ruta
+      const exactIdx = (nextProgress / 100) * (route.length - 1);
+      const lowIdx = Math.max(0, Math.min(route.length - 1, Math.floor(exactIdx)));
+      const highIdx = Math.max(0, Math.min(route.length - 1, Math.ceil(exactIdx)));
+      const frac = exactIdx - lowIdx;
+
+      const p1 = Array.isArray(route[lowIdx]) ? route[lowIdx] : [route[lowIdx]?.lat || origin.latitud, route[lowIdx]?.lng || origin.longitud];
+      const p2 = Array.isArray(route[highIdx]) ? route[highIdx] : [route[highIdx]?.lat || dest.lat, route[highIdx]?.lng || dest.lng];
+
+      const nextLat = Number((Number(p1[0]) + (Number(p2[0]) - Number(p1[0])) * frac).toFixed(6));
+      const nextLng = Number((Number(p1[1]) + (Number(p2[1]) - Number(p1[1])) * frac).toFixed(6));
+
+      if (nextProgress >= 100) {
+        db.prepare(`
+          UPDATE envios
+          SET progreso_simulacion = 100.0, simulacion_activa = 0, estado_envio = 'entregado',
+              lat_actual = ?, lng_actual = ?, ruta_puntos_json = ?, updated_at = ?
+          WHERE id = ?
+        `).run(dest.lat, dest.lng, JSON.stringify(route), nowIso, row.id);
+        db.prepare("UPDATE pedidos SET estado = 'entregado', updated_at = ? WHERE id = ?").run(nowIso, row.pedido_id);
+      } else {
+        db.prepare(`
+          UPDATE envios
+          SET progreso_simulacion = ?, estado_envio = 'en_transito',
+              lat_actual = ?, lng_actual = ?, ruta_puntos_json = ?, updated_at = ?
+          WHERE id = ?
+        `).run(nextProgress, nextLat, nextLng, JSON.stringify(route), nowIso, row.id);
+      }
+    }
+  } catch (_) {}
+}
+
+/**
+ * Inicializa la tabla almacenes y sincroniza las direcciones falsas completas de los CEDIS
  */
 function ensureWarehousesTable(db) {
   db.exec(`
@@ -217,74 +325,107 @@ function ensureWarehousesTable(db) {
     );
   `);
 
-  const count = db.prepare('SELECT COUNT(*) as total FROM almacenes').get().total;
-  if (count === 0) {
-    const now = new Date().toISOString();
-    const insertWh = db.prepare(`
-      INSERT INTO almacenes (
-        codigo, nombre, tipo, direccion, ciudad, estado, latitud, longitud, telefono, horario, capacidad_m3, muelles_carga, color, activo, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
-    `);
+  const now = new Date().toISOString();
+  const upsertWh = db.prepare(`
+    INSERT INTO almacenes (
+      codigo, nombre, tipo, direccion, ciudad, estado, latitud, longitud, telefono, horario, capacidad_m3, muelles_carga, color, activo, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+    ON CONFLICT(codigo) DO UPDATE SET
+      nombre = excluded.nombre,
+      direccion = excluded.direccion,
+      latitud = excluded.latitud,
+      longitud = excluded.longitud,
+      telefono = excluded.telefono,
+      horario = excluded.horario
+  `);
 
-    for (const w of WAREHOUSES) {
-      insertWh.run(
-        w.codigo,
-        w.nombre,
-        w.tipo,
-        w.direccion,
-        w.ciudad,
-        w.estado,
-        w.latitud,
-        w.longitud,
-        w.telefono,
-        w.horario,
-        w.capacidadM3,
-        w.muellesCarga,
-        w.color,
-        now
-      );
-    }
+  for (const w of WAREHOUSES) {
+    upsertWh.run(
+      w.codigo,
+      w.nombre,
+      w.tipo,
+      w.direccion,
+      w.ciudad,
+      w.estado,
+      w.latitud,
+      w.longitud,
+      w.telefono,
+      w.horario,
+      w.capacidadM3,
+      w.muellesCarga,
+      w.color,
+      now
+    );
   }
 }
 
 /**
- * Asegura que la tabla envios contenga los campos requeridos para OpenStreetMap y simulación
+ * Asegura que las tablas envios y usuarios contengan los campos requeridos para OpenStreetMap y simulación
  */
 function ensureShipmentsTableExtended(db) {
-  try { db.exec("ALTER TABLE envios ADD COLUMN almacen_origen TEXT DEFAULT 'CEDIS CDMX Norte (Vallejo)';"); } catch (_) {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN latitud REAL DEFAULT 19.3789;'); } catch (_) {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN longitud REAL DEFAULT -99.1670;'); } catch (_) {}
+  try { db.exec("ALTER TABLE envios ADD COLUMN almacen_origen TEXT DEFAULT 'CEDIS ExpressMart CDMX Norte (Vallejo)';"); } catch (_) {}
   try { db.exec("ALTER TABLE envios ADD COLUMN almacen_codigo TEXT DEFAULT 'CEDIS-CDMX-01';"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN lat_origen REAL DEFAULT 19.5186;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN lng_origen REAL DEFAULT -99.1645;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN lat_destino REAL DEFAULT 19.3458;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN lng_destino REAL DEFAULT -99.1617;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN lat_actual REAL DEFAULT 19.5186;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN lng_actual REAL DEFAULT -99.1645;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN progreso_simulacion REAL DEFAULT 0.0;"); } catch (_) {}
-  try { db.exec("ALTER TABLE envios ADD COLUMN simulacion_activa INTEGER DEFAULT 0;"); } catch (_) {}
+  try { db.exec("ALTER TABLE envios ADD COLUMN almacen_direccion TEXT DEFAULT 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX';"); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN lat_origen REAL DEFAULT 19.4895;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN lng_origen REAL DEFAULT -99.1645;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN lat_destino REAL DEFAULT 19.3458;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN lng_destino REAL DEFAULT -99.1617;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN lat_actual REAL DEFAULT 19.4895;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN lng_actual REAL DEFAULT -99.1645;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN progreso_simulacion REAL DEFAULT 0.0;'); } catch (_) {}
+  try { db.exec('ALTER TABLE envios ADD COLUMN simulacion_activa INTEGER DEFAULT 0;'); } catch (_) {}
   try { db.exec("ALTER TABLE envios ADD COLUMN tipo_vehiculo TEXT DEFAULT 'camion';"); } catch (_) {}
   try { db.exec("ALTER TABLE envios ADD COLUMN ruta_puntos_json TEXT DEFAULT '[]';"); } catch (_) {}
 
-  // Si existen envíos sin ruta de coordenadas calculada, poblarlas
-  const emptyRoutes = db.prepare("SELECT id, pedido_id, lat_origen, lng_origen, lat_destino, lng_destino FROM envios WHERE ruta_puntos_json IS NULL OR ruta_puntos_json = '[]' OR ruta_puntos_json = ''").all();
-  for (const s of emptyRoutes) {
-    const origin = { latitud: s.lat_origen || 19.5186, longitud: s.lng_origen || -99.1645 };
+  // Poblar rutas y direcciones de almacén faltantes
+  const allEnvios = db.prepare('SELECT * FROM envios').all();
+  for (const s of allEnvios) {
+    const wh = getWarehouseDetails(s.almacen_codigo || s.almacen_origen);
+    const origin = { latitud: s.lat_origen || wh.latitud, longitud: s.lng_origen || wh.longitud };
     const dest = { lat: s.lat_destino || 19.3458, lng: s.lng_destino || -99.1617 };
-    const pts = generateRouteCoordinates(origin, dest, 40);
-    db.prepare('UPDATE envios SET ruta_puntos_json = ?, lat_actual = ?, lng_actual = ? WHERE id = ?').run(
-      JSON.stringify(pts),
-      pts[0][0],
-      pts[0][1],
-      s.id
-    );
+
+    let pts = [];
+    try {
+      pts = JSON.parse(s.ruta_puntos_json || '[]');
+    } catch (_) {
+      pts = [];
+    }
+    if (!Array.isArray(pts) || pts.length < 2) {
+      pts = generateRouteCoordinates(origin, dest, 40);
+    }
+
+    if (!s.almacen_direccion || !s.ruta_puntos_json || s.ruta_puntos_json === '[]') {
+      db.prepare(`
+        UPDATE envios
+        SET almacen_origen = ?, almacen_codigo = ?, almacen_direccion = ?,
+            lat_origen = ?, lng_origen = ?, ruta_puntos_json = ?,
+            lat_actual = COALESCE(lat_actual, ?), lng_actual = COALESCE(lng_actual, ?)
+        WHERE id = ?
+      `).run(
+        wh.nombre,
+        wh.codigo,
+        wh.direccion,
+        origin.latitud,
+        origin.longitud,
+        JSON.stringify(pts),
+        pts[0][0],
+        pts[0][1],
+        s.id
+      );
+    }
   }
 }
 
 module.exports = {
   WAREHOUSES,
   REFERENCE_DESTINATIONS,
+  getWarehouseDetails,
   resolveDestinationCoordinates,
   resolveWarehouseForDestination,
   generateRouteCoordinates,
+  advanceActiveSimulations,
   ensureWarehousesTable,
   ensureShipmentsTableExtended
 };

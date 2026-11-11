@@ -252,8 +252,13 @@ class LogisticsTabMixin:
         vehiculo = vals[6]
         progreso = vals[7]
         sim = vals[8]
+        almacen_dir = "Av. Ceylán 450, Col. Industrial Vallejo, Azcapotzalco, CDMX, CP 02300"
+        for s in getattr(self, "all_shipments", []):
+            if str(s.get("pedido_id")) == str(pid):
+                almacen_dir = s.get("almacen_direccion") or almacen_dir
+                break
         self.lbl_logistics_detail.config(
-            text=f"Pedido #{pid} ({folio}) | Guía: {guia} | Almacén: {almacen}\n"
+            text=f"Pedido #{pid} ({folio}) | Guía: {guia} | Almacén: {almacen} ({almacen_dir})\n"
                  f"Destino: {destino}\n"
                  f"Estado: {estado.upper()} | Vehículo: {vehiculo.upper()} | Progreso: {progreso} | Simulación: {sim}",
             fg=COLOR_TEXT_MAIN
@@ -263,18 +268,35 @@ class LogisticsTabMixin:
         con, _ = get_db()
         try:
             try:
-                con.execute("SELECT almacen_origen, tipo_vehiculo, progreso_simulacion, simulacion_activa FROM envios LIMIT 1")
+                con.execute("SELECT almacen_origen, almacen_direccion, tipo_vehiculo, progreso_simulacion, simulacion_activa FROM envios LIMIT 1")
             except Exception:
-                con.execute("ALTER TABLE envios ADD COLUMN almacen_origen TEXT")
-                con.execute("ALTER TABLE envios ADD COLUMN tipo_vehiculo TEXT DEFAULT 'camion'")
-                con.execute("ALTER TABLE envios ADD COLUMN progreso_simulacion INTEGER DEFAULT 0")
-                con.execute("ALTER TABLE envios ADD COLUMN simulacion_activa INTEGER DEFAULT 0")
+                try:
+                    con.execute("ALTER TABLE envios ADD COLUMN almacen_origen TEXT")
+                except Exception:
+                    pass
+                try:
+                    con.execute("ALTER TABLE envios ADD COLUMN almacen_direccion TEXT")
+                except Exception:
+                    pass
+                try:
+                    con.execute("ALTER TABLE envios ADD COLUMN tipo_vehiculo TEXT DEFAULT 'camion'")
+                except Exception:
+                    pass
+                try:
+                    con.execute("ALTER TABLE envios ADD COLUMN progreso_simulacion REAL DEFAULT 0")
+                except Exception:
+                    pass
+                try:
+                    con.execute("ALTER TABLE envios ADD COLUMN simulacion_activa INTEGER DEFAULT 0")
+                except Exception:
+                    pass
                 con.commit()
 
             rows = con.execute("""
                 SELECT 
                     e.pedido_id, p.folio, e.numero_guia,
                     COALESCE(e.almacen_origen, e.almacen_codigo, 'CEDIS Vallejo') as almacen,
+                    e.almacen_direccion,
                     p.direccion_envio_cifrada, e.estado_envio,
                     COALESCE(e.tipo_vehiculo, 'camion') as tipo_vehiculo,
                     COALESCE(e.progreso_simulacion, 0) as progreso_simulacion,
@@ -284,18 +306,38 @@ class LogisticsTabMixin:
                 ORDER BY e.pedido_id DESC
             """).fetchall()
 
+            fake_dirs = {
+                "vallejo": "Av. Ceylán 450, Col. Industrial Vallejo, Azcapotzalco, CDMX, CP 02300",
+                "iztapalapa": "Calz. Ermita Iztapalapa 1890, Col. Barrio San Miguel, Iztapalapa, CDMX, CP 09360",
+                "mty": "Av. Ruiz Cortines 2410 Ote., Parque Industrial Apodaca, Nuevo León, CP 66600",
+                "monterrey": "Av. Ruiz Cortines 2410 Ote., Parque Industrial Apodaca, Nuevo León, CP 66600",
+                "gdl": "Anillo Periférico Sur Manuel Gómez Morín 7850, Tlaquepaque, Jalisco, CP 45601",
+                "guadalajara": "Anillo Periférico Sur Manuel Gómez Morín 7850, Tlaquepaque, Jalisco, CP 45601",
+                "qro": "Carretera Estatal 431 Km 2.5, Parque Industrial El Marqués, Querétaro, CP 76246",
+                "queretaro": "Carretera Estatal 431 Km 2.5, Parque Industrial El Marqués, Querétaro, CP 76246",
+            }
+
             self.all_shipments = []
             for r in rows:
                 dest = decrypt_aes_gcm(r["direccion_envio_cifrada"]) if r["direccion_envio_cifrada"] else "México"
+                alm_name = r["almacen"] or "CEDIS Vallejo"
+                alm_dir = r["almacen_direccion"]
+                if not alm_dir:
+                    alm_dir = "Av. Ceylán 450, Col. Industrial Vallejo, Azcapotzalco, CDMX, CP 02300"
+                    for k, v in fake_dirs.items():
+                        if k in alm_name.lower():
+                            alm_dir = v
+                            break
                 self.all_shipments.append({
                     "pedido_id": r["pedido_id"],
                     "folio": r["folio"],
                     "numero_guia": r["numero_guia"],
-                    "almacen": r["almacen"],
+                    "almacen": alm_name,
+                    "almacen_direccion": alm_dir,
                     "direccion_envio": dest,
                     "estado_envio": r["estado_envio"],
                     "tipo_vehiculo": r["tipo_vehiculo"],
-                    "progreso_simulacion": r["progreso_simulacion"],
+                    "progreso_simulacion": round(float(r["progreso_simulacion"] or 0), 1),
                     "simulacion_activa": r["simulacion_activa"]
                 })
         except Exception:
@@ -362,7 +404,7 @@ class LogisticsTabMixin:
         pid = self.tree_logistics.item(selected[0])["values"][0]
         con, _ = get_db()
         try:
-            con.execute("UPDATE envios SET estado_envio = 'preparando', simulacion_activa = 0, progreso_simulacion = 0, updated_at = datetime('now') WHERE pedido_id = ?", (pid,))
+            con.execute("UPDATE envios SET estado_envio = 'preparando', simulacion_activa = 0, progreso_simulacion = 0, lat_actual = lat_origen, lng_actual = lng_origen, updated_at = datetime('now') WHERE pedido_id = ?", (pid,))
             record_audit_log_sql(con, {
                 "usuario_id": 1,
                 "rol": "administrador",
@@ -387,11 +429,23 @@ class LogisticsTabMixin:
         pid = self.tree_logistics.item(selected[0])["values"][0]
         con, _ = get_db()
         try:
-            con.execute("""
-                UPDATE envios 
-                SET estado_envio = 'en_transito', simulacion_activa = 1, tipo_vehiculo = ?, updated_at = datetime('now') 
-                WHERE pedido_id = ?
-            """, (vehicle_type, pid))
+            row = con.execute("SELECT progreso_simulacion, lat_origen, lng_origen FROM envios WHERE pedido_id = ?", (pid,)).fetchone()
+            prog = float(row["progreso_simulacion"] or 0) if row else 0.0
+            if prog >= 100.0:
+                con.execute("""
+                    UPDATE envios 
+                    SET estado_envio = 'en_transito', simulacion_activa = 1, progreso_simulacion = 0.0,
+                        lat_actual = COALESCE(lat_origen, 19.4882), lng_actual = COALESCE(lng_origen, -99.1567),
+                        tipo_vehiculo = ?, updated_at = datetime('now') 
+                    WHERE pedido_id = ?
+                """, (vehicle_type, pid))
+            else:
+                con.execute("""
+                    UPDATE envios 
+                    SET estado_envio = 'en_transito', simulacion_activa = 1, tipo_vehiculo = ?, updated_at = datetime('now') 
+                    WHERE pedido_id = ?
+                """, (vehicle_type, pid))
+            con.execute("UPDATE pedidos SET estado = 'enviado', updated_at = datetime('now') WHERE id = ?", (pid,))
             record_audit_log_sql(con, {
                 "usuario_id": 1,
                 "rol": "administrador",

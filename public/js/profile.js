@@ -176,6 +176,112 @@ function updateProfilePhotoUI(fotoUrl) {
 }
 
 
+let profilePickerMap = null;
+let profileDestMarker = null;
+let profilePreviewLine = null;
+
+function setProfileMapCoordinates(lat, lng, customAddressText) {
+  const cleanLat = Number(Number(lat).toFixed(5));
+  const cleanLng = Number(Number(lng).toFixed(5));
+  state.profileCoords = { lat: cleanLat, lng: cleanLng };
+
+  const latInput = document.getElementById('prof-latitud');
+  const lngInput = document.getElementById('prof-longitud');
+  const coordsText = document.getElementById('prof-coords-text');
+  const whPreview = document.getElementById('prof-warehouse-preview');
+  const addrInput = document.getElementById('prof-direccion');
+
+  if (latInput) latInput.value = String(cleanLat);
+  if (lngInput) lngInput.value = String(cleanLng);
+  if (coordsText) coordsText.textContent = `${cleanLat}, ${cleanLng}`;
+
+  const nearestWh = typeof findNearestCedisWarehouse === 'function'
+    ? findNearestCedisWarehouse(cleanLat, cleanLng)
+    : { nombre: 'CEDIS CDMX Norte (Vallejo)', direccion: 'Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, CDMX', lat: 19.4895, lng: -99.1645 };
+
+  if (whPreview) {
+    whPreview.innerHTML = `🏢 Almacén asignado más cercano: <strong class="text-on-surface">${escapeHtml(nearestWh.nombre)} — ${escapeHtml(nearestWh.direccion)}</strong>`;
+  }
+
+  if (addrInput && customAddressText !== false) {
+    const baseAddr = customAddressText
+      ? customAddressText
+      : (addrInput.value.replace(/\s*\[Lat:.*?\]/g, '').trim() || 'Av. Insurgentes Sur 1602, Col. Crédito Constructor, CDMX');
+    addrInput.value = `${baseAddr} [Lat: ${cleanLat}, Lng: ${cleanLng}]`;
+  }
+
+  if (profilePickerMap && typeof L !== 'undefined') {
+    if (profileDestMarker) {
+      profileDestMarker.setLatLng([cleanLat, cleanLng]);
+    } else {
+      const destIcon = L.divIcon({
+        className: 'prof-dest-pin',
+        html: `<div style="background:#059669; color:#fff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:15px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.35);">📍</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+      profileDestMarker = L.marker([cleanLat, cleanLng], { icon: destIcon })
+        .bindPopup(`<strong>📍 Domicilio de Entrega</strong><br>Coordenadas: ${cleanLat}, ${cleanLng}`)
+        .addTo(profilePickerMap);
+    }
+
+    if (profilePreviewLine) {
+      profilePickerMap.removeLayer(profilePreviewLine);
+    }
+    profilePreviewLine = L.polyline([[nearestWh.lat, nearestWh.lng], [cleanLat, cleanLng]], {
+      color: '#0284c7',
+      weight: 4,
+      dashArray: '8, 6',
+      opacity: 0.85
+    }).addTo(profilePickerMap);
+  }
+}
+
+function initProfileOsmPicker() {
+  const mapEl = document.getElementById('prof-osm-picker-map');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  const initLat = Number(state.profileCoords?.lat) || Number(state.user?.latitud) || 19.3907;
+  const initLng = Number(state.profileCoords?.lng) || Number(state.user?.longitud) || -99.1636;
+
+  if (!profilePickerMap) {
+    profilePickerMap = L.map('prof-osm-picker-map', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([initLat, initLng], 11);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(profilePickerMap);
+
+    const whList = window.EXPRESSMART_WAREHOUSES || [];
+    whList.forEach((wh) => {
+      const whIcon = L.divIcon({
+        className: 'prof-wh-pin',
+        html: `<div style="background:#1d4e9a; color:#fff; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:13px; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.3);">🏢</div>`,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      L.marker([wh.lat, wh.lng], { icon: whIcon })
+        .bindPopup(`<strong>🏢 ${escapeHtml(wh.nombre)}</strong><br><span style="font-size:11px;">${escapeHtml(wh.direccion)}</span>`)
+        .addTo(profilePickerMap);
+    });
+
+    profilePickerMap.on('click', (ev) => {
+      setProfileMapCoordinates(ev.latlng.lat, ev.latlng.lng);
+    });
+  }
+
+  setProfileMapCoordinates(initLat, initLng, false);
+  setTimeout(() => {
+    if (profilePickerMap) {
+      profilePickerMap.invalidateSize();
+      profilePickerMap.setView([initLat, initLng], 11);
+    }
+  }, 220);
+}
+
 async function loadProfile() {
   if (!state.token) return;
   try {
@@ -185,11 +291,17 @@ async function loadProfile() {
     document.getElementById('prof-telefono').value = data.user.telefono || '';
     document.getElementById('prof-mfa').checked = Boolean(data.user.mfaEnabled);
 
+    const savedLat = Number(data.user.latitud) || 19.3907;
+    const savedLng = Number(data.user.longitud) || -99.1636;
+    setProfileMapCoordinates(savedLat, savedLng, false);
+
     // Actualizar datos de usuario y membresía en estado local
     if (data.user) {
       if (data.user.fotoPerfil) {
         state.user.fotoPerfil = data.user.fotoPerfil;
       }
+      state.user.latitud = savedLat;
+      state.user.longitud = savedLng;
       state.user.membresiaPremium = Boolean(data.user.membresiaPremium);
       state.user.membresiaPlan = data.user.membresiaPlan || '';
       state.user.membresiaExpira = data.user.membresiaExpira || '';
@@ -565,12 +677,20 @@ async function handleSubscriptionSubmit() {
 
 
 function initProfileEvents() {
+  // Carga y modificación de Foto de Perfil en "Mi Cuenta"
+  const fileInputPhoto = document.getElementById('input-profile-photo');
+  const btnTriggerPhoto = document.getElementById('btn-trigger-photo');
+  const btnUploadDirect = document.getElementById('btn-upload-photo-direct');
+  const profileAvatarBox = document.getElementById('profile-avatar-box');
+  const btnRemovePhoto = document.getElementById('btn-remove-photo');
+
+  const triggerFileSelect = () => {
     if (!state.token) {
       document.getElementById('auth-dialog').showModal();
       showAlert('Inicie sesión para personalizar su foto de perfil.', true);
       return;
     }
-    fileInputPhoto.click();
+    if (fileInputPhoto) fileInputPhoto.click();
   };
 
   if (btnTriggerPhoto) btnTriggerPhoto.addEventListener('click', triggerFileSelect);
@@ -632,19 +752,49 @@ function initProfileEvents() {
     });
   }
 
+  const btnToggleProfMap = document.getElementById('btn-toggle-prof-map');
+  if (btnToggleProfMap) {
+    btnToggleProfMap.addEventListener('click', () => {
+      const wrap = document.getElementById('prof-osm-picker-wrapper');
+      if (wrap) {
+        wrap.classList.toggle('hidden');
+        if (!wrap.classList.contains('hidden')) {
+          initProfileOsmPicker();
+        }
+      }
+    });
+  }
+
+  document.querySelectorAll('.prof-preset-zone').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lat = Number(btn.dataset.lat);
+      const lng = Number(btn.dataset.lng);
+      const addr = btn.dataset.addr || '';
+      setProfileMapCoordinates(lat, lng, addr);
+      if (profilePickerMap) {
+        profilePickerMap.setView([lat, lng], 12);
+      }
+    });
+  });
+
   // Guardar Cambios en Formulario de Perfil
   document.getElementById('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        nombre: document.getElementById('prof-nombre').value,
+        direccion: document.getElementById('prof-direccion').value,
+        telefono: document.getElementById('prof-telefono').value,
+        enableMfa: document.getElementById('prof-mfa').checked,
+        fotoPerfil: state.user?.fotoPerfil || ''
+      };
+      if (state.profileCoords && state.profileCoords.lat && state.profileCoords.lng) {
+        payload.latitud = state.profileCoords.lat;
+        payload.longitud = state.profileCoords.lng;
+      }
       const res = await apiFetch('/api/auth/profile', {
         method: 'PUT',
-        body: JSON.stringify({
-          nombre: document.getElementById('prof-nombre').value,
-          direccion: document.getElementById('prof-direccion').value,
-          telefono: document.getElementById('prof-telefono').value,
-          enableMfa: document.getElementById('prof-mfa').checked,
-          fotoPerfil: state.user?.fotoPerfil || ''
-        })
+        body: JSON.stringify(payload)
       });
       state.user = res.user;
       localStorage.setItem('em_user', JSON.stringify(state.user));
@@ -709,6 +859,8 @@ function initProfileEvents() {
       } catch (err) {
         showAlert(err.message, true);
       }
+    });
+  }
 
   // Eventos de Membresía ExpressPrime
   const subDialog = document.getElementById('subscription-dialog');

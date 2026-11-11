@@ -43,7 +43,8 @@ from security_modules.common import (
     get_system_listening_ports,
     detect_suspicious_activities,
     verify_audit_chain_integrity,
-    get_audit_logs
+    get_audit_logs,
+    require_gui_login
 )
 from security_modules.tabs_monitoring import MonitoringTabsMixin
 from security_modules.tab_automated_tests import AutomatedTestsTabMixin
@@ -261,6 +262,7 @@ def main():
                 root.iconphoto(True, icon_img)
             except Exception:
                 pass
+        require_gui_login(root, "Panel de Seguridad y Monitoreo SGC")
         app = SecurityPanelGUI(root)
         root.mainloop()
 

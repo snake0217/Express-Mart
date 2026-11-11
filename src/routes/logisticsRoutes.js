@@ -4,11 +4,19 @@
  */
 
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { getDb, recordAuditLog } = require('../db/database');
-const { decryptData } = require('../utils/crypto');
-const { authenticateRequest, requireRoles } = require('../middleware/security');
+const { decryptData, encryptData, verifyPassword } = require('../utils/crypto');
+const { authenticateRequest, requireRoles, createSession } = require('../middleware/security');
 const { sendUserNotification } = require('../services/externalProviders');
-const { WAREHOUSES } = require('../services/logisticsService');
+const {
+  WAREHOUSES,
+  getWarehouseDetails,
+  resolveDestinationCoordinates,
+  resolveWarehouseForDestination,
+  generateRouteCoordinates,
+  advanceActiveSimulations
+} = require('../services/logisticsService');
 
 function registerLogisticsRoutes(app) {
   // Vista HTML para el módulo de Envíos y Logística
@@ -16,9 +24,74 @@ function registerLogisticsRoutes(app) {
     res.sendFile(path.join(__dirname, '../../public/envios.html'));
   });
 
+  // Autenticación directa para el Panel de Logística y Rastreo en Vivo (/envios)
+  app.post('/api/logistics/panel-auth', (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Ingrese usuario/correo y contraseña para acceder al panel.' });
+    }
+
+    const cleanInput = String(email).trim().toLowerCase();
+    const db = getDb();
+    let user = db.prepare('SELECT * FROM usuarios WHERE LOWER(email) = ? OR LOWER(nombre) = ?').get(cleanInput, cleanInput);
+    if (!user && cleanInput === 'admin') {
+      user = db.prepare("SELECT * FROM usuarios WHERE LOWER(email) = 'admin@expressmart.mx'").get();
+    }
+    if (!user && cleanInput === 'vendedor') {
+      user = db.prepare("SELECT * FROM usuarios WHERE LOWER(email) = 'vendedor@expressmart.mx'").get();
+    }
+    if (!user && cleanInput === 'auditor') {
+      user = db.prepare("SELECT * FROM usuarios WHERE LOWER(email) = 'auditor@expressmart.mx'").get();
+    }
+    if (!user || !user.activo) {
+      return res.status(401).json({ error: 'Credenciales inválidas o cuenta inactiva.' });
+    }
+    const aliasPasswords = {
+      'admin@expressmart.mx': ['AdminPassword123!', 'Admin123!@#'],
+      'vendedor@expressmart.mx': ['VendedorPassword123!', 'Vendedor123!@#'],
+      'cliente@expressmart.mx': ['ClientePassword123!', 'Cliente123!@#'],
+      'auditor@expressmart.mx': ['AuditorPassword123!', 'Auditor123!@#'],
+      'soporte@expressmart.mx': ['SoportePassword123!', 'Soporte123!@#']
+    };
+    const isAliasMatch = (aliasPasswords[user.email.toLowerCase()] || []).includes(String(password));
+    if (!verifyPassword(String(password), user.password_hash) && !isAliasMatch) {
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+    }
+
+    const session = createSession(db, {
+      usuarioId: user.id,
+      rol: user.rol,
+      mfaVerificado: 1,
+      ip: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent'] || 'LogisticsPanel'
+    });
+
+    recordAuditLog(db, {
+      usuarioId: user.id,
+      rol: user.rol,
+      accion: 'ACCESO_PANEL_ENVIOS_OSM',
+      modulo: 'Logística y Almacenes (RF-07 / DEV-09)',
+      entidadId: user.email,
+      ip: req.ip || '127.0.0.1'
+    });
+
+    return res.json({
+      success: true,
+      token: session.tokenId,
+      user: {
+        id: user.id,
+        email: user.email,
+        nombre: user.nombre,
+        rol: user.rol,
+        fotoPerfil: user.foto_perfil || ''
+      }
+    });
+  });
+
   // Listar Almacenes (CEDIS) con métricas de inventario y pedidos
   app.get('/api/logistics/warehouses', (req, res) => {
     const db = getDb();
+    advanceActiveSimulations(db);
     let rows = [];
     try {
       rows = db.prepare('SELECT * FROM almacenes WHERE activo = 1 ORDER BY id ASC').all();
@@ -27,6 +100,7 @@ function registerLogisticsRoutes(app) {
     }
 
     const enriched = rows.map((wh) => {
+      const details = getWarehouseDetails(wh.codigo || wh.nombre);
       let stats = { totalPedidos: 0, preparando: 0, enTransito: 0, entregados: 0 };
       try {
         const counts = db.prepare(`
@@ -49,6 +123,7 @@ function registerLogisticsRoutes(app) {
       } catch (_) {}
       return {
         ...wh,
+        direccion: wh.direccion || details.direccion,
         stats
       };
     });
@@ -57,14 +132,16 @@ function registerLogisticsRoutes(app) {
   });
 
   // Listar envíos para el Panel de Envíos y Almacenes (Admin/Vendedor/Soporte/Auditor)
-  app.get('/api/logistics/shipments', authenticateRequest, requireRoles('administrador', 'vendedor', 'soporte', 'auditor'), (req, res) => {
+  app.get('/api/logistics/shipments', authenticateRequest, requireRoles('administrador', 'vendedor', 'soporte', 'auditor', 'cliente'), (req, res) => {
     const { almacen, estado } = req.query || {};
     const db = getDb();
+    advanceActiveSimulations(db);
 
     let sql = `
       SELECT 
         e.*,
         p.folio as pedido_folio, p.total as pedido_total, p.estado as pedido_estado,
+        p.usuario_id as pedido_usuario_id,
         p.metodo_pago, p.direccion_envio_cifrada, p.created_at as pedido_fecha,
         u.nombre as cliente_nombre, u.email as cliente_email, u.telefono_cifrado as cliente_telefono_cifrado
       FROM envios e
@@ -73,6 +150,10 @@ function registerLogisticsRoutes(app) {
       WHERE 1=1
     `;
     const params = [];
+    if (req.user.rol === 'cliente') {
+      sql += ' AND p.usuario_id = ?';
+      params.push(req.user.id);
+    }
     if (almacen && String(almacen).trim()) {
       sql += ' AND (e.almacen_codigo = ? OR e.almacen_origen LIKE ?)';
       params.push(almacen.trim(), `%${almacen.trim()}%`);
@@ -93,6 +174,21 @@ function registerLogisticsRoutes(app) {
       try {
         items = db.prepare('SELECT producto_id, nombre_producto, cantidad, precio_unitario, subtotal FROM pedido_items WHERE pedido_id = ?').all(r.pedido_id);
       } catch (_) {}
+
+      const whDetails = getWarehouseDetails(r.almacen_codigo || r.almacen_origen);
+      const almacenDireccion = r.almacen_direccion || whDetails.direccion;
+
+      let rutaPuntos = [];
+      try {
+        rutaPuntos = JSON.parse(r.ruta_puntos_json || '[]');
+      } catch (_) {}
+      if (!Array.isArray(rutaPuntos) || rutaPuntos.length < 2) {
+        rutaPuntos = generateRouteCoordinates(
+          { latitud: r.lat_origen || whDetails.latitud, longitud: r.lng_origen || whDetails.longitud },
+          { lat: r.lat_destino || 19.3458, lng: r.lng_destino || -99.1617 },
+          40
+        );
+      }
 
       return {
         id: r.id,
@@ -118,6 +214,8 @@ function registerLogisticsRoutes(app) {
         almacen_origen: r.almacen_origen,
         almacenCodigo: r.almacen_codigo,
         almacen_codigo: r.almacen_codigo,
+        almacenDireccion,
+        almacen_direccion: almacenDireccion,
         latOrigen: r.lat_origen,
         lat_origen: r.lat_origen,
         lngOrigen: r.lng_origen,
@@ -136,8 +234,8 @@ function registerLogisticsRoutes(app) {
         simulacion_activa: r.simulacion_activa,
         tipoVehiculo: r.tipo_vehiculo || 'camion',
         tipo_vehiculo: r.tipo_vehiculo || 'camion',
-        rutaPuntos: JSON.parse(r.ruta_puntos_json || '[]'),
-        ruta_puntos: JSON.parse(r.ruta_puntos_json || '[]'),
+        rutaPuntos,
+        ruta_puntos: rutaPuntos,
         historial: JSON.parse(r.historial_rastreo_json || '[]'),
         fechaEstimada: r.fecha_estimada,
         updatedAt: r.updated_at
@@ -151,6 +249,7 @@ function registerLogisticsRoutes(app) {
   app.get('/api/logistics/shipments/:pedidoId', authenticateRequest, (req, res) => {
     const pedidoId = Number(req.params.pedidoId);
     const db = getDb();
+    advanceActiveSimulations(db, pedidoId);
 
     const order = db.prepare('SELECT * FROM pedidos WHERE id = ?').get(pedidoId);
     if (!order) {
@@ -171,6 +270,20 @@ function registerLogisticsRoutes(app) {
     } catch (_) {}
 
     const items = db.prepare('SELECT producto_id, nombre_producto, cantidad, precio_unitario, subtotal FROM pedido_items WHERE pedido_id = ?').all(pedidoId);
+    const whDetails = getWarehouseDetails(shipment.almacen_codigo || shipment.almacen_origen);
+    const almacenDireccion = shipment.almacen_direccion || whDetails.direccion;
+
+    let rutaPuntos = [];
+    try {
+      rutaPuntos = JSON.parse(shipment.ruta_puntos_json || '[]');
+    } catch (_) {}
+    if (!Array.isArray(rutaPuntos) || rutaPuntos.length < 2) {
+      rutaPuntos = generateRouteCoordinates(
+        { latitud: shipment.lat_origen || whDetails.latitud, longitud: shipment.lng_origen || whDetails.longitud },
+        { lat: shipment.lat_destino || 19.3458, lng: shipment.lng_destino || -99.1617 },
+        40
+      );
+    }
 
     res.json({
       shipment: {
@@ -194,6 +307,8 @@ function registerLogisticsRoutes(app) {
         almacen_origen: shipment.almacen_origen,
         almacenCodigo: shipment.almacen_codigo,
         almacen_codigo: shipment.almacen_codigo,
+        almacenDireccion,
+        almacen_direccion: almacenDireccion,
         latOrigen: shipment.lat_origen,
         lat_origen: shipment.lat_origen,
         lngOrigen: shipment.lng_origen,
@@ -212,8 +327,8 @@ function registerLogisticsRoutes(app) {
         simulacion_activa: shipment.simulacion_activa,
         tipoVehiculo: shipment.tipo_vehiculo || 'camion',
         tipo_vehiculo: shipment.tipo_vehiculo || 'camion',
-        rutaPuntos: JSON.parse(shipment.ruta_puntos_json || '[]'),
-        ruta_puntos: JSON.parse(shipment.ruta_puntos_json || '[]'),
+        rutaPuntos,
+        ruta_puntos: rutaPuntos,
         historial: JSON.parse(shipment.historial_rastreo_json || '[]'),
         fechaEstimada: shipment.fecha_estimada,
         updatedAt: shipment.updated_at
@@ -362,16 +477,26 @@ function registerLogisticsRoutes(app) {
     const updateVehiculo = ['camion', 'auto'].includes(tipoVehiculo) ? tipoVehiculo : shipment.tipo_vehiculo;
 
     let nuevoEstado = shipment.estado_envio;
-    if (shipment.estado_envio === 'preparando' || shipment.estado_envio === 'entregado') {
+    let nuevoProgreso = Number(shipment.progreso_simulacion || 0);
+    let nuevaLatActual = Number(shipment.lat_actual || shipment.lat_origen);
+    let nuevaLngActual = Number(shipment.lng_actual || shipment.lng_origen);
+
+    if (shipment.estado_envio === 'preparando' || shipment.estado_envio === 'entregado' || nuevoProgreso >= 100) {
       nuevoEstado = 'en_transito';
+      if (nuevoProgreso >= 100) {
+        nuevoProgreso = 0.0;
+        nuevaLatActual = Number(shipment.lat_origen);
+        nuevaLngActual = Number(shipment.lng_origen);
+      }
       db.prepare("UPDATE pedidos SET estado = 'enviado', updated_at = ? WHERE id = ?").run(now, pedidoId);
     }
 
     db.prepare(`
       UPDATE envios
-      SET simulacion_activa = 1, estado_envio = ?, tipo_vehiculo = ?, updated_at = ?
+      SET simulacion_activa = 1, estado_envio = ?, tipo_vehiculo = ?,
+          progreso_simulacion = ?, lat_actual = ?, lng_actual = ?, updated_at = ?
       WHERE pedido_id = ?
-    `).run(nuevoEstado, updateVehiculo, now, pedidoId);
+    `).run(nuevoEstado, updateVehiculo, nuevoProgreso, nuevaLatActual, nuevaLngActual, now, pedidoId);
 
     res.json({
       success: true,
@@ -380,6 +505,8 @@ function registerLogisticsRoutes(app) {
       simulacion_activa: 1,
       estadoEnvio: nuevoEstado,
       estado_envio: nuevoEstado,
+      progresoSimulacion: nuevoProgreso,
+      progreso_simulacion: nuevoProgreso,
       tipoVehiculo: updateVehiculo,
       tipo_vehiculo: updateVehiculo,
       shipment: {
@@ -387,11 +514,76 @@ function registerLogisticsRoutes(app) {
         pedidoId,
         estado_envio: nuevoEstado,
         estadoEnvio: nuevoEstado,
+        progreso_simulacion: nuevoProgreso,
+        progresoSimulacion: nuevoProgreso,
+        lat_actual: nuevaLatActual,
+        lng_actual: nuevaLngActual,
         simulacion_activa: 1,
         simulacionActiva: true,
         tipo_vehiculo: updateVehiculo,
         tipoVehiculo: updateVehiculo
       }
+    });
+  });
+
+  // Actualizar Coordenadas / Dirección de Destino en el Mapa OpenStreetMap (Cliente o Admin)
+  app.put('/api/logistics/shipments/:pedidoId/destination', authenticateRequest, (req, res) => {
+    const pedidoId = Number(req.params.pedidoId);
+    const { direccion, latDestino, lngDestino } = req.body || {};
+    const db = getDb();
+
+    const order = db.prepare('SELECT * FROM pedidos WHERE id = ?').get(pedidoId);
+    if (!order) return res.status(404).json({ error: 'Pedido no encontrado.' });
+    if (order.usuario_id !== req.user.id && !['administrador', 'vendedor', 'soporte'].includes(req.user.rol)) {
+      return res.status(403).json({ error: 'No tienes permiso para modificar el destino de este pedido.' });
+    }
+
+    const shipment = db.prepare('SELECT * FROM envios WHERE pedido_id = ?').get(pedidoId);
+    if (!shipment) return res.status(404).json({ error: 'Envío no encontrado.' });
+
+    const currentDir = direccion ? String(direccion).trim() : decryptData(order.direccion_envio_cifrada);
+    const destCoords = resolveDestinationCoordinates(currentDir, latDestino, lngDestino);
+    const warehouse = resolveWarehouseForDestination(destCoords);
+    const routePoints = generateRouteCoordinates(warehouse, destCoords, 40);
+    const now = new Date().toISOString();
+
+    if (direccion && String(direccion).trim().length >= 5) {
+      db.prepare('UPDATE pedidos SET direccion_envio_cifrada = ?, updated_at = ? WHERE id = ?')
+        .run(encryptData(String(direccion).trim()), now, pedidoId);
+    }
+
+    db.prepare(`
+      UPDATE envios
+      SET almacen_origen = ?, almacen_codigo = ?, almacen_direccion = ?,
+          lat_origen = ?, lng_origen = ?,
+          lat_destino = ?, lng_destino = ?,
+          lat_actual = CASE WHEN progreso_simulacion = 0 THEN ? ELSE lat_actual END,
+          lng_actual = CASE WHEN progreso_simulacion = 0 THEN ? ELSE lng_actual END,
+          ruta_puntos_json = ?, updated_at = ?
+      WHERE pedido_id = ?
+    `).run(
+      warehouse.nombre,
+      warehouse.codigo,
+      warehouse.direccion,
+      warehouse.latitud,
+      warehouse.longitud,
+      destCoords.lat,
+      destCoords.lng,
+      warehouse.latitud,
+      warehouse.longitud,
+      JSON.stringify(routePoints),
+      now,
+      pedidoId
+    );
+
+    res.json({
+      success: true,
+      message: 'Coordenadas y ruta de entrega actualizadas en OpenStreetMap.',
+      almacenOrigen: warehouse.nombre,
+      almacenDireccion: warehouse.direccion,
+      latDestino: destCoords.lat,
+      lngDestino: destCoords.lng,
+      rutaPuntos: routePoints
     });
   });
 

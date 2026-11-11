@@ -1291,9 +1291,42 @@
                 <input type="text" id="prof-nombre" required minlength="3" aria-describedby="prof-nombre-hint" />
               </div>
               <div class="field">
-                <label for="prof-direccion" class="font-label-md text-label-md text-on-surface">Dirección de entrega en México</label>
-                <span id="prof-dir-hint" class="hint">Calle, número, colonia, alcaldía/municipio, CP y estado</span>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                  <label for="prof-direccion" class="font-label-md text-label-md text-on-surface">Dirección de entrega en México</label>
+                  <button type="button" id="btn-toggle-prof-map" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs">
+                    <span class="material-symbols-outlined text-[15px]">map</span>
+                    <span>Seleccionar Punto en Mapa OpenStreetMap</span>
+                  </button>
+                </div>
+                <span id="prof-dir-hint" class="hint">Escribe tu dirección o haz clic en el mapa interactivo para guardar tus coordenadas exactas de simulación</span>
                 <input type="text" id="prof-direccion" required minlength="8" aria-describedby="prof-dir-hint" />
+                <input type="hidden" id="prof-latitud" />
+                <input type="hidden" id="prof-longitud" />
+                <div id="prof-coords-badge" class="mt-1.5 text-[11px] font-mono text-sky-700 bg-sky-50 border border-sky-200 rounded-lg px-2.5 py-1 flex items-center justify-between">
+                  <span>📍 Coordenadas de entrega: <strong id="prof-coords-text">19.3910, -99.1617 (CDMX)</strong></span>
+                  <span class="text-[10px] text-sky-600 font-sans font-semibold">Listas para simulación OSM</span>
+                </div>
+
+                <!-- Mapa Interactivo OpenStreetMap en Mi Perfil -->
+                <div id="prof-osm-picker-wrapper" class="mt-2 p-3 rounded-xl bg-surface-container-low border border-sky-500/30 space-y-2 hidden">
+                  <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span class="font-bold text-on-surface flex items-center gap-1">
+                      <span class="material-symbols-outlined text-sky-600 text-[16px]">pin_drop</span>
+                      Haz clic en cualquier punto del mapa para fijar tu domicilio y coordenadas:
+                    </span>
+                    <div class="flex flex-wrap gap-1">
+                      <button type="button" class="prof-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="19.3907" data-lng="-99.1636" data-addr="Av. Insurgentes Sur 1602, Col. Crédito Constructor, Benito Juárez, CP 03940, CDMX">CDMX Sur</button>
+                      <button type="button" class="prof-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="19.4326" data-lng="-99.1332" data-addr="Av. Juárez 50, Col. Centro Histórico, Cuauhtémoc, CP 06010, CDMX">CDMX Centro</button>
+                      <button type="button" class="prof-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="20.6736" data-lng="-103.3440" data-addr="Av. Vallarta 2440, Col. Arcos Vallarta, CP 44130, Guadalajara, Jal.">Guadalajara</button>
+                      <button type="button" class="prof-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="25.6714" data-lng="-100.3090" data-addr="Av. Constitución 1200, Col. Centro, CP 64000, Monterrey, N.L.">Monterrey</button>
+                      <button type="button" class="prof-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="19.0414" data-lng="-98.2063" data-addr="Av. Reforma 710, Col. Centro, CP 72000, Puebla, Pue.">Puebla</button>
+                    </div>
+                  </div>
+                  <div id="prof-osm-picker-map" class="w-full h-[250px] rounded-lg border border-surface-container overflow-hidden z-10"></div>
+                  <p id="prof-warehouse-preview" class="text-[11px] text-secondary">
+                    🏢 Almacén asignado más cercano: <strong class="text-on-surface">CEDIS CDMX Norte (Vallejo) — Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, CDMX</strong>
+                  </p>
+                </div>
               </div>
               <div class="field">
                 <label for="prof-telefono" class="font-label-md text-label-md text-on-surface">Teléfono móvil (+52 México)</label>
@@ -1737,9 +1770,43 @@
         <div id="cart-totals-box" class="totals-box" aria-live="polite"></div>
 
         <div class="field mt-3">
-          <label for="checkout-address">Dirección de entrega confirmada en México</label>
-          <span id="checkout-addr-hint" class="hint">Tus datos están protegidos con cifrado de alta seguridad</span>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <label for="checkout-address" class="font-bold">Dirección de entrega confirmada en México</label>
+            <button type="button" id="btn-toggle-checkout-map" class="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs">
+              <span class="material-symbols-outlined text-[15px]">map</span>
+              <span>Ocultar / Ver Mapa OpenStreetMap</span>
+            </button>
+          </div>
+          <span id="checkout-addr-hint" class="hint">Haz clic en el mapa OpenStreetMap para fijar el punto exacto de tu domicilio y guardar tus coordenadas para la simulación de envío</span>
           <input type="text" id="checkout-address" required minlength="8" placeholder="Av. Insurgentes Sur 1602, Col. Crédito Constructor, CDMX, CP 03940" aria-describedby="checkout-addr-hint" />
+          <input type="hidden" id="checkout-lat" />
+          <input type="hidden" id="checkout-lng" />
+
+          <div class="mt-1.5 text-[11px] font-mono text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-2.5 py-1 flex flex-wrap items-center justify-between gap-2">
+            <span>📍 Coordenadas seleccionadas: <strong id="checkout-coords-display">19.3907, -99.1636</strong></span>
+            <span id="checkout-warehouse-assigned" class="font-sans font-bold text-primary">🏢 Salida: CEDIS CDMX Norte (Vallejo)</span>
+          </div>
+
+          <!-- Contenedor del Mapa Interactivo para Seleccionar Dirección en Checkout -->
+          <div id="checkout-osm-picker-wrapper" class="mt-2 p-3 rounded-xl bg-surface-container-low border border-sky-500/30 space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-1.5 text-xs">
+              <span class="font-bold text-on-surface flex items-center gap-1">
+                <span class="material-symbols-outlined text-sky-600 text-[16px]">touch_app</span>
+                <span>Toca un punto en el mapa para guardar coordenadas y dirección:</span>
+              </span>
+              <div class="flex flex-wrap gap-1">
+                <button type="button" class="checkout-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="19.3907" data-lng="-99.1636" data-addr="Av. Insurgentes Sur 1602, Col. Crédito Constructor, Benito Juárez, CP 03940, CDMX">CDMX Sur</button>
+                <button type="button" class="checkout-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="19.4326" data-lng="-99.1332" data-addr="Av. Paseo de la Reforma 222, Col. Juárez, Cuauhtémoc, CP 06600, CDMX">CDMX Reforma</button>
+                <button type="button" class="checkout-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="20.6736" data-lng="-103.3440" data-addr="Av. Vallarta 2440, Col. Arcos Vallarta, CP 44130, Guadalajara, Jal.">Guadalajara</button>
+                <button type="button" class="checkout-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="25.6714" data-lng="-100.3090" data-addr="Av. Constitución 1200, Col. Centro, CP 64000, Monterrey, N.L.">Monterrey</button>
+                <button type="button" class="checkout-preset-zone px-2 py-0.5 rounded bg-surface-container-high hover:bg-primary hover:text-white text-[10px] font-bold transition-colors cursor-pointer" data-lat="19.0414" data-lng="-98.2063" data-addr="Av. Reforma 710, Col. Centro, CP 72000, Puebla, Pue.">Puebla</button>
+              </div>
+            </div>
+            <div id="checkout-osm-picker-map" class="w-full h-[230px] rounded-lg border border-surface-container overflow-hidden z-10"></div>
+            <p id="checkout-warehouse-address-info" class="text-[11px] text-secondary">
+              🏭 Dirección del Almacén de Salida: <strong class="text-on-surface">Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX</strong>
+            </p>
+          </div>
         </div>
 
         <div class="modal-actions">
@@ -2248,7 +2315,7 @@
        MODAL DE RASTREO Y SIMULACIÓN EN VIVO OPENSTREETMAP (CLIENTE)
        =============================================================== -->
   <dialog id="modal-rastreo-envio" class="modal-dialog modal-large p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden max-w-4xl w-full">
-    <div class="bg-surface-container-lowest p-5 space-y-4 max-h-[90vh] flex flex-col">
+    <div class="bg-surface-container-lowest p-5 space-y-3.5 max-h-[92vh] flex flex-col">
       <div class="flex items-center justify-between pb-3 border-b border-surface-container shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold">
@@ -2264,48 +2331,60 @@
             </p>
           </div>
         </div>
-        <button type="button" id="btn-close-rastreo-modal" class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-secondary hover:text-on-surface transition-colors cursor-pointer" aria-label="Cerrar modal de rastreo">
+        <button type="button" id="btn-close-rastreo-modal" onclick="window.closeCustomerTrackingModal && window.closeCustomerTrackingModal()" class="w-9 h-9 rounded-full bg-surface-container hover:bg-error hover:text-white flex items-center justify-center text-on-surface transition-colors cursor-pointer shadow-xs" aria-label="Cerrar modal de rastreo" title="Cerrar ventana de rastreo">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
+      <!-- Direcciones de Origen (Almacén CEDIS) y Destino (Comprador) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs shrink-0">
+        <div class="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
+          <span class="text-blue-800 dark:text-blue-300 block text-[10px] uppercase font-extrabold">🏢 Dirección de Salida (Almacén CEDIS)</span>
+          <span id="cust-track-almacen-dir" class="font-semibold text-on-surface block mt-0.5 leading-snug">Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX</span>
+        </div>
+        <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50">
+          <span class="text-emerald-800 dark:text-emerald-300 block text-[10px] uppercase font-extrabold">📍 Dirección y Coordenadas de Entrega (Comprador)</span>
+          <span id="cust-track-destino" class="font-semibold text-on-surface block mt-0.5 leading-snug" title="Dirección de entrega">México</span>
+        </div>
+      </div>
+
       <!-- Telemetría rápida del envío -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs shrink-0">
-        <div class="p-2.5 rounded-xl bg-surface-container-low border border-surface-container">
+        <div class="p-2 rounded-xl bg-surface-container-low border border-surface-container">
           <span class="text-secondary block text-[10px] uppercase font-bold">Vehículo de Reparto</span>
           <span id="cust-track-vehiculo" class="font-bold text-on-surface flex items-center gap-1 mt-0.5">🚚 Camión de Reparto</span>
         </div>
-        <div class="p-2.5 rounded-xl bg-surface-container-low border border-surface-container">
+        <div class="p-2 rounded-xl bg-surface-container-low border border-surface-container">
           <span class="text-secondary block text-[10px] uppercase font-bold">Progreso de Ruta</span>
           <span id="cust-track-progreso-txt" class="font-bold text-on-surface block mt-0.5">0%</span>
         </div>
-        <div class="p-2.5 rounded-xl bg-surface-container-low border border-surface-container">
+        <div class="p-2 rounded-xl bg-surface-container-low border border-surface-container">
           <span class="text-secondary block text-[10px] uppercase font-bold">Estado de Simulación</span>
           <span id="cust-track-sim-status" class="font-bold text-amber-600 block mt-0.5">En Espera</span>
         </div>
-        <div class="p-2.5 rounded-xl bg-surface-container-low border border-surface-container">
-          <span class="text-secondary block text-[10px] uppercase font-bold">Destino de Entrega</span>
-          <span id="cust-track-destino" class="font-bold text-on-surface truncate block mt-0.5" title="Dirección de entrega">México</span>
+        <div class="p-2 rounded-xl bg-surface-container-low border border-surface-container">
+          <span class="text-secondary block text-[10px] uppercase font-bold">Coordenadas Vehículo</span>
+          <span id="cust-track-coords-live" class="font-mono font-bold text-primary block mt-0.5">19.4895, -99.1645</span>
         </div>
       </div>
 
       <!-- Barra de progreso visual -->
-      <div class="w-full bg-surface-container-high rounded-full h-2 overflow-hidden shrink-0">
-        <div id="cust-track-progress-bar" class="bg-primary h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+      <div class="w-full bg-surface-container-high rounded-full h-2.5 overflow-hidden shrink-0">
+        <div id="cust-track-progress-bar" class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
       </div>
 
       <!-- Mapa OpenStreetMap -->
-      <div class="relative w-full rounded-xl overflow-hidden border border-surface-container flex-1 min-h-[350px]">
-        <div id="customer-osm-map" class="w-full h-[350px]"></div>
+      <div class="relative w-full rounded-xl overflow-hidden border border-surface-container flex-1 min-h-[340px]">
+        <div id="customer-osm-map" class="w-full h-[340px]"></div>
       </div>
 
       <!-- Pie del modal -->
-      <div class="flex items-center justify-between pt-3 border-t border-surface-container shrink-0">
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-surface-container shrink-0">
         <div class="text-[11px] text-secondary flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[14px] text-sky-600">navigation</span>
-          <span>Actualización en tiempo real vía OpenStreetMap & Leaflet</span>
+          <span>Haz clic en cualquier punto del mapa si deseas actualizar el destino de entrega de este envío en vivo</span>
         </div>
-        <button type="button" id="btn-accept-rastreo-modal" class="btn btn-primary px-5 py-2 font-bold cursor-pointer">
+        <button type="button" id="btn-accept-rastreo-modal" onclick="window.closeCustomerTrackingModal && window.closeCustomerTrackingModal()" class="btn btn-primary px-5 py-2 font-bold cursor-pointer">
           Cerrar Rastreo
         </button>
       </div>

@@ -18,7 +18,7 @@ from admin_modules.common import (
     HAS_GUI, BASE_DIR, COLOR_BG, COLOR_NAVY_DARK, COLOR_PRIMARY,
     COLOR_PRIMARY_LIGHT, COLOR_ACCENT_GOLD, COLOR_SUCCESS,
     find_database_path, get_db, get_financial_summary,
-    generate_sales_report_files
+    generate_sales_report_files, require_gui_login
 )
 from admin_modules.tab_finance import FinanceTabMixin
 from admin_modules.tab_accounts import AccountsTabMixin
@@ -212,6 +212,7 @@ def main():
             except Exception:
                 pass
 
+        require_gui_login(root, "Panel Administrativo y Financiero ExpressMart")
         app = AdminPanelGUI(root)
         root.mainloop()
 

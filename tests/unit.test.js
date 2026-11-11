@@ -291,4 +291,153 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
 
     transporter.sendMail = origSend;
   });
+
+  test('12. Servicio de Logística OpenStreetMap, Almacenes con Direcciones y Simulación en Tiempo Real', async () => {
+    const request = require('supertest');
+    const { createApp } = require('../src/app');
+    const { getDb } = require('../src/db/database');
+    const {
+      WAREHOUSES,
+      getWarehouseDetails,
+      resolveDestinationCoordinates,
+      resolveWarehouseForDestination,
+      generateRouteCoordinates,
+      advanceActiveSimulations
+    } = require('../src/services/logisticsService');
+
+    expect(WAREHOUSES.length).toBeGreaterThanOrEqual(5);
+    expect(getWarehouseDetails('CEDIS-CDMX-02').codigo).toBe('CEDIS-CDMX-02');
+    expect(getWarehouseDetails('sur').codigo).toBe('CEDIS-CDMX-02');
+    expect(getWarehouseDetails('guadalajara').codigo).toBe('CEDIS-GDL-01');
+    expect(getWarehouseDetails('monterrey').codigo).toBe('CEDIS-MTY-01');
+    expect(getWarehouseDetails('puebla').codigo).toBe('CEDIS-PUE-01');
+    expect(getWarehouseDetails('inexistente').codigo).toBe('CEDIS-CDMX-01');
+
+    // Coordenadas explícitas y embebidas
+    const explicit = resolveDestinationCoordinates('Mi Casa', 19.412345, -99.165432);
+    expect(explicit.lat).toBe(19.412345);
+    expect(explicit.lng).toBe(-99.165432);
+
+    const embedded = resolveDestinationCoordinates('Calle Falsa 123 [Lat: 19.35500, Lng: -99.16200]');
+    expect(embedded.lat).toBe(19.355);
+    expect(embedded.lng).toBe(-99.162);
+
+    // Palabras clave de zonas
+    expect(resolveDestinationCoordinates('Coyoacán CDMX').zona).toContain('Coyoacán');
+    expect(resolveDestinationCoordinates('Polanco Reforma').zona).toContain('Polanco');
+    expect(resolveDestinationCoordinates('Roma Norte').zona).toContain('Roma');
+    expect(resolveDestinationCoordinates('Col. Del Valle').zona).toContain('Valle');
+    expect(resolveDestinationCoordinates('Zapopan Guadalajara').zona).toContain('Guadalajara');
+    expect(resolveDestinationCoordinates('San Pedro Monterrey').zona).toContain('Monterrey');
+    expect(resolveDestinationCoordinates('Cholula Puebla').zona).toContain('Puebla');
+    expect(resolveDestinationCoordinates('Dirección Genérica 999').zona).toContain('CDMX');
+
+    const whGdl = resolveWarehouseForDestination({ lat: 20.6767, lng: -103.3496 });
+    expect(whGdl.codigo).toBe('CEDIS-GDL-01');
+    const route = generateRouteCoordinates(whGdl, { lat: 20.6767, lng: -103.3496 }, 25);
+    expect(route.length).toBe(26);
+
+    const app = createApp();
+    const db = getDb();
+
+    // Panel Auth
+    expect((await request(app).post('/api/logistics/panel-auth').send({})).status).toBe(400);
+    expect((await request(app).post('/api/logistics/panel-auth').send({ email: 'noexiste@expressmart.mx', password: '123' })).status).toBe(401);
+    expect((await request(app).post('/api/logistics/panel-auth').send({ email: 'admin', password: 'WrongPassword!' })).status).toBe(401);
+
+    const authAdmin = await request(app).post('/api/logistics/panel-auth').send({ email: 'admin', password: 'Admin123!@#' });
+    expect(authAdmin.status).toBe(200);
+    expect(authAdmin.body.token).toBeDefined();
+    const adminToken = authAdmin.body.token;
+
+    const authVend = await request(app).post('/api/logistics/panel-auth').send({ email: 'vendedor', password: 'Vendedor123!@#' });
+    expect(authVend.status).toBe(200);
+
+    // Almacenes y Envíos
+    const whRes = await request(app).get('/api/logistics/warehouses');
+    expect(whRes.status).toBe(200);
+    expect(whRes.body.warehouses[0].direccion).toBeDefined();
+
+    const listRes = await request(app)
+      .get('/api/logistics/shipments?almacen=CEDIS-CDMX-01&estado=en_transito')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(listRes.status).toBe(200);
+
+    const allShipments = await request(app)
+      .get('/api/logistics/shipments')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(allShipments.status).toBe(200);
+    const pid = allShipments.body.shipments[0].pedidoId;
+
+    // Detalle de envío
+    const detRes = await request(app)
+      .get(`/api/logistics/shipments/${pid}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(detRes.status).toBe(200);
+    expect(detRes.body.shipment.almacenDireccion).toBeDefined();
+
+    // Actualizar destino en el mapa OpenStreetMap
+    const destUpdate = await request(app)
+      .put(`/api/logistics/shipments/${pid}/destination`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        direccion: 'Av. Insurgentes Sur 1602, Crédito Constructor, CDMX',
+        latDestino: 19.3672,
+        lngDestino: -99.1815
+      });
+    expect(destUpdate.status).toBe(200);
+    expect(destUpdate.body.latDestino).toBe(19.3672);
+
+    // Ciclo completo de simulación: prepare -> dispatch -> stop -> start -> progress -> reset -> deliver
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/prepare`).set('Authorization', `Bearer ${adminToken}`)).status
+    ).toBe(200);
+
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/dispatch`).set('Authorization', `Bearer ${adminToken}`).send({ tipoVehiculo: 'auto' })).status
+    ).toBe(200);
+
+    // Probar advanceActiveSimulations forzando updated_at en el pasado
+    const pastIso = new Date(Date.now() - 4000).toISOString();
+    db.prepare('UPDATE envios SET simulacion_activa = 1, progreso_simulacion = 20, updated_at = ? WHERE pedido_id = ?').run(pastIso, pid);
+    advanceActiveSimulations(db, pid);
+    const afterStep = db.prepare('SELECT progreso_simulacion FROM envios WHERE pedido_id = ?').get(pid);
+    expect(afterStep.progreso_simulacion).toBeGreaterThan(20);
+
+    // Probar llegada al 100% en advanceActiveSimulations
+    db.prepare('UPDATE envios SET simulacion_activa = 1, progreso_simulacion = 98, updated_at = ? WHERE pedido_id = ?').run(pastIso, pid);
+    advanceActiveSimulations(db, pid);
+    const afterFinish = db.prepare('SELECT progreso_simulacion, estado_envio, simulacion_activa FROM envios WHERE pedido_id = ?').get(pid);
+    expect(afterFinish.progreso_simulacion).toBe(100);
+    expect(afterFinish.estado_envio).toBe('entregado');
+
+    // Reiniciar simulación desde 100% usando /simulation/start
+    const restartSim = await request(app)
+      .post(`/api/logistics/shipments/${pid}/simulation/start`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ tipoVehiculo: 'camion' });
+    expect(restartSim.status).toBe(200);
+    expect(restartSim.body.progresoSimulacion).toBe(0);
+
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/simulation/stop`).set('Authorization', `Bearer ${adminToken}`)).status
+    ).toBe(200);
+
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/simulation/progress`).set('Authorization', `Bearer ${adminToken}`).send({ progreso: 45.5, lat: 19.41, lng: -99.16 })).status
+    ).toBe(200);
+
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/simulation/progress`).set('Authorization', `Bearer ${adminToken}`).send({ progreso: 100, lat: 19.3672, lng: -99.1815 })).status
+    ).toBe(200);
+
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/simulation/reset`).set('Authorization', `Bearer ${adminToken}`)).status
+    ).toBe(200);
+
+    expect(
+      (await request(app).post(`/api/logistics/shipments/${pid}/deliver`).set('Authorization', `Bearer ${adminToken}`)).status
+    ).toBe(200);
+  });
 });
+

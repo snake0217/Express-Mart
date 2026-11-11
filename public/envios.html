@@ -101,6 +101,80 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
+  <!-- Modal / Gate de Autenticación Obligatoria al Abrir la Página de Rastreo en Vivo -->
+  <div id="envios-login-overlay" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
+      <div class="bg-gradient-to-r from-express-dark via-express-navy to-express-blue p-6 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center border border-white/25">
+            <span class="material-symbols-outlined text-[28px] text-sky-300">local_shipping</span>
+          </div>
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-sky-500/30 text-sky-200 border border-sky-400/30">Acceso Protegido SGC</span>
+            <h2 class="font-heading text-lg font-extrabold mt-0.5">Panel de Envíos y Rastreo en Vivo</h2>
+            <p class="text-xs text-blue-100">Ingrese su usuario y contraseña para acceder al mapa OpenStreetMap</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="envios-login-form" class="p-6 space-y-4">
+        <div id="envios-login-error" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold"></div>
+
+        <div>
+          <label for="envios-login-user" class="block text-xs font-bold text-slate-700 mb-1">Usuario o Correo Electrónico</label>
+          <div class="relative">
+            <span class="material-symbols-outlined text-[18px] text-slate-400 absolute left-3 top-1/2 -translate-y-1/2">person</span>
+            <input
+              type="text"
+              id="envios-login-user"
+              required
+              placeholder="admin@expressmart.mx"
+              class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-express-blue focus:border-express-blue outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="envios-login-pass" class="block text-xs font-bold text-slate-700 mb-1">Contraseña de Acceso</label>
+          <div class="relative">
+            <span class="material-symbols-outlined text-[18px] text-slate-400 absolute left-3 top-1/2 -translate-y-1/2">lock</span>
+            <input
+              type="password"
+              id="envios-login-pass"
+              required
+              placeholder="••••••••••••"
+              class="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-express-blue focus:border-express-blue outline-none"
+            />
+            <button type="button" id="btn-toggle-envios-pass" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accesos rápidos para demostración / auditoría -->
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+          <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Credenciales Rápidas de Auditoría (Clic para autocompletar):</span>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button type="button" class="envios-quick-cred px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-express-blue border border-blue-200 text-[11px] font-bold transition cursor-pointer" data-u="admin@expressmart.mx" data-p="AdminPassword123!">
+              👑 Admin
+            </button>
+            <button type="button" class="envios-quick-cred px-2 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[11px] font-bold transition cursor-pointer" data-u="vendedor@expressmart.mx" data-p="VendedorPassword123!">
+              📦 Vendedor
+            </button>
+            <button type="button" class="envios-quick-cred px-2 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition cursor-pointer" data-u="cliente@expressmart.mx" data-p="ClientePassword123!">
+              🛒 Cliente
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-envios-login" class="w-full py-2.5 px-4 rounded-xl bg-express-blue hover:bg-express-navy text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="material-symbols-outlined text-[18px]">login</span>
+          <span>Ingresar al Panel de Rastreo en Vivo</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
   <!-- Header Superior -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -117,9 +191,13 @@
 
       <div class="flex items-center gap-3">
         <div id="user-role-badge" class="hidden sm:flex items-center gap-1 px-3 py-1 bg-blue-50 text-express-blue border border-blue-200 rounded-full text-xs font-semibold">
-          <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
-          <span id="user-role-text">Administrador</span>
+          <span class="material-symbols-outlined text-[16px]">verified_user</span>
+          <span id="user-role-text">Sin autenticar</span>
         </div>
+        <button type="button" id="btn-relock-panel" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer" title="Cambiar usuario / Bloquear panel">
+          <span class="material-symbols-outlined text-[16px]">lock</span>
+          <span>Cambiar Usuario</span>
+        </button>
         <a href="/" class="px-3.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium flex items-center gap-1 transition">
           <span class="material-symbols-outlined text-[16px]">storefront</span>
           <span>Ir a la Tienda</span>
@@ -306,18 +384,23 @@
               <div id="telemetry-progress-bar" class="bg-express-blue h-full rounded-full transition-all duration-300" style="width: 0%;"></div>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] text-slate-600 border-t border-slate-200">
-              <div>
-                <span class="text-slate-400 block">Almacén Origen:</span>
-                <span id="telemetry-origin" class="font-semibold text-slate-800">CEDIS CDMX Norte</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-[11px] text-slate-600 border-t border-slate-200">
+              <div class="p-2 rounded bg-blue-50/70 border border-blue-100">
+                <span class="text-express-blue font-bold uppercase text-[10px] block">🏢 Almacén Origen y Dirección CEDIS:</span>
+                <span id="telemetry-origin" class="font-bold text-slate-800 block">CEDIS CDMX Norte (Vallejo)</span>
+                <span id="telemetry-origin-address" class="text-slate-600 block mt-0.5">Av. Ceylán 450, Bodega Logística 4-B, Col. Industrial Vallejo, C.P. 02300, Azcapotzalco, CDMX</span>
               </div>
-              <div>
-                <span class="text-slate-400 block">Destino Cliente:</span>
-                <span id="telemetry-destination" class="font-semibold text-slate-800 truncate block">Coyoacán, CDMX</span>
+              <div class="p-2 rounded bg-emerald-50/70 border border-emerald-100">
+                <span class="text-emerald-700 font-bold uppercase text-[10px] block">📍 Destino del Comprador (Clic en mapa para cambiar):</span>
+                <span id="telemetry-destination" class="font-bold text-slate-800 block">Av. Insurgentes Sur 1602, CDMX</span>
+                <span id="telemetry-dest-coords" class="font-mono text-slate-600 block mt-0.5">Destino: 19.3907, -99.1636</span>
               </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600 border-t border-slate-200">
               <div>
-                <span class="text-slate-400 block">Coordenadas Vehículo:</span>
-                <span id="telemetry-coords" class="font-mono font-semibold text-slate-800">19.5186, -99.1645</span>
+                <span class="text-slate-400 block">Coordenadas Actuales del Vehículo:</span>
+                <span id="telemetry-coords" class="font-mono font-semibold text-slate-800">19.4895, -99.1645</span>
               </div>
               <div>
                 <span class="text-slate-400 block">Velocidad / Estatus:</span>

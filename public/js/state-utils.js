@@ -332,9 +332,15 @@ async function apiFetch(url, options = {}) {
   return data;
 }
 
-function switchTab(tabId) {
-  // Verificación de privilegios para Panel de Auditoría
+function switchTab(tabId, bypassPanelAuth = false) {
+  // Verificación de privilegios y autenticación cada que se abre el Panel de Auditoría
   if (tabId === 'view-audit') {
+    if (!bypassPanelAuth && typeof requireWebPanelAuth === 'function') {
+      requireWebPanelAuth('Centro de Auditoría SGC D8', ['auditor', 'administrador'], () => {
+        switchTab('view-audit', true);
+      });
+      return;
+    }
     const isAuditorOrAdmin = state.user && state.token && ['auditor', 'administrador'].includes(state.user.rol);
     if (!isAuditorOrAdmin) {
       showAlert('Acceso denegado: El panel de auditoría requiere credenciales de Auditor o Administrador.', true);
@@ -343,8 +349,14 @@ function switchTab(tabId) {
     }
   }
 
-  // Verificación de privilegios para Panel de Administrador / Vendedor
+  // Verificación de privilegios y autenticación cada que se abre el Panel de Administrador / Vendedor
   if (tabId === 'view-admin') {
+    if (!bypassPanelAuth && typeof requireWebPanelAuth === 'function') {
+      requireWebPanelAuth('Panel Administrativo y de Vendedor', ['administrador', 'vendedor'], () => {
+        switchTab('view-admin', true);
+      });
+      return;
+    }
     const isAdminOrSeller = state.user && state.token && ['administrador', 'vendedor'].includes(state.user.rol);
     if (!isAdminOrSeller) {
       showAlert('Acceso denegado: El panel de productos requiere credenciales de Administrador o Vendedor.', true);

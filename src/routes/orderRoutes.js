@@ -7,6 +7,7 @@ const { getDb, recordAuditLog } = require('../db/database');
 const { decryptData } = require('../utils/crypto');
 const { authenticateRequest, requireRoles } = require('../middleware/security');
 const { sendUserNotification } = require('../services/externalProviders');
+const { advanceActiveSimulations, getWarehouseDetails } = require('../services/logisticsService');
 
 function registerOrderRoutes(app) {
   // =========================================================================
@@ -14,6 +15,7 @@ function registerOrderRoutes(app) {
   // =========================================================================
   app.get('/api/orders', authenticateRequest, (req, res) => {
     const db = getDb();
+    advanceActiveSimulations(db);
     const isPrivileged = ['administrador', 'vendedor', 'soporte', 'auditor'].includes(req.user.rol);
     const showAll = isPrivileged && (req.query.scope === 'all' || req.query.all === 'true' || req.query.all === '1');
 
@@ -40,6 +42,7 @@ function registerOrderRoutes(app) {
         WHERE pi.pedido_id = ?
       `).all(o.id);
       const envio = db.prepare('SELECT * FROM envios WHERE pedido_id = ?').get(o.id);
+      const whDetails = envio ? getWarehouseDetails(envio.almacen_codigo || envio.almacen_origen) : null;
       const pago = db.prepare('SELECT referencia_pasarela, proveedor_pasarela, metodo_pago, meses_sin_intereses, monto, tarjeta_enmascarada, token_pci, estado, created_at FROM transacciones WHERE pedido_id = ?').get(o.id);
       const solicitudReembolso = db.prepare('SELECT * FROM solicitudes_reembolso WHERE pedido_id = ? ORDER BY id DESC LIMIT 1').get(o.id) || null;
       return {
@@ -49,6 +52,7 @@ function registerOrderRoutes(app) {
         envio: envio
           ? {
               ...envio,
+              almacen_direccion: envio.almacen_direccion || (whDetails ? whDetails.direccion : ''),
               historial: JSON.parse(envio.historial_rastreo_json || '[]'),
               rutaPuntos: JSON.parse(envio.ruta_puntos_json || '[]'),
               simulacionActiva: Boolean(envio.simulacion_activa)

@@ -584,6 +584,8 @@ function registerAuthRoutes(app) {
         mfaEnabled: Boolean(user.mfa_enabled),
         direccion: decryptData(user.direccion_cifrada),
         telefono: decryptData(user.telefono_cifrado),
+        latitud: user.latitud ?? null,
+        longitud: user.longitud ?? null,
         avisoPrivacidadVersion: user.aviso_privacidad_version,
         createdAt: user.created_at,
         membresiaPremium: Boolean(user.membresia_premium && (!user.membresia_expira || new Date(user.membresia_expira) > new Date())),
@@ -595,7 +597,7 @@ function registerAuthRoutes(app) {
   });
 
   app.put('/api/auth/profile', authenticateRequest, (req, res) => {
-    const { nombre, direccion, telefono, enableMfa, fotoPerfil } = req.body || {};
+    const { nombre, direccion, telefono, enableMfa, fotoPerfil, latitud, longitud } = req.body || {};
     const db = getDb();
     const current = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(req.user.id);
 
@@ -604,12 +606,14 @@ function registerAuthRoutes(app) {
     const newTelEnc = telefono !== undefined ? encryptData(telefono) : current.telefono_cifrado;
     const newMfa = enableMfa !== undefined ? (enableMfa ? 1 : 0) : current.mfa_enabled;
     const newFoto = fotoPerfil !== undefined ? String(fotoPerfil) : (current.foto_perfil || '');
+    const newLat = latitud !== undefined && latitud !== null && latitud !== '' ? Number(latitud) : (current.latitud ?? null);
+    const newLng = longitud !== undefined && longitud !== null && longitud !== '' ? Number(longitud) : (current.longitud ?? null);
 
     db.prepare(`
       UPDATE usuarios
-      SET nombre = ?, direccion_cifrada = ?, telefono_cifrado = ?, mfa_enabled = ?, foto_perfil = ?
+      SET nombre = ?, direccion_cifrada = ?, telefono_cifrado = ?, mfa_enabled = ?, foto_perfil = ?, latitud = ?, longitud = ?
       WHERE id = ?
-    `).run(newNombre, newDirEnc, newTelEnc, newMfa, newFoto, req.user.id);
+    `).run(newNombre, newDirEnc, newTelEnc, newMfa, newFoto, newLat, newLng, req.user.id);
 
     recordAuditLog(db, {
       usuarioId: req.user.id,
@@ -629,7 +633,9 @@ function registerAuthRoutes(app) {
         fotoPerfil: newFoto,
         mfaEnabled: Boolean(newMfa),
         direccion: decryptData(newDirEnc),
-        telefono: decryptData(newTelEnc)
+        telefono: decryptData(newTelEnc),
+        latitud: newLat,
+        longitud: newLng
       }
     });
   });

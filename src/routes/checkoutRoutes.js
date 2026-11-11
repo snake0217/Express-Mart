@@ -117,6 +117,8 @@ function registerCheckoutRoutes(app) {
       items = [],
       cuponCodigo = '',
       direccionEnvio = '',
+      latDestino = null,
+      lngDestino = null,
       metodoPago = 'tarjeta',
       cardNumber = '4111111111114242',
       cardHolder = '',
@@ -372,7 +374,21 @@ function registerCheckoutRoutes(app) {
       }
 
       // D6: Generar guía de envío automática con proveedor de paquetería (OpenStreetMap)
-      const envio = createShipmentGuide(db, { pedidoId, folioPedido: folio, direccionEnvio });
+      const userCoordsRow = db.prepare('SELECT latitud, longitud FROM usuarios WHERE id = ?').get(req.user.id);
+      const finalLatDestino = latDestino !== null && latDestino !== undefined && latDestino !== '' ? Number(latDestino) : (userCoordsRow?.latitud ?? null);
+      const finalLngDestino = lngDestino !== null && lngDestino !== undefined && lngDestino !== '' ? Number(lngDestino) : (userCoordsRow?.longitud ?? null);
+      if (finalLatDestino !== null && finalLngDestino !== null && Number.isFinite(finalLatDestino) && Number.isFinite(finalLngDestino)) {
+        try {
+          db.prepare('UPDATE usuarios SET latitud = ?, longitud = ? WHERE id = ?').run(finalLatDestino, finalLngDestino, req.user.id);
+        } catch (_) {}
+      }
+      const envio = createShipmentGuide(db, {
+        pedidoId,
+        folioPedido: folio,
+        direccionEnvio,
+        latDestino: finalLatDestino,
+        lngDestino: finalLngDestino
+      });
 
       // RF-09: Enviar notificación por correo electrónico al comprador
       const notificacion = sendUserNotification(db, {

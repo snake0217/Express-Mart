@@ -88,9 +88,15 @@ function updateSessionUI() {
   const countEl = document.getElementById('cart-count');
   if (countEl) countEl.textContent = String(totalItems);
 
-  updateProfilePhotoUI(state.user?.fotoPerfil || '');
-  renderProfileWishlists(state.user);
-  renderMembershipProfile();
+  if (typeof updateProfilePhotoUI === 'function') {
+    updateProfilePhotoUI(state.user?.fotoPerfil || '');
+  }
+  if (typeof renderProfileWishlists === 'function') {
+    renderProfileWishlists(state.user);
+  }
+  if (typeof renderMembershipProfile === 'function') {
+    renderMembershipProfile();
+  }
 }
 
 
@@ -392,6 +398,9 @@ function initAuthEvents() {
         localStorage.setItem('em_token', state.token);
         localStorage.setItem('em_user', JSON.stringify(state.user));
 
+        if (mfaModal && mfaModal.open) mfaModal.close();
+        if (authDialog && authDialog.open) authDialog.close();
+
         if (pending.purpose === 'registro') {
           state.cart = [];
           localStorage.setItem(`em_cart_${res.user.id}`, JSON.stringify([]));
@@ -404,9 +413,8 @@ function initAuthEvents() {
 
         updateSessionUI();
         startInactivityMonitor();
-        refreshCartModal();
-        loadOrders();
-        if (mfaModal) mfaModal.close();
+        if (typeof refreshCartModal === 'function') refreshCartModal();
+        if (typeof loadOrders === 'function') loadOrders();
 
         showAlert(res.message || 'Verificación 2FA completada exitosamente.');
         showToast({

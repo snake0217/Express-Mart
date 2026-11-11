@@ -170,12 +170,12 @@ function processPaymentGateway({
  * Genera guía de envío con el Proveedor de Paquetería (DFD Nivel 0 y 1, Apartado 23, DEV-09)
  * Incluye geolocalización OpenStreetMap y trazado de ruta hacia el domicilio del comprador.
  */
-function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', proveedor = 'DHL Express México' }) {
+function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', latDestino = null, lngDestino = null, proveedor = 'DHL Express México' }) {
   const numeroGuia = `EM-GUIA-${folioPedido.replace(/[^A-Z0-9]/g, '')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
   const now = new Date();
   const estimated = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const destCoords = resolveDestinationCoordinates(direccionEnvio);
+  const destCoords = resolveDestinationCoordinates(direccionEnvio, latDestino, lngDestino);
   const warehouse = resolveWarehouseForDestination(destCoords);
   const routePoints = generateRouteCoordinates(warehouse, destCoords, 40);
 
@@ -183,7 +183,7 @@ function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', p
     {
       fecha: now.toISOString(),
       estado: 'preparando',
-      ubicacion: `${warehouse.nombre} (${warehouse.ciudad})`,
+      ubicacion: `${warehouse.nombre} — ${warehouse.direccion}`,
       detalle: 'Orden recolectada en muelle y guía generada con proveedor logístico.'
     }
   ];
@@ -191,9 +191,9 @@ function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', p
   db.prepare(`
     INSERT INTO envios (
       pedido_id, proveedor_paqueteria, numero_guia, estado_envio, fecha_estimada, historial_rastreo_json,
-      almacen_origen, almacen_codigo, lat_origen, lng_origen, lat_destino, lng_destino,
+      almacen_origen, almacen_codigo, almacen_direccion, lat_origen, lng_origen, lat_destino, lng_destino,
       lat_actual, lng_actual, progreso_simulacion, simulacion_activa, tipo_vehiculo, ruta_puntos_json, updated_at
-    ) VALUES (?, ?, ?, 'preparando', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0.0, 0, 'camion', ?, ?)
+    ) VALUES (?, ?, ?, 'preparando', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0.0, 0, 'camion', ?, ?)
   `).run(
     pedidoId,
     proveedor,
@@ -202,6 +202,7 @@ function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', p
     JSON.stringify(historial),
     warehouse.nombre,
     warehouse.codigo,
+    warehouse.direccion,
     warehouse.latitud,
     warehouse.longitud,
     destCoords.lat,
@@ -220,6 +221,7 @@ function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', p
     fechaEstimada: estimated,
     almacenOrigen: warehouse.nombre,
     almacenCodigo: warehouse.codigo,
+    almacenDireccion: warehouse.direccion,
     latOrigen: warehouse.latitud,
     lngOrigen: warehouse.longitud,
     latDestino: destCoords.lat,
