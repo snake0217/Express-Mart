@@ -22,9 +22,9 @@
 | **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0009`) | **9** | Análisis 5 Porqués | **CONFORME** |
 | | Problemas con Causa Raíz Identificada | **9 de 9 (100%)** | 100% analizados | **CONFORME** |
 | | Problemas Abiertos | **0** | Cero problemas abiertos | **100% CERRADOS** |
-| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0016`) | **16** | Aprobación CAB formal | **CONFORME** |
-| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.2%)** |
-| | Cambios Exitosos sin Rollback | **16 de 16 (100%)** | >= 98% éxito | **SUPERADO** |
+| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0017`) | **17** | Aprobación CAB formal | **CONFORME** |
+| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (5.9%)** |
+| | Cambios Exitosos sin Rollback | **17 de 17 (100%)** | >= 98% éxito | **SUPERADO** |
 | **Vulnerabilidades** | Total de Vulnerabilidades Gestionadas (`VUL-0001` a `VUL-0008`) | **8** | Remediación verificada | **CONFORME** |
 | | Vulnerabilidades Críticas o Altas Abiertas | **0** | **Cero toleradas** | **100% REMEDIADAS** |
 | | Días Promedio hasta la Remediación | **1.1 días** | <= 5 días hábiles | **SUPERADO** |
@@ -50,7 +50,7 @@
 
 ---
 
-## 3. Registro de Problemas y Análisis de Causa Raíz (`PRB-0001` a `PRB-0008`)
+## 3. Registro de Problemas y Análisis de Causa Raíz (`PRB-0001` a `PRB-0009`)
 
 | ID | Apertura | Servicio / Módulo | Título del Problema | Causa Raíz Identificada (5 Porqués) | Acción Preventiva | Responsable | Estado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
@@ -66,7 +66,7 @@
 
 ---
 
-## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0016`)
+## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0017`)
 
 | ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |
@@ -86,6 +86,7 @@
 | `RFC-0014` | 10/11/2026 | Auditor Líder | Documentación | **Diccionario de Datos (16 Tablas), ERD y Guion** | Cierre de hallazgo H-02 y dictamen ECTA-DEV-01 | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0015` | 10/11/2026 | Soporte Técnico | Configuración | **Carga universal de variables de entorno y transporte SMTP** | Resolución definitiva de error Missing credentials for PLAIN en 2FA | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0016` | 10/11/2026 | Auditoría UX | Notificaciones y Perfil | **Botón azul de cerrar notificaciones y reactividad de favoritos** | Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
+| `RFC-0017` | 10/11/2026 | Operaciones y QA | Paneles y Checkout | **Tarjetas simuladas con descuento de saldo, edición de cuentas y pruebas QA** | Simulación transaccional controlada con deducción real, edición integral de usuarios y suite QA live | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 
 ---
 
@@ -105,6 +106,6 @@
 ---
 
 ## 6. Dictamen de Eficacia Operativa y Mejora Continua
-Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 14 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:
+Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 17 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:
 
 > **DICTAMEN OPERATIVO:** CONFORME AL 100%. La operación del sistema ExpressMart México cumple con los estándares ISO 9001:2015 (Apartado 37 y 38), ISO/IEC 27001:2022 y PCI DSS v4.0. Se autoriza la incorporación de estos registros al expediente final de auditoría.

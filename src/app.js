@@ -937,6 +937,22 @@ function createApp() {
       return res.status(400).json({ error: 'Plan de suscripción no válido. Seleccione 1_mes, 3_meses o 1_ano.' });
     }
 
+    const db = getDb();
+    let matchedSubCard = null;
+    if (metodoPago === 'tarjeta') {
+      const cleanSubNum = String(cardNumber || '4111111111114242').replace(/[\s-]/g, '');
+      matchedSubCard = db.prepare(`
+        SELECT * FROM tarjetas_simuladas 
+        WHERE REPLACE(REPLACE(numero_tarjeta, ' ', ''), '-', '') = ? AND activa = 1
+      `).get(cleanSubNum);
+
+      if (matchedSubCard && Number(matchedSubCard.saldo) < selectedPlan.precio) {
+        return res.status(400).json({
+          error: `Saldo insuficiente en la tarjeta ${matchedSubCard.marca} (terminación ${matchedSubCard.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)}). Saldo disponible: $${Number(matchedSubCard.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN. Costo membresía: $${selectedPlan.precio.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN.`
+        });
+      }
+    }
+
     const paymentResult = processPaymentGateway({
       metodoPago: ['tarjeta', 'paypal'].includes(metodoPago) ? metodoPago : 'tarjeta',
       monto: selectedPlan.precio,
@@ -950,11 +966,16 @@ function createApp() {
       return res.status(400).json({ error: paymentResult.motivo || 'No se pudo procesar el pago de la membresía.' });
     }
 
-    const db = getDb();
     const now = new Date();
     const expiraDate = new Date(now.getTime() + selectedPlan.duracionDias * 24 * 60 * 60 * 1000);
     const nowIso = now.toISOString();
     const expiraIso = expiraDate.toISOString();
+
+    if (matchedSubCard) {
+      const nuevoSaldo = Number((matchedSubCard.saldo - selectedPlan.precio).toFixed(2));
+      db.prepare('UPDATE tarjetas_simuladas SET saldo = ?, updated_at = ? WHERE id = ?')
+        .run(nuevoSaldo, nowIso, matchedSubCard.id);
+    }
 
     db.prepare(`
       INSERT INTO suscripciones_premium (
@@ -1468,6 +1489,25 @@ function createApp() {
         total: totals.total
       });
 
+      // Validación de saldo sobre tarjetas simuladas registradas (Sandbox / Pruebas de Compra)
+      let matchedSimCard = null;
+      if (['tarjeta', 'msi'].includes(metodoPago)) {
+        const cleanCardNum = String(cardNumber || '').replace(/[\s-]/g, '');
+        matchedSimCard = db.prepare(`
+          SELECT * FROM tarjetas_simuladas 
+          WHERE REPLACE(REPLACE(numero_tarjeta, ' ', ''), '-', '') = ? AND activa = 1
+        `).get(cleanCardNum);
+
+        if (matchedSimCard) {
+          if (Number(matchedSimCard.saldo) < totals.total) {
+            db.exec('ROLLBACK;');
+            return res.status(400).json({
+              error: `Saldo insuficiente en la tarjeta ${matchedSimCard.marca} (terminación ${matchedSimCard.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)}). Saldo disponible: $${Number(matchedSimCard.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN. Total requerido: $${totals.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN.`
+            });
+          }
+        }
+      }
+
       // Procesar cobro en Pasarela de Pagos PCI DSS (RF-05, SEG-07, RFC-0001)
       const paymentResult = processPaymentGateway({
         metodoPago,
@@ -1571,6 +1611,36 @@ function createApp() {
         now
       );
 
+      // Descontar saldo de la tarjeta simulada si fue utilizada
+      let nuevoSaldoSimCard = null;
+      if (matchedSimCard) {
+        nuevoSaldoSimCard = Number((matchedSimCard.saldo - totals.total).toFixed(2));
+        db.prepare(`
+          UPDATE tarjetas_simuladas 
+          SET saldo = ?, updated_at = ? 
+          WHERE id = ?
+        `).run(nuevoSaldoSimCard, now, matchedSimCard.id);
+
+        recordAuditLog(db, {
+          usuarioId: req.user.id,
+          rol: req.user.rol,
+          accion: 'DESCUENTO_SALDO_TARJETA',
+          modulo: 'Pagos (RF-05)',
+          entidadId: String(matchedSimCard.id),
+          ip: req.ip || '127.0.0.1',
+          detalles: {
+            tarjetaId: matchedSimCard.id,
+            titular: matchedSimCard.titular,
+            marca: matchedSimCard.marca,
+            terminacion: matchedSimCard.numero_tarjeta.replace(/[\s-]/g, '').slice(-4),
+            saldoAnterior: matchedSimCard.saldo,
+            montoDescontado: totals.total,
+            saldoNuevo: nuevoSaldoSimCard,
+            pedidoFolio: folio
+          }
+        });
+      }
+
       // D6: Generar guía de envío automática con proveedor de paquetería
       const envio = createShipmentGuide(db, { pedidoId, folioPedido: folio });
 
@@ -1625,7 +1695,14 @@ function createApp() {
             tarjetaEnmascarada: paymentResult.tarjetaEnmascarada,
             tokenPci: paymentResult.tokenPci,
             estado: paymentResult.estado,
-            intentosConexion: paymentResult.intentosConexion
+            intentosConexion: paymentResult.intentosConexion,
+            tarjetaSimulada: matchedSimCard ? {
+              titular: matchedSimCard.titular,
+              marca: matchedSimCard.marca,
+              terminacion: matchedSimCard.numero_tarjeta.replace(/[\s-]/g, '').slice(-4),
+              saldoAnterior: matchedSimCard.saldo,
+              saldoNuevo: nuevoSaldoSimCard
+            } : null
           },
           envio,
           notificacion
@@ -2085,6 +2162,258 @@ function createApp() {
       message: healthy
         ? 'Servicio de recomendaciones restablecido.'
         : 'Simulacro activado: Servicio de recomendaciones apagado; el catálogo y el checkout continúan operando con normalidad (RNF-05).'
+    });
+  });
+
+  // =========================================================================
+  // GESTIÓN DE TARJETAS SIMULADAS Y SALDOS DE COMPRA (PCI DSS / Sandbox Local)
+  // =========================================================================
+
+  // Listar tarjetas registradas con su saldo disponible
+  app.get('/api/payments/simulated-cards', (_req, res) => {
+    const db = getDb();
+    const cards = db.prepare(`
+      SELECT id, numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
+      FROM tarjetas_simuladas
+      ORDER BY id ASC
+    `).all();
+    res.json(cards);
+  });
+
+  // Registrar nueva tarjeta con saldo asignado para simular compras
+  app.post('/api/payments/simulated-cards', (req, res) => {
+    const {
+      numeroTarjeta,
+      titular,
+      expiracion = '12/29',
+      cvv = '123',
+      saldo = 10000,
+      marca = 'Visa',
+      tipo = 'credito'
+    } = req.body || {};
+
+    if (!numeroTarjeta || String(numeroTarjeta).trim().length < 12) {
+      return res.status(400).json({ error: 'Número de tarjeta inválido (mínimo 12 caracteres).' });
+    }
+    if (!titular || String(titular).trim().length < 3) {
+      return res.status(400).json({ error: 'Debe ingresar el nombre del titular (mínimo 3 caracteres).' });
+    }
+
+    const cleanCard = String(numeroTarjeta).trim();
+    const montoSaldo = Math.max(0, Number(saldo) || 0);
+    const db = getDb();
+    const now = new Date().toISOString();
+
+    try {
+      const result = db.prepare(`
+        INSERT INTO tarjetas_simuladas (
+          numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      `).run(
+        cleanCard,
+        String(titular).trim().toUpperCase(),
+        String(expiracion || '12/29').trim(),
+        String(cvv || '123').trim(),
+        montoSaldo,
+        montoSaldo,
+        String(marca || 'Visa').trim(),
+        String(tipo || 'credito').trim(),
+        now,
+        now
+      );
+
+      recordAuditLog(db, {
+        usuarioId: req.user ? req.user.id : null,
+        rol: req.user ? req.user.rol : 'administrador',
+        accion: 'REGISTRO_TARJETA_SIMULADA',
+        modulo: 'Simulador de Pagos (RF-05)',
+        entidadId: String(result.lastInsertRowid),
+        detalles: {
+          numero_tarjeta_enmascarado: cleanCard.replace(/\d(?=\d{4})/g, '*'),
+          titular: String(titular).trim().toUpperCase(),
+          saldoInicial: montoSaldo,
+          marca
+        }
+      });
+
+      res.status(201).json({
+        message: 'Tarjeta registrada exitosamente con saldo asignado para compras.',
+        cardId: Number(result.lastInsertRowid),
+        saldo: montoSaldo
+      });
+    } catch (err) {
+      if (err.message && err.message.includes('UNIQUE')) {
+        return res.status(409).json({ error: 'Este número de tarjeta ya se encuentra registrado.' });
+      }
+      return res.status(500).json({ error: `Error al registrar tarjeta: ${err.message}` });
+    }
+  });
+
+  // Recargar saldo a una tarjeta simulada
+  app.post('/api/payments/simulated-cards/:id/recharge', (req, res) => {
+    const cardId = Number(req.params.id);
+    const { monto } = req.body || {};
+    const rechargeAmount = Number(monto);
+    if (!Number.isFinite(rechargeAmount) || rechargeAmount <= 0) {
+      return res.status(400).json({ error: 'El monto de recarga debe ser mayor a 0.' });
+    }
+
+    const db = getDb();
+    const card = db.prepare('SELECT * FROM tarjetas_simuladas WHERE id = ?').get(cardId);
+    if (!card) {
+      return res.status(404).json({ error: `Tarjeta simulada #${cardId} no encontrada.` });
+    }
+
+    const now = new Date().toISOString();
+    const nuevoSaldo = Number((card.saldo + rechargeAmount).toFixed(2));
+    db.prepare('UPDATE tarjetas_simuladas SET saldo = ?, updated_at = ? WHERE id = ?').run(nuevoSaldo, now, cardId);
+
+    recordAuditLog(db, {
+      usuarioId: req.user ? req.user.id : null,
+      rol: req.user ? req.user.rol : 'administrador',
+      accion: 'RECARGA_SALDO_TARJETA',
+      modulo: 'Simulador de Pagos (RF-05)',
+      entidadId: String(cardId),
+      detalles: {
+        tarjetaId: cardId,
+        saldoAnterior: card.saldo,
+        montoRecargado: rechargeAmount,
+        nuevoSaldo
+      }
+    });
+
+    res.json({
+      message: `Recarga aplicada exitosamente. Nuevo saldo disponible: $${nuevoSaldo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`,
+      cardId,
+      saldoAnterior: card.saldo,
+      nuevoSaldo
+    });
+  });
+
+  // Alternar estado activo / bloqueado de una tarjeta
+  app.patch('/api/payments/simulated-cards/:id/status', (req, res) => {
+    const cardId = Number(req.params.id);
+    const { activa } = req.body || {};
+    const db = getDb();
+    const card = db.prepare('SELECT * FROM tarjetas_simuladas WHERE id = ?').get(cardId);
+    if (!card) {
+      return res.status(404).json({ error: `Tarjeta #${cardId} no encontrada.` });
+    }
+    const nuevoEstado = activa !== undefined ? (activa ? 1 : 0) : (card.activa ? 0 : 1);
+    const now = new Date().toISOString();
+    db.prepare('UPDATE tarjetas_simuladas SET activa = ?, updated_at = ? WHERE id = ?').run(nuevoEstado, now, cardId);
+
+    res.json({
+      message: `Tarjeta ${nuevoEstado ? 'activada' : 'desactivada'} correctamente.`,
+      cardId,
+      activa: Boolean(nuevoEstado)
+    });
+  });
+
+  // =========================================================================
+  // GESTIÓN Y MODIFICACIÓN DE CUENTAS DEL SISTEMA (RF-01, SGC MC-001)
+  // =========================================================================
+  app.put('/api/admin/users/:id', authenticateRequest, requireRoles('administrador'), (req, res) => {
+    const userId = Number(req.params.id);
+    const {
+      nombre,
+      email,
+      rol,
+      activo,
+      telefono,
+      direccion,
+      membresiaPremium,
+      membresiaPlan,
+      mfaEnabled,
+      nuevaPassword
+    } = req.body || {};
+
+    const db = getDb();
+    const current = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(userId);
+    if (!current) {
+      return res.status(404).json({ error: `Usuario con ID ${userId} no encontrado.` });
+    }
+
+    if (email && email.toLowerCase() !== current.email.toLowerCase()) {
+      const emailDup = db.prepare('SELECT id FROM usuarios WHERE LOWER(email) = LOWER(?) AND id != ?').get(email.trim(), userId);
+      if (emailDup) {
+        return res.status(409).json({ error: `El correo '${email}' ya pertenece a otra cuenta.` });
+      }
+    }
+
+    const updatedNombre = nombre ? String(nombre).trim() : current.nombre;
+    const updatedEmail = email ? String(email).trim().toLowerCase() : current.email;
+    const updatedRol = rol && ['cliente', 'vendedor', 'administrador', 'soporte', 'auditor'].includes(rol) ? rol : current.rol;
+    const updatedActivo = activo !== undefined ? (activo ? 1 : 0) : current.activo;
+    const updatedMfa = mfaEnabled !== undefined ? (mfaEnabled ? 1 : 0) : current.mfa_enabled;
+    const updatedPremium = membresiaPremium !== undefined ? (membresiaPremium ? 1 : 0) : current.membresia_premium;
+    const updatedPlan = updatedPremium ? (membresiaPlan || current.membresia_plan || '1_mes') : null;
+
+    let updatedDirEnc = current.direccion_cifrada;
+    if (direccion !== undefined) {
+      updatedDirEnc = encryptData(direccion);
+    }
+    let updatedTelEnc = current.telefono_cifrado;
+    if (telefono !== undefined) {
+      updatedTelEnc = encryptData(telefono);
+    }
+
+    let updatedPwdHash = current.password_hash;
+    if (nuevaPassword && String(nuevaPassword).trim().length >= 8) {
+      updatedPwdHash = hashPassword(String(nuevaPassword).trim());
+    }
+
+    db.prepare(`
+      UPDATE usuarios
+      SET nombre = ?, email = ?, rol = ?, activo = ?, mfa_enabled = ?,
+          direccion_cifrada = ?, telefono_cifrado = ?, membresia_premium = ?,
+          membresia_plan = ?, password_hash = ?
+      WHERE id = ?
+    `).run(
+      updatedNombre,
+      updatedEmail,
+      updatedRol,
+      updatedActivo,
+      updatedMfa,
+      updatedDirEnc,
+      updatedTelEnc,
+      updatedPremium,
+      updatedPlan,
+      updatedPwdHash,
+      userId
+    );
+
+    recordAuditLog(db, {
+      usuarioId: req.user.id,
+      rol: req.user.rol,
+      accion: 'MODIFICACION_USUARIO_ADMIN',
+      modulo: 'Gestión de Cuentas (RF-01)',
+      entidadId: String(userId),
+      detalles: {
+        usuarioModificadoId: userId,
+        nombre: updatedNombre,
+        email: updatedEmail,
+        rol: updatedRol,
+        activo: updatedActivo,
+        mfa: updatedMfa,
+        passwordModificada: Boolean(nuevaPassword)
+      }
+    });
+
+    res.json({
+      message: `Cuenta de usuario #${userId} modificada exitosamente.`,
+      user: {
+        id: userId,
+        nombre: updatedNombre,
+        email: updatedEmail,
+        rol: updatedRol,
+        activo: Boolean(updatedActivo),
+        mfaEnabled: Boolean(updatedMfa),
+        membresiaPremium: Boolean(updatedPremium),
+        membresiaPlan: updatedPlan,
+        telefono: decryptData(updatedTelEnc),
+        direccion: decryptData(updatedDirEnc)
+      }
     });
   });
 

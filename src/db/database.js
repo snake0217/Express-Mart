@@ -284,6 +284,22 @@ function initDatabase(customPath) {
       prev_hash TEXT NOT NULL,
       hash_cadena TEXT NOT NULL
     );
+
+    -- Tarjetas Simuladas para Compras y Saldo (PCI DSS / Sandbox Local)
+    CREATE TABLE IF NOT EXISTS tarjetas_simuladas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero_tarjeta TEXT UNIQUE NOT NULL,
+      titular TEXT NOT NULL,
+      expiracion TEXT NOT NULL,
+      cvv TEXT NOT NULL,
+      saldo REAL NOT NULL CHECK (saldo >= 0),
+      saldo_inicial REAL NOT NULL DEFAULT 0,
+      marca TEXT NOT NULL DEFAULT 'Visa',
+      tipo TEXT NOT NULL DEFAULT 'credito',
+      activa INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 
   try {
@@ -336,6 +352,7 @@ function initDatabase(customPath) {
 
   dbInstance = db;
   seedDatabaseIfEmpty(db);
+  seedSimulatedCardsIfEmpty(db);
   syncCatalogAndReviews(db);
   return db;
 }
@@ -1610,6 +1627,76 @@ function syncCatalogAndReviews(db) {
         `).run(productId, clienteId, r.calificacion, r.comentario, now);
       }
     }
+  }
+}
+
+function seedSimulatedCardsIfEmpty(db) {
+  const countRow = db.prepare('SELECT COUNT(*) as total FROM tarjetas_simuladas').get();
+  if (countRow && countRow.total > 0) return;
+
+  const now = new Date().toISOString();
+  const seedCards = [
+    {
+      numero_tarjeta: '4111 1111 1111 4242',
+      titular: 'CLIENTE EXPRESSMART',
+      expiracion: '12/29',
+      cvv: '123',
+      saldo: 50000.00,
+      saldo_inicial: 50000.00,
+      marca: 'Visa',
+      tipo: 'credito'
+    },
+    {
+      numero_tarjeta: '5500 0000 0000 1234',
+      titular: 'DIEGO ALARCON PRUEBAS',
+      expiracion: '08/28',
+      cvv: '456',
+      saldo: 25000.00,
+      saldo_inicial: 25000.00,
+      marca: 'Mastercard',
+      tipo: 'debito'
+    },
+    {
+      numero_tarjeta: '3782 8224 6310 005',
+      titular: 'EMPRESA EXPRESSMART S.A.',
+      expiracion: '10/27',
+      cvv: '789',
+      saldo: 100000.00,
+      saldo_inicial: 100000.00,
+      marca: 'American Express',
+      tipo: 'corporativa'
+    },
+    {
+      numero_tarjeta: '4000 1234 5678 9010',
+      titular: 'TARJETA SALDO INSUFICIENTE',
+      expiracion: '05/26',
+      cvv: '999',
+      saldo: 50.00,
+      saldo_inicial: 50.00,
+      marca: 'Visa',
+      tipo: 'debito'
+    }
+  ];
+
+  const insertCard = db.prepare(`
+    INSERT INTO tarjetas_simuladas (
+      numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `);
+
+  for (const c of seedCards) {
+    insertCard.run(
+      c.numero_tarjeta,
+      c.titular,
+      c.expiracion,
+      c.cvv,
+      c.saldo,
+      c.saldo_inicial,
+      c.marca,
+      c.tipo,
+      now,
+      now
+    );
   }
 }
 

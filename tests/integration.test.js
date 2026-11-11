@@ -510,6 +510,132 @@ describe('Pruebas Funcionales y de Integración End-to-End (CP-RF-01 a CP-RF-10)
     });
     expect(okVerify.status).toBe(200);
     expect(okVerify.body.token).toBeDefined();
+    adminToken = okVerify.body.token;
+  });
+
+  test('CP-RF-13: Simulación de tarjetas, registro, recarga y descuento de saldo en compras', async () => {
+    // 1. Listar tarjetas simuladas
+    const listRes = await request(app).get('/api/payments/simulated-cards');
+    expect(listRes.status).toBe(200);
+    expect(Array.isArray(listRes.body)).toBe(true);
+    expect(listRes.body.length).toBeGreaterThanOrEqual(4);
+
+    // 2. Registrar nueva tarjeta simulada
+    const badReg = await request(app).post('/api/payments/simulated-cards').send({ numeroTarjeta: '123' });
+    expect(badReg.status).toBe(400);
+
+    const badTitular = await request(app).post('/api/payments/simulated-cards').send({ numeroTarjeta: '4999999999999999', titular: '' });
+    expect(badTitular.status).toBe(400);
+
+    const newCardRes = await request(app).post('/api/payments/simulated-cards').send({
+      numeroTarjeta: '4999 8888 7777 6666',
+      titular: 'JUAN PEREZ SIMULADO',
+      expiracion: '11/30',
+      cvv: '321',
+      saldo: 12500.50,
+      marca: 'Visa',
+      tipo: 'debito'
+    });
+    expect(newCardRes.status).toBe(201);
+    expect(newCardRes.body.cardId).toBeDefined();
+    const createdCardId = newCardRes.body.cardId;
+
+    // Duplicada
+    const dupRes = await request(app).post('/api/payments/simulated-cards').send({
+      numeroTarjeta: '4999 8888 7777 6666',
+      titular: 'JUAN PEREZ SIMULADO'
+    });
+    expect(dupRes.status).toBe(409);
+
+    // 3. Recargar saldo
+    const badRecharge = await request(app).post(`/api/payments/simulated-cards/${createdCardId}/recharge`).send({ monto: -50 });
+    expect(badRecharge.status).toBe(400);
+
+    const notFoundRecharge = await request(app).post('/api/payments/simulated-cards/99999/recharge').send({ monto: 500 });
+    expect(notFoundRecharge.status).toBe(404);
+
+    const rechargeRes = await request(app).post(`/api/payments/simulated-cards/${createdCardId}/recharge`).send({ monto: 2500 });
+    expect(rechargeRes.status).toBe(200);
+    expect(rechargeRes.body.nuevoSaldo).toBe(15000.50);
+
+    // 4. Cambiar estado activo
+    const statusRes = await request(app).patch(`/api/payments/simulated-cards/${createdCardId}/status`).send({ activa: false });
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.activa).toBe(false);
+
+    const statusNotFound = await request(app).patch('/api/payments/simulated-cards/99999/status').send({ activa: true });
+    expect(statusNotFound.status).toBe(404);
+
+    // Reactivar para pruebas
+    await request(app).patch(`/api/payments/simulated-cards/${createdCardId}/status`).send({ activa: true });
+
+    // 5. Compra con tarjeta simulada exitosa con descuento de saldo
+    const checkoutRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        items: [{ productoId: 2, cantidad: 1 }],
+        direccionEnvio: 'Calle Londres 25, Juárez, Cuauhtémoc, CDMX',
+        metodoPago: 'tarjeta',
+        cardNumber: '4999 8888 7777 6666',
+        cardHolder: 'JUAN PEREZ SIMULADO',
+        pasosCheckout: 3
+      });
+    expect(checkoutRes.status).toBe(201);
+    expect(checkoutRes.body.order.pago.tarjetaSimulada).toBeDefined();
+    expect(checkoutRes.body.order.pago.tarjetaSimulada.saldoNuevo).toBeLessThan(15000.50);
+
+    // 6. Compra con tarjeta con saldo insuficiente
+    const lowBalanceRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        items: [{ productoId: 1, cantidad: 1 }],
+        direccionEnvio: 'Calle Londres 25, Juárez, Cuauhtémoc, CDMX',
+        metodoPago: 'tarjeta',
+        cardNumber: '4000 1234 5678 9010', // Saldo: $50 MXN
+        cardHolder: 'TARJETA SALDO INSUFICIENTE',
+        pasosCheckout: 3
+      });
+    expect(lowBalanceRes.status).toBe(400);
+    expect(lowBalanceRes.body.error).toContain('Saldo insuficiente');
+  });
+
+  test('CP-RF-14: Modificación integral de cuentas por Administrador (RF-01 / SGC MC-001)', async () => {
+    // 1. Modificar cuenta de cliente como admin
+    const updateRes = await request(app)
+      .put('/api/admin/users/3') // Usuario cliente inicial
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        nombre: 'Cristopher Erik San Juan Modificado',
+        telefono: '+52 55 9988 7766',
+        direccion: 'Calle Palma 10, Centro, CDMX',
+        rol: 'cliente',
+        activo: 1,
+        mfaEnabled: 1,
+        membresiaPremium: 1,
+        membresiaPlan: '1_ano',
+        nuevaPassword: 'NuevaPasswordSegura2026!'
+      });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.user.nombre).toBe('Cristopher Erik San Juan Modificado');
+    expect(updateRes.body.user.mfaEnabled).toBe(true);
+    expect(updateRes.body.user.membresiaPlan).toBe('1_ano');
+
+    // 2. Validación de usuario no encontrado
+    const notFoundRes = await request(app)
+      .put('/api/admin/users/9999')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ nombre: 'Fantasma' });
+    expect(notFoundRes.status).toBe(404);
+
+    // 3. Validación de correo duplicado
+    const dupRes = await request(app)
+      .put('/api/admin/users/3')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ email: 'admin@expressmart.mx' });
+    expect(dupRes.status).toBe(409);
   });
 });
+
 

@@ -1829,6 +1829,24 @@
         </div>
 
         <div id="credit-card-fields-group">
+          <!-- Selector de Tarjetas Simuladas con Saldo -->
+          <div class="field mb-3 p-3 rounded-xl bg-surface-container-low border border-primary/20">
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="simulated-card-selector" class="text-xs font-bold text-primary flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">credit_card</span>
+                <span>Tarjeta Simulada con Saldo Registrado</span>
+              </label>
+              <span id="simulated-card-badge" class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">Saldo Activo</span>
+            </div>
+            <select id="simulated-card-selector" class="w-full text-xs">
+              <option value="">-- Seleccionar tarjeta con saldo para simular compra --</option>
+            </select>
+            <div id="simulated-card-balance-info" class="text-[11px] text-secondary mt-1.5 flex items-center justify-between hidden">
+              <span id="simulated-card-holder-text" class="font-medium text-on-surface"></span>
+              <span id="simulated-card-amount-text" class="font-bold text-emerald-700"></span>
+            </div>
+          </div>
+
           <div class="field">
             <label for="card-holder">Nombre del titular en la tarjeta</label>
             <input type="text" id="card-holder" placeholder="Nombre completo del titular" required />

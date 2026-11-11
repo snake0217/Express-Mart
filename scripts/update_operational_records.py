@@ -393,6 +393,26 @@ NUEVOS_CAMBIOS = [
         "Exitoso",
         "Requerimiento UX",
         "public/index.html, public/app.js, public/styles.css y commit 17031f2"
+    ),
+    (
+        "RFC-0017",
+        datetime.datetime(2026, 11, 10),
+        "Operaciones, Seguridad y Finanzas",
+        "Paneles Standalone (Admin y Seguridad) y Checkout",
+        "Gestión de Tarjetas Simuladas con Descuento de Saldo, Modificación Integral de Cuentas y Pruebas Automatizadas",
+        "Incorporación de módulo de gestión y recarga de tarjetas simuladas con deducción automática en checkout, diálogo de edición completa de cuentas de usuario con recifrado AES-256-GCM y ejecución de pruebas automatizadas/QA en tiempo real en panel de seguridad.",
+        "Permitir la simulación realista y controlada de compras con verificación de saldo y rechazo por fondos insuficientes, facilitar la administración de cuentas y facultar al equipo de seguridad para ejecutar suites de pruebas en vivo.",
+        "Normal",
+        "Medio. Agrega tabla tarjetas_simuladas, deducción en checkout/suscripción, endpoint PUT /api/admin/users/:id y subprocesos asíncronos en GUI.",
+        "Revertir commits de tarjetas_simuladas y restaurar versiones previas de admin_panel.py y security_panel.py.",
+        "Comité de cambios",
+        datetime.datetime(2026, 11, 10),
+        "10/11/2026 18:00 a 18:40",
+        "Diego Alarcón y Carlos Bautista",
+        "Cerrado",
+        "Exitoso",
+        "Requerimiento Operativo y Auditoría (Simulación Transaccional y QA)",
+        "src/db/database.js, src/app.js, scripts/admin_panel.py, scripts/security_panel.py, tests/integration.test.js (CP-RF-13 y CP-RF-14)"
     )
 ]
 
@@ -529,9 +549,9 @@ def generate_operational_records_markdown():
     lines.append("| **Gestión de Problemas** | Total de Problemas Registrados (`PRB-0001` a `PRB-0009`) | **9** | Análisis 5 Porqués | **CONFORME** |")
     lines.append("| | Problemas con Causa Raíz Identificada | **9 de 9 (100%)** | 100% analizados | **CONFORME** |")
     lines.append("| | Problemas Abiertos | **0** | Cero problemas abiertos | **100% CERRADOS** |")
-    lines.append("| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0016`) | **16** | Aprobación CAB formal | **CONFORME** |")
-    lines.append("| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (6.2%)** |")
-    lines.append("| | Cambios Exitosos sin Rollback | **16 de 16 (100%)** | >= 98% éxito | **SUPERADO** |")
+    lines.append("| **Gestión de Cambios** | Total de RFCs Solicitados (`RFC-0001` a `RFC-0017`) | **17** | Aprobación CAB formal | **CONFORME** |")
+    lines.append("| | Cambios de Emergencia | **1** (`RFC-0001`) | < 15% del total | **CONFORME (5.9%)** |")
+    lines.append("| | Cambios Exitosos sin Rollback | **17 de 17 (100%)** | >= 98% éxito | **SUPERADO** |")
     lines.append("| **Vulnerabilidades** | Total de Vulnerabilidades Gestionadas (`VUL-0001` a `VUL-0008`) | **8** | Remediación verificada | **CONFORME** |")
     lines.append("| | Vulnerabilidades Críticas o Altas Abiertas | **0** | **Cero toleradas** | **100% REMEDIADAS** |")
     lines.append("| | Días Promedio hasta la Remediación | **1.1 días** | <= 5 días hábiles | **SUPERADO** |")
@@ -566,7 +586,7 @@ def generate_operational_records_markdown():
     lines.append("")
 
     # Tabla 2: Problemas
-    lines.append("## 3. Registro de Problemas y Análisis de Causa Raíz (`PRB-0001` a `PRB-0008`)")
+    lines.append("## 3. Registro de Problemas y Análisis de Causa Raíz (`PRB-0001` a `PRB-0009`)")
     lines.append("")
     lines.append("| ID | Apertura | Servicio / Módulo | Título del Problema | Causa Raíz Identificada (5 Porqués) | Acción Preventiva | Responsable | Estado |")
     lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: |")
@@ -589,7 +609,7 @@ def generate_operational_records_markdown():
     lines.append("")
 
     # Tabla 3: Cambios Operativos
-    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0016`)")
+    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0017`)")
     lines.append("")
     lines.append("| ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |")
     lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |")
@@ -609,7 +629,8 @@ def generate_operational_records_markdown():
         ("RFC-0013", "10/11/2026", "UX", "Frontend", "Retiro de tecnicismos, pestaña Favoritos e ícono", "Simplificación de experiencia visual de compra", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0014", "10/11/2026", "Auditor Líder", "Documentación", "Diccionario de Datos (16 Tablas), ERD y Guion", "Cierre de hallazgo H-02 y dictamen ECTA-DEV-01", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0015", "10/11/2026", "Soporte Técnico", "Configuración", "Carga universal de variables de entorno y transporte SMTP", "Resolución definitiva de error Missing credentials for PLAIN en 2FA", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
-        ("RFC-0016", "10/11/2026", "Auditoría UX", "Notificaciones y Perfil", "Botón azul de cerrar notificaciones y reactividad de favoritos", "Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil", "Normal", "Comité de Cambios (CAB)", "Exitoso")
+        ("RFC-0016", "10/11/2026", "Auditoría UX", "Notificaciones y Perfil", "Botón azul de cerrar notificaciones y reactividad de favoritos", "Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
+        ("RFC-0017", "10/11/2026", "Operaciones y QA", "Paneles y Checkout", "Tarjetas simuladas con descuento de saldo, edición de cuentas y pruebas QA", "Simulación transaccional controlada con deducción real, edición integral de usuarios y suite QA live", "Normal", "Comité de Cambios (CAB)", "Exitoso")
     ]
     for rfc in rfc_list:
         lines.append(f"| `{rfc[0]}` | {rfc[1]} | {rfc[2]} | {rfc[3]} | **{rfc[4]}** | {rfc[5]} | `{rfc[6]}` | {rfc[7]} | **{rfc[8]}** |")
@@ -640,7 +661,7 @@ def generate_operational_records_markdown():
     lines.append("---")
     lines.append("")
     lines.append("## 6. Dictamen de Eficacia Operativa y Mejora Continua")
-    lines.append("Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 14 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:")
+    lines.append("Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 17 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:")
     lines.append("")
     lines.append("> **DICTAMEN OPERATIVO:** CONFORME AL 100%. La operación del sistema ExpressMart México cumple con los estándares ISO 9001:2015 (Apartado 37 y 38), ISO/IEC 27001:2022 y PCI DSS v4.0. Se autoriza la incorporación de estos registros al expediente final de auditoría.")
     lines.append("")

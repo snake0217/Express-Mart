@@ -3258,6 +3258,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Carga y sincronización de tarjetas simuladas con saldo para compras
+  let loadedSimulatedCards = [];
+  async function loadSimulatedCardsForCheckout() {
+    const selector = document.getElementById('simulated-card-selector');
+    if (!selector) return;
+    try {
+      const cards = await apiFetch('/api/payments/simulated-cards');
+      if (Array.isArray(cards)) {
+        loadedSimulatedCards = cards;
+        selector.innerHTML = '<option value="">-- Seleccionar tarjeta con saldo para simular compra --</option>' +
+          cards.map(c => `
+            <option value="${c.id}">
+              ${c.marca} · terminación ${c.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)} · Saldo: $${Number(c.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN (${c.titular})
+            </option>
+          `).join('');
+      }
+    } catch (_) {}
+  }
+
+  const simCardSelector = document.getElementById('simulated-card-selector');
+  if (simCardSelector) {
+    simCardSelector.addEventListener('change', (e) => {
+      const cardId = Number(e.target.value);
+      const card = loadedSimulatedCards.find(c => c.id === cardId);
+      const infoBox = document.getElementById('simulated-card-balance-info');
+      const holderText = document.getElementById('simulated-card-holder-text');
+      const amountText = document.getElementById('simulated-card-amount-text');
+
+      if (card) {
+        document.getElementById('card-holder').value = card.titular;
+        document.getElementById('card-number').value = card.numero_tarjeta;
+        document.getElementById('card-expiry').value = card.expiracion;
+        if (infoBox && holderText && amountText) {
+          holderText.textContent = `Titular: ${card.titular} (${card.tipo.toUpperCase()})`;
+          amountText.textContent = `Saldo Disponible: $${Number(card.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`;
+          infoBox.classList.remove('hidden');
+        }
+      } else {
+        if (infoBox) infoBox.classList.add('hidden');
+      }
+    });
+  }
+
   document.getElementById('btn-to-step-2').addEventListener('click', () => {
     if (!state.cart.length) {
       showAlert('Agregue al menos un artículo a la cesta.', true);
@@ -3270,11 +3313,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     updatePaymentMethodUI(document.getElementById('payment-method').value);
+    loadSimulatedCardsForCheckout();
     setCheckoutStep(2);
   });
 
   document.getElementById('btn-back-step-1').addEventListener('click', () => setCheckoutStep(1));
-  document.getElementById('btn-back-step-2').addEventListener('click', () => setCheckoutStep(2));
+  document.getElementById('btn-back-step-2').addEventListener('click', () => {
+    loadSimulatedCardsForCheckout();
+    setCheckoutStep(2);
+  });
 
   // Paso 3: Resumen final con miniaturas de productos
   document.getElementById('btn-to-step-3').addEventListener('click', () => {
@@ -3397,6 +3444,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `PayPal Sandbox (${res.order.pago?.tarjetaEnmascarada || 'bancochido@banco.com'})`
         : (res.order?.pago?.tarjetaEnmascarada || 'Pago Seguro');
 
+      const cardSimDeductedInfo = res.order?.pago?.tarjetaSimulada
+        ? `<div class="p-2 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 text-xs mt-1 space-y-0.5">
+             <div class="font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">credit_card</span><span>Tarjeta Simulada ${res.order.pago.tarjetaSimulada.marca} (•••• ${res.order.pago.tarjetaSimulada.terminacion})</span></div>
+             <div>Titular: <strong>${res.order.pago.tarjetaSimulada.titular}</strong></div>
+             <div>Saldo Anterior: <strong>${formatMxn(res.order.pago.tarjetaSimulada.saldoAnterior)}</strong> → Saldo Descontado: <strong>-${formatMxn(res.order.total)}</strong></div>
+             <div class="text-emerald-800 font-extrabold">Nuevo Saldo Disponible: ${formatMxn(res.order.pago.tarjetaSimulada.saldoNuevo)}</div>
+           </div>`
+        : '';
+
       resultBox.innerHTML = `
         <div class="p-3.5 rounded-xl bg-tertiary-fixed/30 border border-tertiary/20 text-on-surface space-y-1">
           <div class="flex items-center gap-1.5 text-tertiary font-bold text-sm">
@@ -3405,6 +3461,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="text-xs">Folio de Pedido: <strong>${res.order.folio}</strong> | Total: <strong>${formatMxn(res.order.total)}</strong></div>
           <div class="text-xs">Método: <strong>${pagoDesc}</strong> · Pasarela: <strong>${res.order?.pago?.referenciaPasarela || 'CAPTURED'}</strong></div>
+          ${cardSimDeductedInfo}
           <div class="text-xs">Guía ExpressPrime: <strong>${res.order.envio.numeroGuia}</strong> (${res.order.envio.proveedorPaqueteria})</div>
           <div class="text-xs text-secondary">Recibirás la confirmación de tu pedido por correo electrónico.</div>
         </div>
