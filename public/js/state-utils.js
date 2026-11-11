@@ -465,7 +465,10 @@ function switchTab(tabId, bypassPanelAuth = false) {
   if (tabId === 'view-orders') loadOrders();
   if (tabId === 'view-profile') loadProfile();
   if (tabId === 'view-wallet' && typeof loadUserWalletCards === 'function') loadUserWalletCards();
-  if (tabId === 'view-admin') loadAdminReports();
+  if (tabId === 'view-admin') {
+    if (typeof loadSellerDashboard === 'function') loadSellerDashboard();
+    loadAdminReports();
+  }
   if (tabId === 'view-audit') loadAuditCenter();
 }
 

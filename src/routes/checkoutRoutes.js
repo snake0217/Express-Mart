@@ -378,6 +378,42 @@ function registerCheckoutRoutes(app) {
         });
       }
 
+      // Acreditar ingresos de venta simulados a la tarjeta receptora de cada vendedor
+      for (const item of validatedItems) {
+        const prodVendor = db.prepare('SELECT vendedor_id, nombre FROM catalogo WHERE id = ?').get(item.productoId);
+        if (prodVendor && prodVendor.vendedor_id) {
+          const vendorCard = db.prepare(`
+            SELECT id, saldo, titular, marca FROM tarjetas_simuladas
+            WHERE usuario_id = ? AND activa = 1
+            ORDER BY es_receptora DESC, id DESC
+            LIMIT 1
+          `).get(prodVendor.vendedor_id);
+
+          if (vendorCard) {
+            const abono = Number(item.subtotalItem.toFixed(2));
+            const nuevoSaldoVendor = Number((vendorCard.saldo + abono).toFixed(2));
+            db.prepare('UPDATE tarjetas_simuladas SET saldo = ?, updated_at = ? WHERE id = ?').run(nuevoSaldoVendor, now, vendorCard.id);
+            recordAuditLog(db, {
+              usuarioId: prodVendor.vendedor_id,
+              rol: 'vendedor',
+              accion: 'ABONO_VENTA_TARJETA_VENDEDOR',
+              modulo: 'Liquidación a Vendedor (RF-05, RF-10)',
+              entidadId: String(vendorCard.id),
+              ip: req.ip || '127.0.0.1',
+              detalles: {
+                vendedorId: prodVendor.vendedor_id,
+                tarjetaId: vendorCard.id,
+                productoId: item.productoId,
+                nombreProducto: item.nombre,
+                subtotalAbonado: abono,
+                nuevoSaldo: nuevoSaldoVendor,
+                pedidoFolio: folio
+              }
+            });
+          }
+        }
+      }
+
       // D6: Generar guía de envío automática con proveedor de paquetería (OpenStreetMap)
       const userCoordsRow = db.prepare('SELECT latitud, longitud FROM usuarios WHERE id = ?').get(req.user.id);
       const finalLatDestino = latDestino !== null && latDestino !== undefined && latDestino !== '' ? Number(latDestino) : (userCoordsRow?.latitud ?? null);

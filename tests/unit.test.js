@@ -23,7 +23,8 @@ const {
   isValidEmail,
   isPositiveNumber
 } = require('../src/utils/sanitizer');
-const { calculateCartTotals } = require('../src/app');
+const request = require('supertest');
+const { createApp, calculateCartTotals } = require('../src/app');
 const { processPaymentGateway } = require('../src/services/externalProviders');
 
 describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reglas de Negocio', () => {
@@ -549,6 +550,112 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
       .delete(`/api/payments/simulated-cards/${createdCardId}`)
       .set('Authorization', `Bearer ${clientToken}`);
     expect(delCard.status).toBe(200);
+  });
+
+  test('18. Panel de Vendedor y Administrador: productos propios, ventas y tarjeta receptora de cobros simulados', async () => {
+    const app = createApp();
+    const { getDb } = require('../src/db/database');
+    const { createSession } = require('../src/middleware/security');
+    const db = getDb();
+
+    // 1. Iniciar sesión como vendedor
+    const authVend = await request(app)
+      .post('/api/logistics/panel-auth')
+      .send({ email: 'vendedor', password: 'Vendedor123!@#' });
+    expect(authVend.status).toBe(200);
+    const vendorToken = authVend.body.token;
+    const vendorId = authVend.body.user.id;
+
+    // 2. Publicar un producto exclusivo para este vendedor
+    const uniqueSku = `EM-TEST-VEND-${Date.now().toString().slice(-6)}`;
+    const prodRes = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${vendorToken}`)
+      .send({
+        sku: uniqueSku,
+        nombre: 'Cámara Mirrorless 4K de Vendedor',
+        categoria: 'Fotografia',
+        marca: 'OptiZoom',
+        precio: 1500,
+        stock: 30,
+        descripcion: 'Cámara profesional para creadores de contenido.',
+        condiciones_envio: 'Envío asegurado en 24 horas.'
+      });
+    expect(prodRes.status).toBe(201);
+    const prodId = prodRes.body.productId;
+
+    // 3. Consultar dashboard del vendedor y verificar filtro estricto de productos
+    const dashRes = await request(app)
+      .get('/api/seller/dashboard')
+      .set('Authorization', `Bearer ${vendorToken}`);
+    expect(dashRes.status).toBe(200);
+    expect(dashRes.body.vendedor.id).toBe(vendorId);
+    expect(dashRes.body.productos.some((p) => p.id === prodId)).toBe(true);
+    // Verificar que TODOS los productos pertenezcan a este vendedor
+    for (const p of dashRes.body.productos) {
+      expect(p.vendedor_id).toBe(vendorId);
+    }
+
+    // 4. Registrar tarjeta receptora de cobros simulados para el vendedor
+    db.prepare('DELETE FROM tarjetas_simuladas WHERE usuario_id = ?').run(vendorId);
+    const uniqueCardNum = `4032${Date.now().toString().slice(-12)}`;
+    const cardRes = await request(app)
+      .post('/api/seller/receiving-card')
+      .set('Authorization', `Bearer ${vendorToken}`)
+      .send({
+        numeroTarjeta: uniqueCardNum,
+        titular: 'VENDEDOR EXPRESSMART',
+        marca: 'Visa',
+        colorPlastico: '#22c55e',
+        saldoInicial: 5000
+      });
+    expect(cardRes.status).toBe(200);
+    expect(cardRes.body.card.es_receptora).toBe(1);
+    expect(cardRes.body.card.color_plastico).toBe('#22c55e');
+    expect(cardRes.body.card.saldo).toBe(5000);
+
+    // 5. Acreditar fondos de ventas manualmente
+    const creditRes = await request(app)
+      .post('/api/seller/credit-sales')
+      .set('Authorization', `Bearer ${vendorToken}`)
+      .send({ monto: 1500 });
+    expect(creditRes.status).toBe(200);
+    expect(creditRes.body.nuevoSaldo).toBe(6500);
+
+    // 6. Actualizar stock y precio con la ruta rápida del vendedor
+    const stockRes = await request(app)
+      .put(`/api/seller/products/${prodId}/stock`)
+      .set('Authorization', `Bearer ${vendorToken}`)
+      .send({ stock: 50, precio: 1800, activo: 1 });
+    expect(stockRes.status).toBe(200);
+
+    // 7. Simular compra de cliente sobre el producto del vendedor
+    const clientToken = createSession(db, { usuarioId: 3, rol: 'cliente', mfaVerificado: true }).tokenId;
+
+    const checkoutRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        items: [{ productoId: prodId, cantidad: 2 }],
+        direccionEnvio: 'Calle de Prueba 123, Benito Juárez, CDMX',
+        latDestino: 19.3907,
+        lngDestino: -99.1636,
+        metodoPago: 'tarjeta',
+        cardNumber: '4111111111114242',
+        cardHolder: 'CLIENTE PRUEBA',
+        expiry: '12/29',
+        pasosCheckout: 3
+      });
+    expect(checkoutRes.status).toBe(201);
+
+    // 8. Verificar que el dinero de la venta (2 * $1800 = $3600) se acreditó a la tarjeta del vendedor
+    const dashAfterCheckout = await request(app)
+      .get('/api/seller/dashboard')
+      .set('Authorization', `Bearer ${vendorToken}`);
+    expect(dashAfterCheckout.status).toBe(200);
+    expect(dashAfterCheckout.body.receivingCard.saldo).toBe(6500 + 3600);
+    expect(dashAfterCheckout.body.ventas.some((v) => v.producto_id === prodId)).toBe(true);
+    expect(dashAfterCheckout.body.metricas.unidadesVendidas).toBeGreaterThanOrEqual(2);
   });
 });
 

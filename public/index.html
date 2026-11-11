@@ -1699,95 +1699,195 @@
     <!-- ===============================================================
          VISTA 4: PANEL DE VENDEDOR Y ADMINISTRADOR
          =============================================================== -->
-    <section id="view-admin" class="tab-view hidden max-w-[1440px] mx-auto px-margin pt-space-md" aria-labelledby="heading-admin">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
-        <div class="lg:col-span-6 bg-surface-container-lowest rounded-xl shadow-sm p-space-lg">
-          <span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-xs text-label-xs font-bold uppercase">
-            Control de Catálogo e Inventario
-          </span>
-          <h2 id="heading-admin" class="font-headline-md text-headline-md text-on-surface font-extrabold mt-1 mb-1">
-            Alta y Gestión de Productos en MXN
-          </h2>
-          <p class="font-body-sm text-body-sm text-secondary mb-space-md">
-            Requiere rol <strong>Administrador</strong> o <strong>Vendedor</strong> con verificación de dos pasos.
-          </p>
-          <form id="admin-product-form" class="space-y-3">
-            <div class="field">
-              <label for="prod-sku">SKU Único</label>
-              <span id="prod-sku-hint" class="hint">Formato oficial: EM-CAT-000</span>
-              <input type="text" id="prod-sku" required placeholder="EM-GAM-009" aria-describedby="prod-sku-hint" />
+    <section id="view-admin" class="tab-view hidden max-w-[1440px] mx-auto px-margin pt-space-md space-y-6" aria-labelledby="heading-admin">
+      <!-- Encabezado Principal y Perfil Activo -->
+      <div class="bg-gradient-to-r from-[#0a2540] via-[#003087] to-[#1e3a8a] text-white rounded-2xl p-6 sm:p-8 shadow-md">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="px-3 py-1 rounded-full bg-white/15 text-white text-[11px] font-extrabold uppercase tracking-wider backdrop-blur-sm">
+                🏪 Tienda ExpressMart México
+              </span>
+              <span id="seller-dash-vendor-badge" class="px-2.5 py-0.5 rounded-full bg-emerald-400 text-emerald-950 text-[11px] font-black uppercase">
+                VENDEDOR
+              </span>
             </div>
-            <div class="field">
-              <label for="prod-nombre">Nombre del Producto</label>
-              <input type="text" id="prod-nombre" required placeholder="Consola Portátil Pro 1TB OLED" />
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="field">
-                <label for="prod-cat">Categoría</label>
-                <select id="prod-cat" required>
-                  <option value="Computo">Cómputo</option>
-                  <option value="Audio">Audio</option>
-                  <option value="telefonia">Telefonía</option>
-                  <option value="Accesorios">Accesorios</option>
-                  <option value="Hogar">Hogar</option>
-                  <option value="Videojuegos">Videojuegos</option>
-                  <option value="Electronica">Electrónica</option>
-                  <option value="Deportes">Deportes</option>
-                  <option value="Automotriz">Automotriz</option>
-                  <option value="Libros">Libros</option>
-                  <option value="Entretenimiento">Entretenimiento</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="prod-marca">Marca</label>
-                <input type="text" id="prod-marca" required placeholder="TechNova" />
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="field">
-                <label for="prod-precio">Precio Unitario ($ MXN)</label>
-                <input type="number" id="prod-precio" min="1" step="0.01" required placeholder="8999.00" />
-              </div>
-              <div class="field">
-                <label for="prod-stock">Stock Inicial (Almacén)</label>
-                <input type="number" id="prod-stock" min="0" step="1" required placeholder="20" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="prod-desc">Descripción completa</label>
-              <textarea id="prod-desc" rows="2" required placeholder="Especificaciones técnicas y beneficios principales..."></textarea>
-            </div>
-            <div class="field">
-              <label for="prod-imagen">URL de la Imagen del Producto (Opcional)</label>
-              <input type="url" id="prod-imagen" placeholder="https://ejemplo.com/imagen.jpg (opcional)" />
-            </div>
-            <div class="field">
-              <label for="prod-envio">Condiciones de envío en México</label>
-              <input type="text" id="prod-envio" required value="Envío ExpressPrime asegurado gratis en 24-48 horas desde CEDIS CDMX." />
-            </div>
-            <button type="submit" class="w-full py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg font-bold transition-colors">
-              Publicar Producto en Catálogo (MXN)
-            </button>
-          </form>
-        </div>
-
-        <div class="lg:col-span-6 bg-surface-container-lowest rounded-xl shadow-sm p-space-lg">
-          <div class="flex items-center justify-between pb-space-sm mb-space-md border-b border-surface-container">
-            <div>
-              <h2 class="font-headline-md text-headline-md text-on-surface font-extrabold">
-                Reporte Ejecutivo de Ventas e Inventario
-              </h2>
-              <p class="font-body-sm text-body-sm text-secondary">Ingresos y ticket promedio expresados en Pesos Mexicanos ($ MXN).</p>
-            </div>
-            <button type="button" id="btn-load-reports" class="px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-bold transition-colors">
-              Generar Reporte
-            </button>
+            <h1 id="heading-admin" class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Panel de Control de Vendedor y Administrador
+            </h1>
+            <p class="text-slate-200 text-sm mt-1 max-w-2xl">
+              Bienvenido, <strong id="seller-dash-vendor-name" class="text-white">...</strong>. Administra tus productos subidos, monitorea tus ventas en tiempo real y recibe tus cobros simulados en tu tarjeta de depósito.
+            </p>
           </div>
-          <div id="admin-reports-box" class="reports-box">
-            <p class="muted">Inicie sesión como Administrador, Vendedor o Auditor y pulse "Generar Reporte".</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="btn-open-seller-product-modal" class="px-4 py-2.5 rounded-xl bg-[#ffc439] hover:bg-[#f6b728] text-[#003087] font-extrabold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">add_box</span>
+              <span>+ Subir Nuevo Producto</span>
+            </button>
+            <button type="button" id="btn-refresh-seller-dash" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs backdrop-blur-sm transition-all flex items-center gap-2 cursor-pointer">
+              <span class="material-symbols-outlined text-[18px]">refresh</span>
+              <span>Actualizar</span>
+            </button>
           </div>
         </div>
       </div>
+
+      <!-- SECCIÓN: TARJETA RECEPTORA DE DINERO SIMULADO -->
+      <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-surface-container p-6 sm:p-8">
+        <div class="flex flex-col lg:flex-row items-stretch gap-8">
+          <!-- Columna Izquierda: Plástico 3D Interactivo -->
+          <div class="lg:w-5/12 flex flex-col items-center justify-center">
+            <div id="seller-receiving-card-slot" class="w-full max-w-[380px]">
+              <!-- Inyectado dinámicamente por admin-audit.js -->
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Controles y Saldo -->
+          <div class="lg:w-7/12 flex flex-col justify-between space-y-5">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="material-symbols-outlined text-amber-500 text-[20px]">account_balance_wallet</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-secondary">Depósito de Ganancias</span>
+              </div>
+              <h2 class="text-xl sm:text-2xl font-black text-on-surface">
+                Tarjeta Receptora de Cobros (Dinero Simulado)
+              </h2>
+              <p class="text-sm text-secondary mt-1">
+                Cuando los clientes compran tus productos publicados, los fondos se acreditan automáticamente a esta tarjeta simulada de tu cuenta.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-surface-container-low border border-surface-container">
+              <div>
+                <span class="text-xs text-secondary font-semibold uppercase tracking-wider block">Saldo Actual en Tarjeta</span>
+                <div id="seller-card-balance" class="text-2xl sm:text-3xl font-black text-emerald-600 mt-0.5">$0.00 MXN</div>
+              </div>
+              <div>
+                <span class="text-xs text-secondary font-semibold uppercase tracking-wider block">Total Ventas Registradas</span>
+                <div id="seller-card-total-sales" class="text-2xl sm:text-3xl font-black text-slate-800 mt-0.5">$0.00 MXN</div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <button type="button" id="btn-open-receiving-card-modal" class="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all">
+                <span class="material-symbols-outlined text-[18px]">credit_card</span>
+                <span id="btn-receiving-card-text">+ Vincular / Cambiar Tarjeta de Cobro</span>
+              </button>
+              <button type="button" id="btn-credit-seller-sales" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all">
+                <span class="material-symbols-outlined text-[18px]">payments</span>
+                <span>💰 Cobrar / Acreditar Ventas a mi Tarjeta</span>
+              </button>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs text-secondary bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <span class="material-symbols-outlined text-[18px] text-emerald-600">verified_user</span>
+              <span>Protegido bajo arquitectura PCI DSS Tokenizada y SGC MC-001. Acreditación atómica instantánea.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: KPIs DEL VENDEDOR -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-sm">
+          <div class="flex items-center justify-between text-secondary mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider">Ingresos por Ventas</span>
+            <span class="material-symbols-outlined text-emerald-500">attach_money</span>
+          </div>
+          <div id="seller-kpi-ingresos" class="text-xl sm:text-2xl font-black text-on-surface">$0.00 MXN</div>
+          <span class="text-[11px] text-secondary mt-1 block">Subtotal neto vendido</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-sm">
+          <div class="flex items-center justify-between text-secondary mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider">Unidades Vendidas</span>
+            <span class="material-symbols-outlined text-blue-500">inventory_2</span>
+          </div>
+          <div id="seller-kpi-unidades" class="text-xl sm:text-2xl font-black text-on-surface">0 uds</div>
+          <span class="text-[11px] text-secondary mt-1 block">Artículos despachados</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-sm">
+          <div class="flex items-center justify-between text-secondary mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider">Pedidos Totales</span>
+            <span class="material-symbols-outlined text-purple-500">shopping_cart_checkout</span>
+          </div>
+          <div id="seller-kpi-pedidos" class="text-xl sm:text-2xl font-black text-on-surface">0 pedidos</div>
+          <span class="text-[11px] text-secondary mt-1 block">Órdenes con tus productos</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-sm">
+          <div class="flex items-center justify-between text-secondary mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider">Productos en Catálogo</span>
+            <span class="material-symbols-outlined text-amber-500">storefront</span>
+          </div>
+          <div id="seller-kpi-productos" class="text-xl sm:text-2xl font-black text-on-surface">0 productos</div>
+          <span class="text-[11px] text-secondary mt-1 block">Subidos por tu cuenta</span>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: MIS PRODUCTOS PUBLICADOS -->
+      <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-surface-container p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-surface-container gap-3">
+          <div>
+            <h2 class="text-xl font-black text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">inventory</span>
+              <span>Mis Productos Publicados</span>
+            </h2>
+            <p class="text-xs text-secondary mt-0.5">Mostrando únicamente los artículos que tú has subido como vendedor o administrador.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="seller-products-search" placeholder="Filtrar por nombre o SKU..." class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-primary w-48 sm:w-60" />
+            <button type="button" id="btn-seller-add-prod-inline" class="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0">
+              <span class="material-symbols-outlined text-[16px]">add</span>
+              <span>+ Subir Producto</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="seller-products-container" class="overflow-x-auto">
+          <!-- Tabla inyectada por admin-audit.js -->
+        </div>
+      </div>
+
+      <!-- SECCIÓN: MIS VENTAS REGISTRADAS -->
+      <div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-surface-container p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-surface-container gap-3">
+          <div>
+            <h2 class="text-xl font-black text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-600">receipt_long</span>
+              <span>Mis Ventas Registradas</span>
+            </h2>
+            <p class="text-xs text-secondary mt-0.5">Historial de órdenes y compras realizadas por clientes sobre tus productos.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="seller-sales-search" placeholder="Filtrar ventas por folio o producto..." class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-primary w-48 sm:w-60" />
+          </div>
+        </div>
+
+        <div id="seller-sales-container" class="overflow-x-auto">
+          <!-- Tabla inyectada por admin-audit.js -->
+        </div>
+      </div>
+
+      <!-- SECCIÓN COLAPSABLE: REPORTE EJECUTIVO GLOBAL Y AUDITORÍA JSON (SGC MC-001) -->
+      <details class="bg-surface-container-lowest rounded-2xl shadow-sm border border-surface-container p-4 text-xs">
+        <summary class="font-bold text-slate-700 cursor-pointer flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px]">analytics</span>
+          <span>Ver Reporte Ejecutivo Global y Conciliación JSON (Auditoría D8 / MC-001)</span>
+        </summary>
+        <div class="pt-4 mt-3 border-t border-surface-container space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-secondary text-xs">Reporte consolidado de todas las ventas del sistema en MXN.</p>
+            <button type="button" id="btn-load-reports" class="px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-bold text-xs cursor-pointer">
+              Generar Reporte Global
+            </button>
+          </div>
+          <div id="admin-reports-box" class="reports-box">
+            <p class="muted">Presione "Generar Reporte Global" para consultar conciliación de inventario.</p>
+          </div>
+        </div>
+      </details>
     </section>
 
     <!-- ===============================================================
@@ -2912,6 +3012,299 @@
         <button type="submit" id="btn-submit-refund-modal" class="btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer shadow-md">
           <span class="material-symbols-outlined text-[16px]">send</span>
           <span>Enviar Solicitud de Reembolso en MXN</span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL: ALTA DE PRODUCTO DE VENDEDOR / ADMINISTRADOR (RF-06)
+       =============================================================== -->
+  <dialog id="seller-product-dialog" class="modal-dialog max-w-2xl p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="seller-product-dialog-title">
+    <div class="modal-header bg-gradient-to-r from-[#0c1e3d] via-[#123580] to-[#163e8a] text-white p-4.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 shadow-sm">
+          <span class="material-symbols-outlined text-[24px]">add_shopping_cart</span>
+        </div>
+        <div>
+          <h2 id="seller-product-dialog-title" class="font-headline-sm text-base sm:text-lg font-bold text-white tracking-tight">
+            Publicar Nuevo Producto en Catálogo
+          </h2>
+          <p class="text-xs text-blue-200 mt-0.5">El producto quedará registrado a tu cuenta de vendedor y listo para venta en MXN.</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-seller-product-modal" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer" aria-label="Cerrar modal de producto">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="admin-product-form" class="modal-body p-6 space-y-3 max-h-[80vh] overflow-y-auto bg-surface-container-lowest">
+      <div class="field">
+        <label for="prod-sku">SKU Único *</label>
+        <span id="prod-sku-hint" class="hint">Formato oficial: EM-CAT-000</span>
+        <input type="text" id="prod-sku" required placeholder="EM-GAM-009" aria-describedby="prod-sku-hint" />
+      </div>
+      <div class="field">
+        <label for="prod-nombre">Nombre del Producto *</label>
+        <input type="text" id="prod-nombre" required placeholder="Consola Portátil Pro 1TB OLED" />
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="field">
+          <label for="prod-cat">Categoría *</label>
+          <select id="prod-cat" required>
+            <option value="Computo">Cómputo</option>
+            <option value="Audio">Audio</option>
+            <option value="telefonia">Telefonía</option>
+            <option value="Accesorios">Accesorios</option>
+            <option value="Hogar">Hogar</option>
+            <option value="Videojuegos">Videojuegos</option>
+            <option value="Electronica">Electrónica</option>
+            <option value="Deportes">Deportes</option>
+            <option value="Automotriz">Automotriz</option>
+            <option value="Libros">Libros</option>
+            <option value="Entretenimiento">Entretenimiento</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="prod-marca">Marca *</label>
+          <input type="text" id="prod-marca" required placeholder="TechNova" />
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="field">
+          <label for="prod-precio">Precio Unitario ($ MXN) *</label>
+          <input type="number" id="prod-precio" min="1" step="0.01" required placeholder="8999.00" />
+        </div>
+        <div class="field">
+          <label for="prod-stock">Stock Inicial (Almacén) *</label>
+          <input type="number" id="prod-stock" min="0" step="1" required placeholder="20" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="prod-desc">Descripción completa *</label>
+        <textarea id="prod-desc" rows="2" required placeholder="Especificaciones técnicas y beneficios principales..."></textarea>
+      </div>
+      <div class="field">
+        <label for="prod-imagen">URL de la Imagen del Producto (Opcional)</label>
+        <input type="url" id="prod-imagen" placeholder="https://ejemplo.com/imagen.jpg (opcional)" />
+      </div>
+      <div class="field">
+        <label for="prod-envio">Condiciones de envío en México *</label>
+        <input type="text" id="prod-envio" required value="Envío ExpressPrime asegurado gratis en 24-48 horas desde CEDIS CDMX." />
+      </div>
+
+      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-container">
+        <button type="button" id="btn-cancel-seller-product-modal" class="btn btn-outline btn-sm px-4 py-2 cursor-pointer font-bold">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer shadow-md">
+          <span class="material-symbols-outlined text-[16px]">publish</span>
+          <span>Publicar Producto en Catálogo (MXN)</span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL: VINCULAR / REGISTRAR TARJETA RECEPTORA DE PAGOS SIMULADOS
+       =============================================================== -->
+  <dialog id="seller-receiving-card-dialog" class="modal-dialog max-w-xl p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="seller-card-dialog-title">
+    <div class="modal-header bg-gradient-to-r from-[#0a2540] via-[#003087] to-[#1e3a8a] text-white p-4.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 shadow-sm">
+          <span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+        </div>
+        <div>
+          <h2 id="seller-card-dialog-title" class="font-headline-sm text-base sm:text-lg font-bold text-white tracking-tight">
+            Tarjeta Receptora de Cobros
+          </h2>
+          <p class="text-xs text-blue-200 mt-0.5">Recibe los fondos simulados de las ventas de tus productos.</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-seller-card-modal" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer" aria-label="Cerrar modal de tarjeta">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-4 max-h-[82vh] overflow-y-auto bg-surface-container-lowest">
+      <!-- Selector de Modo: Existente vs Nueva -->
+      <div class="flex rounded-xl bg-surface-container-high p-1">
+        <button type="button" id="tab-btn-seller-card-existing" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-on-surface bg-white shadow-xs">
+          💳 Mis Tarjetas Guardadas
+        </button>
+        <button type="button" id="tab-btn-seller-card-new" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-secondary hover:text-on-surface">
+          ✨ Nueva Tarjeta Receptora
+        </button>
+      </div>
+
+      <!-- MODO A: SELECCIONAR DE MIS TARJETAS -->
+      <div id="seller-card-mode-existing" class="space-y-3">
+        <p class="text-xs text-secondary">Selecciona una de las tarjetas de tu cartera para recibir tus pagos simulados:</p>
+        <div id="seller-existing-cards-container" class="space-y-2.5">
+          <!-- Inyectado dinámicamente -->
+        </div>
+      </div>
+
+      <!-- MODO B: CREAR NUEVA TARJETA RECEPTORA -->
+      <div id="seller-card-mode-new" class="space-y-4 hidden">
+        <!-- Preview del Plástico Interactivo -->
+        <div class="flex justify-center">
+          <div id="seller-modal-card-preview" class="w-full max-w-[340px] rounded-2xl p-5 text-white shadow-xl relative overflow-hidden transition-all duration-300" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-6 rounded bg-amber-300/80 border border-amber-400 inline-block shadow-inner"></span>
+                <span class="material-symbols-outlined text-[18px] opacity-80">contactless</span>
+              </div>
+              <div class="text-right">
+                <span id="seller-preview-brand" class="font-headline-md text-base font-black italic tracking-wider">VISA</span>
+                <span class="block text-[9px] uppercase tracking-wider opacity-80">Receptora de Ventas</span>
+              </div>
+            </div>
+            <div id="seller-preview-number" class="mt-4 font-mono text-base font-extrabold tracking-[2px] drop-shadow">
+              4032 •••• •••• 0187
+            </div>
+            <div class="mt-3 flex items-end justify-between text-xs">
+              <div>
+                <span class="text-[9px] uppercase tracking-wider opacity-75 block">Titular</span>
+                <span id="seller-preview-holder" class="font-bold uppercase tracking-wide text-[11px]">VENDEDOR EXPRESSMART</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[9px] uppercase tracking-wider opacity-75 block">Expira</span>
+                <span id="seller-preview-exp" class="font-mono text-[11px] font-bold">12/29</span>
+              </div>
+            </div>
+            <div class="mt-2.5 pt-1.5 border-t border-white/20 flex items-center justify-between text-[10px]">
+              <span>Saldo Inicial Autorizado:</span>
+              <strong id="seller-preview-balance" class="text-xs font-black text-amber-200">$0.00 MXN</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selector de Color del Plástico -->
+        <div class="p-3.5 rounded-xl bg-surface-container-low border border-surface-container space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-on-surface">
+            <span class="flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px] text-amber-500">palette</span>
+              <span>Color del Plástico:</span>
+            </span>
+            <span id="seller-selected-color-name" class="text-primary font-bold">Azul Rey PayPal</span>
+          </div>
+          <div id="seller-plastic-color-swatches" class="flex flex-wrap items-center gap-2 pt-1">
+            <!-- Swatches inyectados dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Formulario de Datos de la Tarjeta -->
+        <form id="seller-new-card-form" class="space-y-3">
+          <div class="flex items-center justify-between pb-1 border-b border-surface-container">
+            <span class="text-xs font-bold text-on-surface">Datos de la Tarjeta</span>
+            <button type="button" id="btn-seller-randomize-card" class="px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-[11px] font-bold cursor-pointer flex items-center gap-1 border border-sky-200">
+              <span class="material-symbols-outlined text-[14px]">casino</span>
+              <span>Auto-Generar</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="seller-card-holder-input" class="block text-[11px] font-bold uppercase tracking-wider text-secondary mb-1">Nombre del Titular *</label>
+              <input type="text" id="seller-card-holder-input" required placeholder="VENDEDOR EXPRESSMART" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none focus:border-primary uppercase" />
+            </div>
+            <div>
+              <label for="seller-card-num-input" class="block text-[11px] font-bold uppercase tracking-wider text-secondary mb-1">Número de Tarjeta *</label>
+              <input type="text" id="seller-card-num-input" required maxlength="19" placeholder="4032 0377 9923 0187" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:outline-none focus:border-primary" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label for="seller-card-brand-select" class="block text-[11px] font-bold uppercase tracking-wider text-secondary mb-1">Marca</label>
+              <select id="seller-card-brand-select" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none focus:border-primary">
+                <option value="Visa">Visa</option>
+                <option value="Mastercard">Mastercard</option>
+                <option value="American Express">American Express</option>
+              </select>
+            </div>
+            <div>
+              <label for="seller-card-exp-input" class="block text-[11px] font-bold uppercase tracking-wider text-secondary mb-1">Expira (MM/AA)</label>
+              <input type="text" id="seller-card-exp-input" maxlength="5" value="12/29" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:outline-none focus:border-primary text-center" />
+            </div>
+            <div>
+              <label for="seller-card-cvv-input" class="block text-[11px] font-bold uppercase tracking-wider text-secondary mb-1">CVV / CVC</label>
+              <input type="text" id="seller-card-cvv-input" maxlength="4" value="123" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:outline-none focus:border-primary text-center" />
+            </div>
+          </div>
+
+          <div>
+            <label for="seller-card-saldo-input" class="block text-[11px] font-bold uppercase tracking-wider text-secondary mb-1">Saldo Inicial Autorizado ($ MXN)</label>
+            <input type="number" id="seller-card-saldo-input" min="0" step="100" value="0" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none focus:border-primary" />
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-container">
+            <button type="submit" class="btn btn-primary btn-sm px-5 py-2.5 font-bold flex items-center gap-1.5 cursor-pointer shadow-md w-full justify-center">
+              <span class="material-symbols-outlined text-[16px]">save</span>
+              <span>Crear y Vincular como Tarjeta Receptora</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
+       MODAL: EDICIÓN RÁPIDA DE STOCK Y PRECIO DEL PRODUCTO
+       =============================================================== -->
+  <dialog id="seller-stock-dialog" class="modal-dialog max-w-md p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="seller-stock-dialog-title">
+    <div class="modal-header bg-gradient-to-r from-[#0c1e3d] via-[#123580] to-[#163e8a] text-white p-4.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 shadow-sm">
+          <span class="material-symbols-outlined text-[24px]">tune</span>
+        </div>
+        <div>
+          <h2 id="seller-stock-dialog-title" class="font-headline-sm text-base sm:text-lg font-bold text-white tracking-tight">
+            Editar Stock y Precio
+          </h2>
+          <p class="text-xs text-blue-200 mt-0.5">Ajusta la disponibilidad de tu producto en tiempo real.</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-seller-stock-modal" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer" aria-label="Cerrar modal de edición">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="seller-stock-form" class="modal-body p-6 space-y-4 bg-surface-container-lowest">
+      <input type="hidden" id="seller-edit-product-id" value="" />
+      <div>
+        <span class="text-xs text-secondary font-bold uppercase tracking-wider block">Producto</span>
+        <strong id="seller-edit-product-name" class="text-sm font-black text-on-surface block mt-0.5">...</strong>
+        <span id="seller-edit-product-sku" class="text-xs text-secondary font-mono">EM-SKU</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label for="seller-edit-stock-amount" class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1">Stock Disponible *</label>
+          <input type="number" id="seller-edit-stock-amount" min="0" step="1" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label for="seller-edit-stock-price" class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1">Precio ($ MXN) *</label>
+          <input type="number" id="seller-edit-stock-price" min="1" step="0.01" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:border-primary" />
+        </div>
+      </div>
+
+      <div>
+        <label for="seller-edit-stock-active" class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1">Estado en Catálogo</label>
+        <select id="seller-edit-stock-active" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none focus:border-primary">
+          <option value="1">Activo (Visible para compra)</option>
+          <option value="0">Pausado (Oculto en catálogo)</option>
+        </select>
+      </div>
+
+      <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-container">
+        <button type="button" id="btn-cancel-seller-stock-modal" class="btn btn-outline btn-sm px-4 py-2 cursor-pointer font-bold">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer shadow-md">
+          <span class="material-symbols-outlined text-[16px]">save</span>
+          <span>Guardar Cambios</span>
         </button>
       </div>
     </form>

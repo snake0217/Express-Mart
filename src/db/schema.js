@@ -278,6 +278,7 @@ function createAllTables(db) {
       tipo TEXT NOT NULL DEFAULT 'credito',
       color_plastico TEXT NOT NULL DEFAULT '#1d4ed8',
       vinculada_paypal INTEGER NOT NULL DEFAULT 1,
+      es_receptora INTEGER NOT NULL DEFAULT 0,
       activa INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -310,6 +311,9 @@ function createAllTables(db) {
   } catch (_) {}
   try {
     db.exec('ALTER TABLE tarjetas_simuladas ADD COLUMN vinculada_paypal INTEGER NOT NULL DEFAULT 1;');
+  } catch (_) {}
+  try {
+    db.exec('ALTER TABLE tarjetas_simuladas ADD COLUMN es_receptora INTEGER NOT NULL DEFAULT 0;');
   } catch (_) {}
 
   try {

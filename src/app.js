@@ -24,6 +24,7 @@ const { registerCheckoutRoutes } = require('./routes/checkoutRoutes');
 const { registerOrderRoutes } = require('./routes/orderRoutes');
 const { registerLogisticsRoutes } = require('./routes/logisticsRoutes');
 const { registerAdminRoutes } = require('./routes/adminRoutes');
+const { registerSellerRoutes } = require('./routes/sellerRoutes');
 
 function createApp() {
   const app = express();
@@ -45,6 +46,7 @@ function createApp() {
   registerOrderRoutes(app);
   registerLogisticsRoutes(app);
   registerAdminRoutes(app);
+  registerSellerRoutes(app);
 
   return app;
 }
