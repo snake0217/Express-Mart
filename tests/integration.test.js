@@ -636,6 +636,177 @@ describe('Pruebas Funcionales y de Integración End-to-End (CP-RF-01 a CP-RF-10)
       .send({ email: 'admin@expressmart.mx' });
     expect(dupRes.status).toBe(409);
   });
+
+  test('CP-RF-15: Eliminación de cuentas de usuario (Administración y Autogestión LFPDPPP)', async () => {
+    // 1. Protección de la cuenta Superadministrador
+    const delAdminRes = await request(app)
+      .delete('/api/admin/users/1')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(delAdminRes.status).toBe(400);
+
+    // 2. Validación de usuario inexistente
+    const notFoundDel = await request(app)
+      .delete('/api/admin/users/99999')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(notFoundDel.status).toBe(404);
+
+    // 3. Registro y eliminación por administrador
+    const emailTemp = `user_temp_${Date.now()}@expressmart.mx`;
+    const regRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: emailTemp,
+        password: 'PasswordSegura2026!',
+        nombre: 'Usuario Temporal Admin Delete',
+        direccion: 'Calle Falsa 123, CDMX',
+        telefono: '5512345678',
+        consentimientoPrivacidad: true,
+        mfaCode: '123456'
+      });
+    expect(regRes.status).toBe(201);
+    const tempUserId = regRes.body.user.id;
+
+    const delRes = await request(app)
+      .delete(`/api/admin/users/${tempUserId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(delRes.status).toBe(200);
+
+    // Comprobar que ya no puede iniciar sesión
+    const loginFail = await request(app)
+      .post('/api/auth/login')
+      .send({ email: emailTemp, password: 'PasswordSegura2026!' });
+    expect(loginFail.status).toBe(401);
+
+    // 4. Registro y eliminación de propia cuenta (Mi Perfil / LFPDPPP)
+    const emailSelf = `user_self_${Date.now()}@expressmart.mx`;
+    const regSelf = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: emailSelf,
+        password: 'PasswordSegura2026!',
+        nombre: 'Usuario Auto Eliminacion',
+        direccion: 'Av. Insurgentes Sur 456, CDMX',
+        telefono: '5587654321',
+        consentimientoPrivacidad: true,
+        mfaCode: '123456'
+      });
+    expect(regSelf.status).toBe(201);
+    const selfToken = regSelf.body.token;
+
+    // Superadmin no puede auto-eliminarse
+    const superSelfDel = await request(app)
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(superSelfDel.status).toBe(400);
+
+    // Usuario cliente se auto-elimina
+    const selfDelRes = await request(app)
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${selfToken}`);
+    expect(selfDelRes.status).toBe(200);
+
+    // Intento posterior de login debe fallar
+    const loginSelfFail = await request(app)
+      .post('/api/auth/login')
+      .send({ email: emailSelf, password: 'PasswordSegura2026!' });
+    expect(loginSelfFail.status).toBe(401);
+  });
+
+  test('CP-RF-16: Gestión y resolución de peticiones de reembolso (LFPC / MC-001)', async () => {
+    // 1. Realizar una compra con tarjeta simulada para probar el reembolso
+    const cardRes = await request(app)
+      .get('/api/payments/simulated-cards')
+      .set('Authorization', `Bearer ${clienteToken}`);
+    const card = cardRes.body.find((c) => c.activa && c.saldo >= 5000);
+    expect(card).toBeDefined();
+    const saldoInicial = card.saldo;
+
+    const checkoutRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        items: [{ productoId: 2, cantidad: 1 }],
+        direccionEnvio: 'Calle de Reembolso 789, CDMX',
+        metodoPago: 'tarjeta',
+        cardNumber: card.numero_tarjeta,
+        cardHolder: card.titular,
+        expiry: card.expiracion,
+        cvv: card.cvv,
+        pasosCheckout: 3
+      });
+    expect(checkoutRes.status).toBe(201);
+    const orderId = checkoutRes.body.order.id;
+
+    // 2. Cliente crea solicitud de reembolso
+    const refundReqRes = await request(app)
+      .post(`/api/orders/${orderId}/refund-request`)
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({ motivo: 'Producto no compatible con mis requerimientos técnicos.' });
+    expect(refundReqRes.status).toBe(201);
+    expect(refundReqRes.body.estado).toBe('pendiente');
+    const reqId = refundReqRes.body.requestId;
+
+    // 3. Prevenir solicitud duplicada
+    const dupRefund = await request(app)
+      .post(`/api/orders/${orderId}/refund-request`)
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({ motivo: 'Intento duplicado' });
+    expect(dupRefund.status).toBe(400);
+
+    // 4. Administrador consulta lista de solicitudes
+    const listRes = await request(app)
+      .get('/api/admin/refund-requests')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.requests.some((r) => r.id === reqId)).toBe(true);
+
+    // 5. Administrador aprueba el reembolso
+    const approveRes = await request(app)
+      .post(`/api/admin/refund-requests/${reqId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ respuesta: 'Reembolso aprobado y reintegrado a la tarjeta.' });
+    expect(approveRes.status).toBe(200);
+    expect(approveRes.body.estado).toBe('aprobada');
+    expect(approveRes.body.tarjetaReembolsada).toBeDefined();
+
+    // 6. Intentar resolver de nuevo una solicitud ya aprobada
+    const reApprove = await request(app)
+      .post(`/api/admin/refund-requests/${reqId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(reApprove.status).toBe(400);
+
+    // 7. Crear otra compra para probar denegación de reembolso
+    const checkout2 = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        items: [{ productoId: 2, cantidad: 1 }],
+        direccionEnvio: 'Calle Denegada 101, CDMX',
+        metodoPago: 'tarjeta',
+        cardNumber: card.numero_tarjeta,
+        cardHolder: card.titular,
+        expiry: card.expiracion,
+        cvv: card.cvv,
+        pasosCheckout: 3
+      });
+    expect(checkout2.status).toBe(201);
+    const order2Id = checkout2.body.order.id;
+
+    const refund2Req = await request(app)
+      .post(`/api/orders/${order2Id}/refund-request`)
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({ motivo: 'Solicitud con empaque dañado por cliente' });
+    expect(refund2Req.status).toBe(201);
+    const req2Id = refund2Req.body.requestId;
+
+    // Administrador deniega el reembolso
+    const rejectRes = await request(app)
+      .post(`/api/admin/refund-requests/${req2Id}/reject`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ motivo: 'El daño fue causado por uso indebido y no procede bajo garantía.' });
+    expect(rejectRes.status).toBe(200);
+    expect(rejectRes.body.estado).toBe('denegada');
+  });
 });
 
 

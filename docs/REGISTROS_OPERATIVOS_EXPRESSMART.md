@@ -66,7 +66,7 @@
 
 ---
 
-## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0017`)
+## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0018`)
 
 | ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |
 | :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |
@@ -87,6 +87,7 @@
 | `RFC-0015` | 10/11/2026 | Soporte Técnico | Configuración | **Carga universal de variables de entorno y transporte SMTP** | Resolución definitiva de error Missing credentials for PLAIN en 2FA | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0016` | 10/11/2026 | Auditoría UX | Notificaciones y Perfil | **Botón azul de cerrar notificaciones y reactividad de favoritos** | Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 | `RFC-0017` | 10/11/2026 | Operaciones y QA | Paneles y Checkout | **Tarjetas simuladas con descuento de saldo, edición de cuentas y pruebas QA** | Simulación transaccional controlada con deducción real, edición integral de usuarios y suite QA live | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
+| `RFC-0018` | 10/11/2026 | Auditoría y Operaciones | Panel Admin y Perfil | **Eliminación de cuentas (Admin y Autogestión LFPDPPP) y Gestión de Reembolsos (LFPC)** | Borrado en cascada con salvaguarda de superadmin, pestaña de reembolsos con abono a tarjeta y reposición de stock | `Normal` | Comité de Cambios (CAB) | **Exitoso** |
 
 ---
 
@@ -106,6 +107,6 @@
 ---
 
 ## 6. Dictamen de Eficacia Operativa y Mejora Continua
-Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 17 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:
+Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 18 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:
 
 > **DICTAMEN OPERATIVO:** CONFORME AL 100%. La operación del sistema ExpressMart México cumple con los estándares ISO 9001:2015 (Apartado 37 y 38), ISO/IEC 27001:2022 y PCI DSS v4.0. Se autoriza la incorporación de estos registros al expediente final de auditoría.

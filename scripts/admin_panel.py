@@ -124,6 +124,89 @@ def ensure_simulated_cards_table(con):
         pass
 
 
+def ensure_refund_requests_table(con):
+    try:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS solicitudes_reembolso (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pedido_id INTEGER NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                monto REAL NOT NULL,
+                motivo TEXT NOT NULL,
+                estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobada', 'denegada')),
+                respuesta_admin TEXT,
+                fecha_solicitud TEXT NOT NULL,
+                fecha_resolucion TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            )
+        """)
+        count = con.execute("SELECT COUNT(*) FROM solicitudes_reembolso").fetchone()[0]
+        if count == 0:
+            orders = con.execute("SELECT id, usuario_id, total, folio FROM pedidos WHERE estado IN ('pagado', 'enviado', 'entregado') ORDER BY id ASC LIMIT 2").fetchall()
+            now_iso = datetime.utcnow().isoformat() + "Z"
+            if len(orders) > 0:
+                o1 = orders[0]
+                con.execute("""
+                    INSERT INTO solicitudes_reembolso (pedido_id, usuario_id, monto, motivo, estado, fecha_solicitud, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 'pendiente', ?, ?, ?)
+                """, (o1['id'], o1['usuario_id'], o1['total'], 'El producto llegó con detalle estético en el empaque y solicito devolución bajo garantía LFPC.', now_iso, now_iso, now_iso))
+            if len(orders) > 1:
+                o2 = orders[1]
+                con.execute("""
+                    INSERT INTO solicitudes_reembolso (pedido_id, usuario_id, monto, motivo, estado, fecha_solicitud, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 'pendiente', ?, ?, ?)
+                """, (o2['id'], o2['usuario_id'], o2['total'], 'Compré dos unidades por equivocación en el checkout, solicito devolución de la orden.', now_iso, now_iso, now_iso))
+            con.commit()
+    except Exception:
+        pass
+
+
+def delete_user_cascade(con, user_id: int):
+    """Eliminación limpia y en cascada de un usuario sin violar llaves foráneas."""
+    user = con.execute("SELECT id, email, nombre, rol FROM usuarios WHERE id = ?", (user_id,)).fetchone()
+    if not user:
+        raise ValueError(f"Usuario {user_id} no existe.")
+    if user_id == 1:
+        raise ValueError("No es posible eliminar al Superadministrador principal (ID 1).")
+
+    # Limpiar tablas dependientes
+    con.execute("DELETE FROM sesiones WHERE usuario_id = ?", (user_id,))
+    con.execute("DELETE FROM carrito_items WHERE usuario_id = ?", (user_id,))
+    con.execute("DELETE FROM mfa_email_codes WHERE email = ?", (user["email"],))
+    con.execute("DELETE FROM suscripciones_premium WHERE usuario_id = ?", (user_id,))
+    con.execute("DELETE FROM notificaciones WHERE usuario_id = ?", (user_id,))
+    con.execute("DELETE FROM solicitudes_reembolso WHERE usuario_id = ?", (user_id,))
+    con.execute("DELETE FROM derechos_arco WHERE usuario_id = ?", (user_id,))
+    con.execute("DELETE FROM resenas WHERE usuario_id = ?", (user_id,))
+
+    # Pedidos asociados
+    pedidos = con.execute("SELECT id FROM pedidos WHERE usuario_id = ?", (user_id,)).fetchall()
+    for p in pedidos:
+        pid = p["id"]
+        con.execute("DELETE FROM pedido_items WHERE pedido_id = ?", (pid,))
+        con.execute("DELETE FROM transacciones WHERE pedido_id = ?", (pid,))
+        con.execute("DELETE FROM envios WHERE pedido_id = ?", (pid,))
+        con.execute("DELETE FROM solicitudes_reembolso WHERE pedido_id = ?", (pid,))
+        con.execute("DELETE FROM pedidos WHERE id = ?", (pid,))
+
+    con.execute("UPDATE catalogo SET vendedor_id = 1 WHERE vendedor_id = ?", (user_id,))
+    con.execute("DELETE FROM usuarios WHERE id = ?", (user_id,))
+
+    record_audit_log_sql(con, {
+        "usuario_id": 1,
+        "rol": "administrador",
+        "accion": "ELIMINACION_USUARIO_ADMIN",
+        "modulo": "Cuentas y Accesos (SGC / ISO 27001)",
+        "entidad_id": f"USER-{user_id}",
+        "detalles": json.dumps({"usuario_eliminado": user["email"], "nombre": user["nombre"], "rol": user["rol"]})
+    })
+    con.commit()
+    return user
+
+
 def get_db():
     db_path = find_database_path()
     if not os.path.exists(db_path):
@@ -131,6 +214,7 @@ def get_db():
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     ensure_simulated_cards_table(con)
+    ensure_refund_requests_table(con)
     return con, db_path
 
 
@@ -498,17 +582,19 @@ class AdminPanelGUI:
         self.notebook = ttk.Notebook(self.main_container, style="Admin.TNotebook")
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=16, pady=(10, 16))
 
-        # Crear las 5 Ventanas / Pestañas principales requeridas:
+        # Crear las 6 Ventanas / Pestañas principales requeridas:
         self.tab_finance = ttk.Frame(self.notebook, style="Admin.TFrame")
         self.tab_accounts = ttk.Frame(self.notebook, style="Admin.TFrame")
         self.tab_create_account = ttk.Frame(self.notebook, style="Admin.TFrame")
         self.tab_cards = ttk.Frame(self.notebook, style="Admin.TFrame")
+        self.tab_refunds = ttk.Frame(self.notebook, style="Admin.TFrame")
         self.tab_sales = ttk.Frame(self.notebook, style="Admin.TFrame")
 
         self.notebook.add(self.tab_finance, text=" Dinero y Balance ExpressMart ")
         self.notebook.add(self.tab_accounts, text=" Cuentas del Sistema ")
         self.notebook.add(self.tab_create_account, text=" Crear Cuentas (Admin/Vendedor/Auditor) ")
         self.notebook.add(self.tab_cards, text=" Tarjetas y Saldo (Compras) ")
+        self.notebook.add(self.tab_refunds, text=" Peticiones de Reembolso ")
         self.notebook.add(self.tab_sales, text=" Log de Ventas y Reportes ")
 
         # Construir cada pestaña
@@ -516,12 +602,14 @@ class AdminPanelGUI:
         self.build_accounts_tab()
         self.build_create_account_tab()
         self.build_cards_tab()
+        self.build_refunds_tab()
         self.build_sales_tab()
 
         # Cargar datos iniciales
         self.refresh_finance_data()
         self.refresh_accounts_data()
         self.refresh_cards_data()
+        self.refresh_refunds_data()
         self.refresh_sales_data()
 
     def setup_styles(self):
@@ -855,7 +943,23 @@ class AdminPanelGUI:
             cursor="hand2",
             command=self.open_edit_user_dialog
         )
-        btn_edit_user_top.pack(side=tk.LEFT, padx=(0, 15))
+        btn_edit_user_top.pack(side=tk.LEFT, padx=(0, 10))
+
+        btn_delete_user_top = tk.Button(
+            top_box,
+            text="Eliminar Cuenta",
+            font=("DejaVu Sans", 9, "bold"),
+            bg=COLOR_DANGER,
+            fg="#ffffff",
+            activebackground="#dc2626",
+            activeforeground="#ffffff",
+            padx=10,
+            pady=2,
+            relief="flat",
+            cursor="hand2",
+            command=self.delete_selected_user
+        )
+        btn_delete_user_top.pack(side=tk.LEFT, padx=(0, 15))
 
         self.lbl_accounts_stats = tk.Label(top_box, text="Total cuentas: 0", font=("DejaVu Sans", 9, "bold"), fg=COLOR_PRIMARY, bg=COLOR_BG)
         self.lbl_accounts_stats.pack(side=tk.RIGHT)
@@ -939,6 +1043,22 @@ class AdminPanelGUI:
             command=self.open_edit_user_dialog
         )
         btn_edit_detail.pack(side=tk.RIGHT, padx=5)
+
+        btn_delete_detail = tk.Button(
+            detail_content_box,
+            text="Eliminar Cuenta",
+            font=("DejaVu Sans", 9, "bold"),
+            bg=COLOR_DANGER,
+            fg="#ffffff",
+            activebackground="#dc2626",
+            activeforeground="#ffffff",
+            padx=12,
+            pady=4,
+            relief="flat",
+            cursor="hand2",
+            command=self.delete_selected_user
+        )
+        btn_delete_detail.pack(side=tk.RIGHT, padx=5)
 
     def refresh_accounts_data(self):
         con, _ = get_db()
@@ -1246,6 +1366,52 @@ class AdminPanelGUI:
 
         btn_cancel = ttk.Button(btn_box, text="Cancelar", command=dlg.destroy)
         btn_cancel.pack(side=tk.RIGHT, padx=5)
+
+    def delete_selected_user(self):
+        selected = self.tree_users.selection()
+        if not selected:
+            messagebox.showwarning("Atención", "Por favor seleccione una cuenta en la tabla para eliminar.")
+            return
+
+        item = self.tree_users.item(selected[0])
+        vals = item["values"]
+        user_id = int(vals[0])
+        nombre = vals[1]
+        email = vals[2]
+
+        if user_id == 1:
+            messagebox.showerror(
+                "Operación Denegada",
+                "No es posible eliminar la cuenta principal de Superadministrador (ID 1)."
+            )
+            return
+
+        confirm = messagebox.askyesno(
+            "Confirmar Eliminación Permanente",
+            f"ADVERTENCIA DE SEGURIDAD:\n\n"
+            f"¿Está completamente seguro de que desea eliminar permanentemente la cuenta:\n"
+            f"• Usuario: {nombre}\n"
+            f"• Correo: {email} (ID #{user_id})?\n\n"
+            f"Esta acción revocará todas sus sesiones activas, cancelará beneficios "
+            f"y purgará sus registros asociados de forma irreversible.",
+            icon="warning"
+        )
+        if not confirm:
+            return
+
+        try:
+            con, _ = get_db()
+            deleted_user = delete_user_cascade(con, user_id)
+            con.close()
+
+            messagebox.showinfo(
+                "Cuenta Eliminada",
+                f"La cuenta de '{deleted_user['nombre']}' ({deleted_user['email']}) ha sido eliminada exitosamente del sistema."
+            )
+            self.refresh_accounts_data()
+            self.refresh_finance_data()
+        except Exception as e:
+            messagebox.showerror("Error al Eliminar Cuenta", f"No se pudo eliminar la cuenta:\n{str(e)}")
 
     # ==========================================================================
     # PESTAÑA 3: CREAR CUENTAS DE ADMINISTRADOR, VENDEDOR Y AUDITOR
@@ -1894,7 +2060,442 @@ class AdminPanelGUI:
             con.close()
 
     # ==========================================================================
-    # PESTAÑA 5: LOG DE VENTAS Y REPORTES
+    # PESTAÑA 5: GESTIÓN DE PETICIONES DE REEMBOLSO (LFPC / MC-001)
+    # ==========================================================================
+    def build_refunds_tab(self):
+        frame = self.tab_refunds
+
+        top_box = tk.Frame(frame, bg=COLOR_BG)
+        top_box.pack(fill=tk.X, padx=10, pady=(10, 6))
+
+        tk.Label(top_box, text="Estado:", font=("DejaVu Sans", 9, "bold"), bg=COLOR_BG, fg=COLOR_NAVY_DARK).pack(side=tk.LEFT, padx=(0, 5))
+        self.combo_refund_filter = ttk.Combobox(
+            top_box,
+            values=["Todos", "pendiente", "aprobada", "denegada"],
+            state="readonly",
+            width=12
+        )
+        self.combo_refund_filter.set("Todos")
+        self.combo_refund_filter.pack(side=tk.LEFT, padx=(0, 15))
+        self.combo_refund_filter.bind("<<ComboboxSelected>>", lambda _: self.filter_refunds())
+
+        tk.Label(top_box, text="Buscar:", font=("DejaVu Sans", 9, "bold"), bg=COLOR_BG, fg=COLOR_NAVY_DARK).pack(side=tk.LEFT, padx=(0, 5))
+        self.entry_search_refund = ttk.Entry(top_box, width=20)
+        self.entry_search_refund.pack(side=tk.LEFT, padx=(0, 5))
+        self.entry_search_refund.bind("<KeyRelease>", lambda _: self.filter_refunds())
+
+        btn_clear_refund = ttk.Button(top_box, text="Limpiar", command=self.clear_refund_search)
+        btn_clear_refund.pack(side=tk.LEFT, padx=(0, 10))
+
+        btn_refresh_refund = tk.Button(
+            top_box,
+            text="Actualizar Peticiones",
+            font=("DejaVu Sans", 9, "bold"),
+            bg=COLOR_PRIMARY,
+            fg="#ffffff",
+            activebackground=COLOR_PRIMARY_LIGHT,
+            activeforeground="#ffffff",
+            padx=10,
+            pady=2,
+            relief="flat",
+            cursor="hand2",
+            command=self.refresh_refunds_data
+        )
+        btn_refresh_refund.pack(side=tk.LEFT, padx=(0, 15))
+
+        self.lbl_refunds_stats = tk.Label(top_box, text="Pendientes: 0 | Aprobadas: 0 | Denegadas: 0", font=("DejaVu Sans", 9, "bold"), fg=COLOR_PRIMARY, bg=COLOR_BG)
+        self.lbl_refunds_stats.pack(side=tk.RIGHT)
+
+        table_container = tk.Frame(frame, bg=COLOR_SURFACE, relief="solid", bd=1)
+        table_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        cols = ("id", "folio", "cliente", "monto", "motivo", "estado", "fecha", "resolucion")
+        self.tree_refunds = ttk.Treeview(
+            table_container,
+            columns=cols,
+            show="headings",
+            style="Admin.Treeview",
+            selectmode="browse"
+        )
+
+        self.tree_refunds.heading("id", text="ID")
+        self.tree_refunds.heading("folio", text="Folio Pedido")
+        self.tree_refunds.heading("cliente", text="Cliente / Comprador")
+        self.tree_refunds.heading("monto", text="Monto (MXN)")
+        self.tree_refunds.heading("motivo", text="Motivo de Devolución")
+        self.tree_refunds.heading("estado", text="Estado")
+        self.tree_refunds.heading("fecha", text="Fecha Solicitud")
+        self.tree_refunds.heading("resolucion", text="Respuesta Admin")
+
+        self.tree_refunds.column("id", width=45, anchor="center")
+        self.tree_refunds.column("folio", width=190, anchor="w")
+        self.tree_refunds.column("cliente", width=190, anchor="w")
+        self.tree_refunds.column("monto", width=105, anchor="e")
+        self.tree_refunds.column("motivo", width=250, anchor="w")
+        self.tree_refunds.column("estado", width=100, anchor="center")
+        self.tree_refunds.column("fecha", width=140, anchor="center")
+        self.tree_refunds.column("resolucion", width=200, anchor="w")
+
+        # Configuración de tags de color para estados
+        self.tree_refunds.tag_configure("tag_pendiente", background="#fef3c7", foreground="#92400e")
+        self.tree_refunds.tag_configure("tag_aprobada", background="#d1fae5", foreground="#065f46")
+        self.tree_refunds.tag_configure("tag_denegada", background="#fee2e2", foreground="#991b1b")
+
+        sb_y = ttk.Scrollbar(table_container, orient=tk.VERTICAL, command=self.tree_refunds.yview)
+        self.tree_refunds.configure(yscrollcommand=sb_y.set)
+        sb_y.pack(side=tk.RIGHT, fill=tk.Y)
+        self.tree_refunds.pack(fill=tk.BOTH, expand=True)
+
+        self.tree_refunds.bind("<<TreeviewSelect>>", self.on_refund_select)
+
+        # Panel inferior de detalle y acciones
+        detail_frame = tk.LabelFrame(
+            frame,
+            text=" Detalle de Petición de Reembolso y Resolución Administrativa ",
+            font=("DejaVu Sans", 9, "bold"),
+            fg=COLOR_NAVY_DARK,
+            bg=COLOR_SURFACE,
+            padx=12,
+            pady=8
+        )
+        detail_frame.pack(fill=tk.X, padx=10, pady=(4, 10))
+
+        detail_box = tk.Frame(detail_frame, bg=COLOR_SURFACE)
+        detail_box.pack(fill=tk.X)
+
+        self.lbl_refund_detail = tk.Label(
+            detail_box,
+            text="Selecciona una petición en la tabla para revisar los motivos y resolver el reembolso.",
+            font=("DejaVu Sans", 9),
+            bg=COLOR_SURFACE,
+            fg=COLOR_TEXT_MUTED,
+            justify=tk.LEFT
+        )
+        self.lbl_refund_detail.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        btn_approve = tk.Button(
+            detail_box,
+            text="Aceptar Reembolso",
+            font=("DejaVu Sans", 9, "bold"),
+            bg=COLOR_SUCCESS,
+            fg="#ffffff",
+            activebackground=COLOR_SUCCESS_DARK,
+            activeforeground="#ffffff",
+            padx=14,
+            pady=4,
+            relief="flat",
+            cursor="hand2",
+            command=self.approve_selected_refund
+        )
+        btn_approve.pack(side=tk.RIGHT, padx=5)
+
+        btn_reject = tk.Button(
+            detail_box,
+            text="Denegar Reembolso",
+            font=("DejaVu Sans", 9, "bold"),
+            bg=COLOR_DANGER,
+            fg="#ffffff",
+            activebackground="#dc2626",
+            activeforeground="#ffffff",
+            padx=14,
+            pady=4,
+            relief="flat",
+            cursor="hand2",
+            command=self.reject_selected_refund
+        )
+        btn_reject.pack(side=tk.RIGHT, padx=5)
+
+    def clear_refund_search(self):
+        self.combo_refund_filter.set("Todos")
+        self.entry_search_refund.delete(0, tk.END)
+        self.filter_refunds()
+
+    def on_refund_select(self, event):
+        selected = self.tree_refunds.selection()
+        if not selected:
+            return
+        vals = self.tree_refunds.item(selected[0])["values"]
+        req_id = vals[0]
+        folio = vals[1]
+        cliente = vals[2]
+        monto = vals[3]
+        motivo = vals[4]
+        estado = vals[5]
+        fecha = vals[6]
+        res = vals[7] if len(vals) > 7 else ""
+
+        self.lbl_refund_detail.config(
+            text=f"Petición #{req_id} | Pedido: {folio} | Cliente: {cliente} | Monto: {monto}\n"
+                 f"Motivo: {motivo}\n"
+                 f"Estado Actual: {estado.upper()} | Solicitado: {fecha} | Resolución: {res or '(Sin resolución aún)'}",
+            fg=COLOR_TEXT_MAIN
+        )
+
+    def refresh_refunds_data(self):
+        con, _ = get_db()
+        try:
+            self.all_refunds = con.execute("""
+                SELECT 
+                    sr.id, sr.pedido_id, sr.usuario_id, sr.monto, sr.motivo, sr.estado,
+                    sr.respuesta_admin, sr.fecha_solicitud, sr.fecha_resolucion, sr.created_at,
+                    p.folio as pedido_folio, p.total as pedido_total, p.metodo_pago,
+                    u.nombre as cliente_nombre, u.email as cliente_email
+                FROM solicitudes_reembolso sr
+                JOIN pedidos p ON p.id = sr.pedido_id
+                JOIN usuarios u ON u.id = sr.usuario_id
+                ORDER BY sr.id DESC
+            """).fetchall()
+        except Exception:
+            self.all_refunds = []
+        finally:
+            con.close()
+
+        self.filter_refunds()
+
+    def filter_refunds(self):
+        state_filter = self.combo_refund_filter.get()
+        search_txt = self.entry_search_refund.get().strip().lower()
+
+        for item in self.tree_refunds.get_children():
+            self.tree_refunds.delete(item)
+
+        pend_count = 0
+        aprob_count = 0
+        deneg_count = 0
+
+        for r in getattr(self, "all_refunds", []):
+            est = r["estado"].lower()
+            if est == "pendiente":
+                pend_count += 1
+            elif est == "aprobada":
+                aprob_count += 1
+            elif est == "denegada":
+                deneg_count += 1
+
+            if state_filter != "Todos" and est != state_filter.lower():
+                continue
+            if search_txt:
+                match_folio = search_txt in str(r["pedido_folio"]).lower()
+                match_cliente = search_txt in str(r["cliente_nombre"]).lower() or search_txt in str(r["cliente_email"]).lower()
+                match_motivo = search_txt in str(r["motivo"]).lower()
+                if not (match_folio or match_cliente or match_motivo):
+                    continue
+
+            tag = f"tag_{est}" if est in ("pendiente", "aprobada", "denegada") else ""
+            self.tree_refunds.insert(
+                "",
+                tk.END,
+                values=(
+                    r["id"],
+                    r["pedido_folio"],
+                    f"{r['cliente_nombre']} ({r['cliente_email']})",
+                    f"${r['monto']:,.2f}",
+                    r["motivo"],
+                    est.upper(),
+                    r["fecha_solicitud"][:19] if r["fecha_solicitud"] else "",
+                    r["respuesta_admin"] or "-"
+                ),
+                tags=(tag,)
+            )
+
+        self.lbl_refunds_stats.config(
+            text=f"Pendientes: {pend_count} | Aprobadas: {aprob_count} | Denegadas: {deneg_count}"
+        )
+
+    def approve_selected_refund(self):
+        selected = self.tree_refunds.selection()
+        if not selected:
+            messagebox.showwarning("Atención", "Por favor seleccione una petición de reembolso de la tabla.")
+            return
+
+        item = self.tree_refunds.item(selected[0])
+        vals = item["values"]
+        req_id = int(vals[0])
+        folio = vals[1]
+        cliente = vals[2]
+        monto_str = vals[3]
+        estado = str(vals[5]).lower()
+
+        if estado != "pendiente":
+            messagebox.showinfo("Información", f"La petición #{req_id} ya fue resuelta previamente ({estado.upper()}).")
+            return
+
+        confirm = messagebox.askyesno(
+            "Aceptar Reembolso",
+            f"¿Desea ACEPTAR y procesar el reembolso de la petición #{req_id}?\n\n"
+            f"• Pedido: {folio}\n"
+            f"• Cliente: {cliente}\n"
+            f"• Importe: {monto_str} MXN\n\n"
+            f"Acciones automáticas del sistema:\n"
+            f"1. El pedido se marcará como 'devuelto'.\n"
+            f"2. El inventario de productos se reintegrará automáticamente.\n"
+            f"3. Si fue pagado con tarjeta simulada, el saldo será devuelto a la tarjeta.",
+            icon="question"
+        )
+        if not confirm:
+            return
+
+        con, _ = get_db()
+        try:
+            now_iso = datetime.utcnow().isoformat() + "Z"
+            req_row = con.execute("SELECT * FROM solicitudes_reembolso WHERE id = ?", (req_id,)).fetchone()
+            if not req_row:
+                messagebox.showerror("Error", f"Petición #{req_id} no encontrada.")
+                return
+
+            order = con.execute("SELECT * FROM pedidos WHERE id = ?", (req_row["pedido_id"],)).fetchone()
+            if not order:
+                messagebox.showerror("Error", "Pedido asociado no encontrado.")
+                return
+
+            respuesta_txt = "Reembolso autorizado y procesado conforme a la garantía de satisfacción de 30 días."
+
+            con.execute("""
+                UPDATE solicitudes_reembolso
+                SET estado = 'aprobada', respuesta_admin = ?, fecha_resolucion = ?, updated_at = ?
+                WHERE id = ?
+            """, (respuesta_txt, now_iso, now_iso, req_id))
+
+            con.execute("UPDATE pedidos SET estado = 'devuelto', motivo_devolucion = ?, updated_at = ? WHERE id = ?",
+                        (req_row["motivo"], now_iso, order["id"]))
+
+            items = con.execute("SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = ?", (order["id"],)).fetchall()
+            for it in items:
+                con.execute("UPDATE inventario SET stock_disponible = stock_disponible + ?, updated_at = ? WHERE producto_id = ?",
+                            (it["cantidad"], now_iso, it["producto_id"]))
+
+            con.execute("UPDATE transacciones SET estado = 'reembolsado' WHERE pedido_id = ?", (order["id"],))
+            con.execute("UPDATE envios SET estado_envio = 'devuelto', updated_at = ? WHERE pedido_id = ?", (now_iso, order["id"]))
+
+            card_msg = ""
+            tx = con.execute("SELECT tarjeta_enmascarada FROM transacciones WHERE pedido_id = ?", (order["id"],)).fetchone()
+            if tx and tx["tarjeta_enmascarada"]:
+                last4 = tx["tarjeta_enmascarada"][-4:]
+                card = con.execute("SELECT id, saldo, marca FROM tarjetas_simuladas WHERE numero_tarjeta LIKE '%' || ?", (last4,)).fetchone()
+                if card:
+                    nuevo_saldo = card["saldo"] + order["total"]
+                    con.execute("UPDATE tarjetas_simuladas SET saldo = ?, updated_at = ? WHERE id = ?", (nuevo_saldo, now_iso, card["id"]))
+                    card_msg = f"\n\nSaldo reembolsado a tarjeta {card['marca']} (•••• {last4}):\nSaldo nuevo: ${nuevo_saldo:,.2f} MXN"
+
+            record_audit_log_sql(con, {
+                "usuario_id": 1,
+                "rol": "administrador",
+                "accion": "APROBACION_REEMBOLSO_ADMIN",
+                "modulo": "Devoluciones y Reembolsos (RF-07 / NOR-09)",
+                "entidad_id": order["folio"],
+                "detalles": json.dumps({"requestId": req_id, "monto": order["total"], "folio": order["folio"]})
+            })
+
+            con.execute("""
+                INSERT INTO notificaciones (usuario_id, pedido_id, evento, canal, asunto, mensaje, entregada, created_at)
+                VALUES (?, ?, 'REEMBOLSO_APROBADO', 'sistema', ?, ?, 1, ?)
+            """, (
+                order["usuario_id"],
+                order["id"],
+                f"Reembolso aprobado para el pedido {order['folio']}",
+                f"Tu solicitud de reembolso del pedido {order['folio']} por ${order['total']:,.2f} MXN fue aprobada exitosamente.",
+                now_iso
+            ))
+
+            con.commit()
+
+            messagebox.showinfo(
+                "Reembolso Aprobado",
+                f"La solicitud #{req_id} para el pedido {order['folio']} fue aprobada exitosamente.\n"
+                f"• Inventario reintegrado al almacén.{card_msg}"
+            )
+            self.refresh_refunds_data()
+            self.refresh_cards_data()
+            self.refresh_finance_data()
+            self.refresh_sales_data()
+        except Exception as e:
+            messagebox.showerror("Error al Aprobar Reembolso", str(e))
+        finally:
+            con.close()
+
+    def reject_selected_refund(self):
+        selected = self.tree_refunds.selection()
+        if not selected:
+            messagebox.showwarning("Atención", "Por favor seleccione una petición de reembolso de la tabla.")
+            return
+
+        item = self.tree_refunds.item(selected[0])
+        vals = item["values"]
+        req_id = int(vals[0])
+        folio = vals[1]
+        cliente = vals[2]
+        estado = str(vals[5]).lower()
+
+        if estado != "pendiente":
+            messagebox.showinfo("Información", f"La petición #{req_id} ya fue resuelta previamente ({estado.upper()}).")
+            return
+
+        motivo = ""
+        try:
+            from tkinter import simpledialog
+            motivo = simpledialog.askstring(
+                "Denegar Reembolso",
+                f"Petición #{req_id} (Pedido: {folio})\nCliente: {cliente}\n\n"
+                f"Ingrese el motivo formal de la denegación:",
+                initialvalue="Solicitud excede el plazo de garantía o no cumple con las políticas de devolución."
+            )
+        except Exception:
+            motivo = "Solicitud excede el plazo de garantía o no cumple con las políticas de devolución."
+
+        if not motivo or not motivo.strip():
+            return
+
+        con, _ = get_db()
+        try:
+            now_iso = datetime.utcnow().isoformat() + "Z"
+            req_row = con.execute("SELECT * FROM solicitudes_reembolso WHERE id = ?", (req_id,)).fetchone()
+            if not req_row:
+                messagebox.showerror("Error", f"Petición #{req_id} no encontrada.")
+                return
+
+            order = con.execute("SELECT * FROM pedidos WHERE id = ?", (req_row["pedido_id"],)).fetchone()
+
+            con.execute("""
+                UPDATE solicitudes_reembolso
+                SET estado = 'denegada', respuesta_admin = ?, fecha_resolucion = ?, updated_at = ?
+                WHERE id = ?
+            """, (motivo.strip(), now_iso, now_iso, req_id))
+
+            record_audit_log_sql(con, {
+                "usuario_id": 1,
+                "rol": "administrador",
+                "accion": "DENEGACION_REEMBOLSO_ADMIN",
+                "modulo": "Devoluciones y Reembolsos (RF-07 / NOR-09)",
+                "entidad_id": order["folio"] if order else f"REQ-{req_id}",
+                "detalles": json.dumps({"requestId": req_id, "motivoRechazo": motivo.strip()})
+            })
+
+            if order:
+                con.execute("""
+                    INSERT INTO notificaciones (usuario_id, pedido_id, evento, canal, asunto, mensaje, entregada, created_at)
+                    VALUES (?, ?, 'REEMBOLSO_DENEGADO', 'sistema', ?, ?, 1, ?)
+                """, (
+                    order["usuario_id"],
+                    order["id"],
+                    f"Actualización de solicitud de reembolso - Pedido {order['folio']}",
+                    f"Tu solicitud de reembolso del pedido {order['folio']} fue denegada. Motivo: {motivo.strip()}",
+                    now_iso
+                ))
+
+            con.commit()
+
+            messagebox.showinfo(
+                "Reembolso Denegado",
+                f"La solicitud #{req_id} fue denegada y registrada formalmente en bitácora."
+            )
+            self.refresh_refunds_data()
+        except Exception as e:
+            messagebox.showerror("Error al Denegar Reembolso", str(e))
+        finally:
+            con.close()
+
+    # ==========================================================================
+    # PESTAÑA 6: LOG DE VENTAS Y REPORTES
     # ==========================================================================
     def build_sales_tab(self):
         frame = self.tab_sales
@@ -2200,6 +2801,7 @@ class AdminPanelGUI:
         self.refresh_finance_data()
         self.refresh_accounts_data()
         self.refresh_cards_data()
+        self.refresh_refunds_data()
         self.refresh_sales_data()
 
 
@@ -2215,13 +2817,15 @@ def run_cli_mode():
         print("1. Ver Dinero y Balance Total de ExpressMart")
         print("2. Listar Cuentas del Sistema")
         print("3. Modificar Datos de una Cuenta del Sistema")
-        print("4. Crear Cuenta (Admin, Vendedor, Auditor)")
-        print("5. Gestionar Tarjetas Simuladas y Recargar Saldo")
-        print("6. Ver Log de Ventas")
-        print("7. Generar y Exportar Reporte de Ventas (TXT & CSV)")
-        print("8. Salir")
+        print("4. Eliminar una Cuenta de Usuario")
+        print("5. Crear Cuenta (Admin, Vendedor, Auditor)")
+        print("6. Gestionar Tarjetas Simuladas y Recargar Saldo")
+        print("7. Gestionar Peticiones de Reembolso (Aceptar / Denegar)")
+        print("8. Ver Log de Ventas")
+        print("9. Generar y Exportar Reporte de Ventas (TXT & CSV)")
+        print("10. Salir")
 
-        opt = input("\nOpción (1-8): ").strip()
+        opt = input("\nOpción (1-10): ").strip()
         if opt == "1":
             s = get_financial_summary()
             print("\n" + "=" * 60)
@@ -2291,6 +2895,33 @@ def run_cli_mode():
             con.close()
             print(f"[OK] Cuenta #{uid} modificada con éxito.")
         elif opt == "4":
+            print("\n--- ELIMINAR CUENTA DE USUARIO ---")
+            uid_str = input("ID de la cuenta a eliminar: ").strip()
+            if not uid_str.isdigit():
+                print("Error: Ingrese un ID numérico válido.")
+                continue
+            uid = int(uid_str)
+            if uid == 1:
+                print("Error: No es posible eliminar al Superadministrador principal (ID 1).")
+                continue
+            con, _ = get_db()
+            user_row = con.execute("SELECT id, nombre, email, rol FROM usuarios WHERE id = ?", (uid,)).fetchone()
+            if not user_row:
+                print(f"Error: Usuario #{uid} no encontrado.")
+                con.close()
+                continue
+            print(f"Cuenta seleccionada: {user_row['nombre']} ({user_row['email']}) - Rol: {user_row['rol']}")
+            confirm = input(f"¿CONFIRMAR eliminación permanente de '{user_row['email']}'? (s/N): ").strip().lower()
+            if confirm == "s":
+                try:
+                    deleted = delete_user_cascade(con, uid)
+                    print(f"[OK] Cuenta de '{deleted['nombre']}' ({deleted['email']}) eliminada exitosamente.")
+                except Exception as e:
+                    print(f"Error al eliminar cuenta: {e}")
+            else:
+                print("Operación cancelada.")
+            con.close()
+        elif opt == "5":
             print("\n--- CREAR CUENTA PRIVILEGIADA ---")
             role = input("Rol (administrador/vendedor/auditor/soporte): ").strip().lower()
             nombre = input("Nombre completo: ").strip()
@@ -2310,7 +2941,7 @@ def run_cli_mode():
             record_audit_log_entry(con, 1, "administrador", "CREAR_CUENTA_PRIVILEGIADA", "Gestión Cuentas", str(res.lastrowid), {"email": email, "rol": role})
             con.close()
             print(f"[OK] Cuenta creada con éxito (ID: {res.lastrowid})")
-        elif opt == "5":
+        elif opt == "6":
             print("\n--- GESTIÓN DE TARJETAS SIMULADAS Y SALDOS ---")
             con, _ = get_db()
             cards = con.execute("SELECT id, numero_tarjeta, titular, marca, saldo, activa FROM tarjetas_simuladas ORDER BY id").fetchall()
@@ -2360,7 +2991,108 @@ def run_cli_mode():
                 except Exception as e:
                     print(f"Error al registrar tarjeta: {e}")
             con.close()
-        elif opt == "6":
+        elif opt == "7":
+            print("\n--- GESTIÓN DE PETICIONES DE REEMBOLSO (LFPC) ---")
+            con, _ = get_db()
+            refunds = con.execute("""
+                SELECT sr.id, sr.pedido_id, sr.monto, sr.motivo, sr.estado, sr.respuesta_admin,
+                       p.folio, u.nombre as cliente_nombre, u.email as cliente_email
+                FROM solicitudes_reembolso sr
+                JOIN pedidos p ON p.id = sr.pedido_id
+                JOIN usuarios u ON u.id = sr.usuario_id
+                ORDER BY sr.id DESC
+            """).fetchall()
+
+            if not refunds:
+                print("No hay solicitudes de reembolso registradas.")
+                con.close()
+                continue
+
+            print(f"{'ID':<4} {'FOLIO':<26} {'CLIENTE':<26} {'MONTO':<12} {'ESTADO':<10} {'MOTIVO'}")
+            print("-" * 105)
+            for r in refunds:
+                print(f"{r['id']:<4} {r['folio']:<26} {r['cliente_nombre'][:24]:<26} ${r['monto']:>9,.2f}  {r['estado'].upper():<10} {r['motivo'][:28]}")
+
+            print("\nAcciones:")
+            print("a. Aceptar Reembolso")
+            print("b. Denegar Reembolso")
+            print("c. Volver")
+            act = input("Opción: ").strip().lower()
+
+            if act == "a":
+                rid_str = input("ID de la petición a ACEPTAR: ").strip()
+                if rid_str.isdigit():
+                    rid = int(rid_str)
+                    r_row = con.execute("SELECT * FROM solicitudes_reembolso WHERE id = ?", (rid,)).fetchone()
+                    if not r_row:
+                        print(f"Error: Petición #{rid} no encontrada.")
+                    elif r_row["estado"] != "pendiente":
+                        print(f"La petición #{rid} ya está {r_row['estado'].upper()}.")
+                    else:
+                        order = con.execute("SELECT * FROM pedidos WHERE id = ?", (r_row["pedido_id"],)).fetchone()
+                        now_iso = datetime.utcnow().isoformat() + "Z"
+                        con.execute("""
+                            UPDATE solicitudes_reembolso
+                            SET estado = 'aprobada', respuesta_admin = 'Reembolso autorizado y procesado.', fecha_resolucion = ?, updated_at = ?
+                            WHERE id = ?
+                        """, (now_iso, now_iso, rid))
+                        con.execute("UPDATE pedidos SET estado = 'devuelto', motivo_devolucion = ?, updated_at = ? WHERE id = ?",
+                                    (r_row["motivo"], now_iso, order["id"]))
+                        items = con.execute("SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = ?", (order["id"],)).fetchall()
+                        for it in items:
+                            con.execute("UPDATE inventario SET stock_disponible = stock_disponible + ?, updated_at = ? WHERE producto_id = ?",
+                                        (it["cantidad"], now_iso, it["producto_id"]))
+                        con.execute("UPDATE transacciones SET estado = 'reembolsado' WHERE pedido_id = ?", (order["id"],))
+                        con.execute("UPDATE envios SET estado_envio = 'devuelto', updated_at = ? WHERE pedido_id = ?", (now_iso, order["id"]))
+
+                        tx = con.execute("SELECT tarjeta_enmascarada FROM transacciones WHERE pedido_id = ?", (order["id"],)).fetchone()
+                        if tx and tx["tarjeta_enmascarada"]:
+                            last4 = tx["tarjeta_enmascarada"][-4:]
+                            card = con.execute("SELECT id, saldo, marca FROM tarjetas_simuladas WHERE numero_tarjeta LIKE '%' || ?", (last4,)).fetchone()
+                            if card:
+                                n_sal = card["saldo"] + order["total"]
+                                con.execute("UPDATE tarjetas_simuladas SET saldo = ?, updated_at = ? WHERE id = ?", (n_sal, now_iso, card["id"]))
+                                print(f"[OK] Reembolso acreditado a tarjeta {card['marca']} (•••• {last4}). Nuevo saldo: ${n_sal:,.2f} MXN")
+
+                        record_audit_log_sql(con, {
+                            "usuario_id": 1,
+                            "rol": "administrador",
+                            "accion": "APROBACION_REEMBOLSO_ADMIN",
+                            "modulo": "Devoluciones (CLI)",
+                            "entidad_id": order["folio"],
+                            "detalles": json.dumps({"requestId": rid, "monto": order["total"]})
+                        })
+                        con.commit()
+                        print(f"[OK] Petición #{rid} APROBADA exitosamente. Pedido devuelto e inventario restaurado.")
+            elif act == "b":
+                rid_str = input("ID de la petición a DENEGAR: ").strip()
+                if rid_str.isdigit():
+                    rid = int(rid_str)
+                    r_row = con.execute("SELECT * FROM solicitudes_reembolso WHERE id = ?", (rid,)).fetchone()
+                    if not r_row:
+                        print(f"Error: Petición #{rid} no encontrada.")
+                    elif r_row["estado"] != "pendiente":
+                        print(f"La petición #{rid} ya está {r_row['estado'].upper()}.")
+                    else:
+                        mot = input("Motivo formal de la denegación: ").strip() or "Solicitud excede el plazo de garantía."
+                        now_iso = datetime.utcnow().isoformat() + "Z"
+                        con.execute("""
+                            UPDATE solicitudes_reembolso
+                            SET estado = 'denegada', respuesta_admin = ?, fecha_resolucion = ?, updated_at = ?
+                            WHERE id = ?
+                        """, (mot, now_iso, now_iso, rid))
+                        record_audit_log_sql(con, {
+                            "usuario_id": 1,
+                            "rol": "administrador",
+                            "accion": "DENEGACION_REEMBOLSO_ADMIN",
+                            "modulo": "Devoluciones (CLI)",
+                            "entidad_id": f"REQ-{rid}",
+                            "detalles": json.dumps({"requestId": rid, "motivo": mot})
+                        })
+                        con.commit()
+                        print(f"[OK] Petición #{rid} DENEGADA.")
+            con.close()
+        elif opt == "8":
             con, _ = get_db()
             orders = con.execute("SELECT p.id, p.folio, u.nombre, p.metodo_pago, p.estado, p.total FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id ORDER BY p.id DESC LIMIT 20").fetchall()
             print(f"\n{'FOLIO':<28} {'CLIENTE':<24} {'METODO':<8} {'ESTADO':<10} {'TOTAL MXN':>12}")
@@ -2368,12 +3100,12 @@ def run_cli_mode():
             for o in orders:
                 print(f"{o['folio']:<28} {o['nombre'][:22]:<24} {o['metodo_pago'].upper():<8} {o['estado'].upper():<10} ${o['total']:>11,.2f}")
             con.close()
-        elif opt == "7":
+        elif opt == "9":
             res = generate_sales_report_files()
             print(f"\n[OK] Reporte TXT generado en: {res['txt_path']}")
             print(f"[OK] Reporte CSV generado en: {res['csv_path']}")
             print(f"Total Vendido: ${res['total_dinero']:,.2f} MXN (Firma: {res['sha256'][:24]}...)")
-        elif opt == "8":
+        elif opt == "10":
             break
 
 

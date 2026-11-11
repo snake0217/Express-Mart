@@ -1759,9 +1759,15 @@ async function loadOrders() {
             </span>
             <div>
               ${
-                o.estado !== 'devuelto' && o.estado !== 'cancelado'
-                  ? `<button type="button" class="btn btn-sm btn-outline return-order-btn cursor-pointer" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
-                  : '<span class="badge badge-ok">Reembolsado en MXN / Devolución completada</span>'
+                o.estado === 'devuelto' || o.estado === 'cancelado'
+                  ? '<span class="badge badge-ok">Reembolsado en MXN / Devolución completada</span>'
+                  : o.solicitudReembolso && o.solicitudReembolso.estado === 'pendiente'
+                  ? '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Petición de reembolso en revisión</span>'
+                  : o.solicitudReembolso && o.solicitudReembolso.estado === 'aprobada'
+                  ? '<span class="badge badge-ok">Reembolso Aprobado en MXN</span>'
+                  : o.solicitudReembolso && o.solicitudReembolso.estado === 'denegada'
+                  ? `<div class="text-right"><span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300">Reembolso Denegado</span><div class="text-[11px] text-secondary mt-0.5">${escapeHtml(o.solicitudReembolso.respuesta_admin || '')}</div></div>`
+                  : `<button type="button" class="btn btn-sm btn-outline return-order-btn cursor-pointer" data-id="${o.id}">Solicitar Devolución y Reembolso en MXN</button>`
               }
             </div>
           </div>
@@ -1781,12 +1787,24 @@ async function loadOrders() {
 
     box.querySelectorAll('.return-order-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
+        const orderId = btn.dataset.id;
+        const motivo = window.prompt(
+          'Indica el motivo de la devolución o reembolso (garantía de satisfacción de 30 días):',
+          'El producto no cumplió con mis expectativas y solicito devolución bajo garantía LFPC.'
+        );
+        if (motivo === null) return;
+
         try {
-          await apiFetch(`/api/orders/${btn.dataset.id}/return`, {
+          const res = await apiFetch(`/api/orders/${orderId}/refund-request`, {
             method: 'POST',
-            body: JSON.stringify({ motivo: 'Devolución en línea sin costo dentro del plazo de garantía' })
+            body: JSON.stringify({ motivo: motivo.trim() || 'Devolución dentro de garantía LFPC' })
           });
-          showAlert('Devolución autorizada y reembolso en MXN procesado.');
+          showAlert(res.message || 'Petición de reembolso enviada al administrador.');
+          showToast({
+            title: 'Petición enviada',
+            message: 'Tu solicitud de reembolso fue recibida y está en revisión.',
+            imageUrl: '/assets/logo.png'
+          });
           loadOrders();
         } catch (err) {
           showAlert(err.message, true);
@@ -3597,6 +3615,34 @@ document.addEventListener('DOMContentLoaded', () => {
       showAlert(err.message, true);
     }
   });
+
+  // Eliminación de Cuenta Propia (Zona de Peligro)
+  const btnDeleteOwn = document.getElementById('btn-delete-own-account');
+  if (btnDeleteOwn) {
+    btnDeleteOwn.addEventListener('click', async () => {
+      const confirmDelete = window.confirm(
+        'ADVERTENCIA: ¿Estás seguro de que deseas eliminar permanentemente tu cuenta de ExpressMart?\n\n' +
+        'Esta acción cerrará tu sesión, cancelará beneficios activos y borrará tus datos personales de manera irreversible.'
+      );
+      if (!confirmDelete) return;
+
+      try {
+        const res = await apiFetch('/api/users/me', {
+          method: 'DELETE'
+        });
+        showAlert(res.message || 'Tu cuenta ha sido eliminada permanentemente.');
+        showToast({
+          title: 'Cuenta eliminada',
+          message: 'Tu cuenta ha sido eliminada del sistema.',
+          imageUrl: '/assets/logo.png'
+        });
+        executeLogout();
+        switchTab('view-catalog');
+      } catch (err) {
+        showAlert(err.message, true);
+      }
+    });
+  }
 
   // Formulario de Privacidad (si está presente)
   const arcoForm = document.getElementById('arco-form');

@@ -413,6 +413,26 @@ NUEVOS_CAMBIOS = [
         "Exitoso",
         "Requerimiento Operativo y Auditoría (Simulación Transaccional y QA)",
         "src/db/database.js, src/app.js, scripts/admin_panel.py, scripts/security_panel.py, tests/integration.test.js (CP-RF-13 y CP-RF-14)"
+    ),
+    (
+        "RFC-0018",
+        datetime.datetime(2026, 11, 10),
+        "Auditoría y Operaciones",
+        "Panel Administrativo y Cuentas de Usuario",
+        "Eliminación de Cuentas (Admin y Autogestión LFPDPPP) y Gestión de Peticiones de Reembolso (LFPC)",
+        "Implementación de eliminación de cuentas con borrado en cascada y protección de superadmin en panel administrativo y perfil web. Pestaña de gestión de reembolsos con aprobación/denegación, reintegro de stock y abono a tarjetas simuladas.",
+        "Garantizar el ejercicio pleno del derecho de cancelación bajo la LFPDPPP y proveer un flujo auditable de resolución de reembolsos bajo la LFPC y SGC MC-001.",
+        "Normal",
+        "Medio. Afecta integridad referencial de usuarios y flujos financieros de devolución.",
+        "git revert y respaldos de base de datos sqlite.",
+        "Comité de cambios",
+        datetime.datetime(2026, 11, 10),
+        "10/11/2026 19:00 a 19:40",
+        "Diego Alarcón y Cristopher San Juan",
+        "Cerrado",
+        "Exitoso",
+        "Requerimiento Operativo y Legal (LFPDPPP y LFPC)",
+        "src/db/database.js, src/app.js, public/index.html, public/app.js, scripts/admin_panel.py, tests/integration.test.js (CP-RF-15 y CP-RF-16)"
     )
 ]
 
@@ -609,7 +629,7 @@ def generate_operational_records_markdown():
     lines.append("")
 
     # Tabla 3: Cambios Operativos
-    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0017`)")
+    lines.append("## 4. Registro de Cambios Operativos — RFC (`RFC-0001` a `RFC-0018`)")
     lines.append("")
     lines.append("| ID | Fecha | Solicitante | Módulo | Título del Cambio | Justificación | Tipo | Aprobado por | Resultado |")
     lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :--- | :---: |")
@@ -630,7 +650,8 @@ def generate_operational_records_markdown():
         ("RFC-0014", "10/11/2026", "Auditor Líder", "Documentación", "Diccionario de Datos (16 Tablas), ERD y Guion", "Cierre de hallazgo H-02 y dictamen ECTA-DEV-01", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0015", "10/11/2026", "Soporte Técnico", "Configuración", "Carga universal de variables de entorno y transporte SMTP", "Resolución definitiva de error Missing credentials for PLAIN en 2FA", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
         ("RFC-0016", "10/11/2026", "Auditoría UX", "Notificaciones y Perfil", "Botón azul de cerrar notificaciones y reactividad de favoritos", "Mejora de accesibilidad en botón de cierre y unificación de favoritos en perfil", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
-        ("RFC-0017", "10/11/2026", "Operaciones y QA", "Paneles y Checkout", "Tarjetas simuladas con descuento de saldo, edición de cuentas y pruebas QA", "Simulación transaccional controlada con deducción real, edición integral de usuarios y suite QA live", "Normal", "Comité de Cambios (CAB)", "Exitoso")
+        ("RFC-0017", "10/11/2026", "Operaciones y QA", "Paneles y Checkout", "Tarjetas simuladas con descuento de saldo, edición de cuentas y pruebas QA", "Simulación transaccional controlada con deducción real, edición integral de usuarios y suite QA live", "Normal", "Comité de Cambios (CAB)", "Exitoso"),
+        ("RFC-0018", "10/11/2026", "Auditoría y Operaciones", "Panel Admin y Perfil", "Eliminación de cuentas (Admin y Autogestión LFPDPPP) y Gestión de Reembolsos (LFPC)", "Borrado en cascada con salvaguarda de superadmin, pestaña de reembolsos con abono a tarjeta y reposición de stock", "Normal", "Comité de Cambios (CAB)", "Exitoso")
     ]
     for rfc in rfc_list:
         lines.append(f"| `{rfc[0]}` | {rfc[1]} | {rfc[2]} | {rfc[3]} | **{rfc[4]}** | {rfc[5]} | `{rfc[6]}` | {rfc[7]} | **{rfc[8]}** |")
@@ -661,7 +682,7 @@ def generate_operational_records_markdown():
     lines.append("---")
     lines.append("")
     lines.append("## 6. Dictamen de Eficacia Operativa y Mejora Continua")
-    lines.append("Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 17 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:")
+    lines.append("Habiéndose analizado el 100% de los incidentes, derivado los problemas mediante la metodología de los 5 Porqués, ejecutado los 18 cambios operativos bajo aprobación del Comité de Cambios (CAB) y remediado la totalidad de las 8 vulnerabilidades detectadas sin defectos abiertos:")
     lines.append("")
     lines.append("> **DICTAMEN OPERATIVO:** CONFORME AL 100%. La operación del sistema ExpressMart México cumple con los estándares ISO 9001:2015 (Apartado 37 y 38), ISO/IEC 27001:2022 y PCI DSS v4.0. Se autoriza la incorporación de estos registros al expediente final de auditoría.")
     lines.append("")

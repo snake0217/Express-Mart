@@ -300,6 +300,23 @@ function initDatabase(customPath) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    -- D9: Solicitudes de Devolución y Reembolso (LFPC NOR-09 / SGC)
+    CREATE TABLE IF NOT EXISTS solicitudes_reembolso (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pedido_id INTEGER NOT NULL,
+      usuario_id INTEGER NOT NULL,
+      monto REAL NOT NULL,
+      motivo TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobada', 'denegada')),
+      respuesta_admin TEXT,
+      fecha_solicitud TEXT NOT NULL,
+      fecha_resolucion TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    );
   `);
 
   try {
@@ -353,6 +370,7 @@ function initDatabase(customPath) {
   dbInstance = db;
   seedDatabaseIfEmpty(db);
   seedSimulatedCardsIfEmpty(db);
+  seedRefundRequestsIfEmpty(db);
   syncCatalogAndReviews(db);
   return db;
 }
@@ -1697,6 +1715,34 @@ function seedSimulatedCardsIfEmpty(db) {
       now,
       now
     );
+  }
+}
+
+function seedRefundRequestsIfEmpty(db) {
+  try {
+    const count = db.prepare('SELECT COUNT(*) as total FROM solicitudes_reembolso').get().total;
+    if (count > 0) return;
+
+    const orders = db.prepare('SELECT id, usuario_id, total, folio FROM pedidos WHERE estado IN (\'pagado\', \'enviado\', \'entregado\') ORDER BY id ASC LIMIT 2').all();
+    const now = new Date().toISOString();
+
+    if (orders.length > 0) {
+      const o1 = orders[0];
+      db.prepare(`
+        INSERT INTO solicitudes_reembolso (pedido_id, usuario_id, monto, motivo, estado, fecha_solicitud, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'pendiente', ?, ?, ?)
+      `).run(o1.id, o1.usuario_id, o1.total, 'El producto llegó con detalle estético en el empaque y solicito devolución bajo garantía LFPC.', now, now, now);
+    }
+
+    if (orders.length > 1) {
+      const o2 = orders[1];
+      db.prepare(`
+        INSERT INTO solicitudes_reembolso (pedido_id, usuario_id, monto, motivo, estado, fecha_solicitud, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'pendiente', ?, ?, ?)
+      `).run(o2.id, o2.usuario_id, o2.total, 'Compré dos unidades por equivocación en el checkout, solicito devolución de la orden.', now, now, now);
+    }
+  } catch (_) {
+    // Si la tabla no está lista o pedidos está vacía
   }
 }
 
