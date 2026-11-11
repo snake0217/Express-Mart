@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Envíos y Almacenes | ExpressMart Logística OpenStreetMap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "express-blue": "#1d4e9a",
+            "express-navy": "#123580",
+            "express-dark": "#0c1e3d",
+            "express-accent": "#0284c7"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, .font-heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .map-container {
+      height: 520px;
+      width: 100%;
+      border-radius: 0.75rem;
+      z-index: 10;
+    }
+    @media (max-width: 768px) {
+      .map-container { height: 380px; }
+    }
+    /* Pulsing beacon marker animation */
+    .truck-marker-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s linear;
+    }
+    .pulse-ring {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(29, 78, 154, 0.35);
+      animation: pulseAnimation 2s infinite ease-out;
+      z-index: 1;
+    }
+    @keyframes pulseAnimation {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    .vehicle-icon-badge {
+      position: relative;
+      z-index: 2;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1d4e9a;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border: 2px solid #ffffff;
+    }
+    .warehouse-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #0284c7;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      border: 2px solid white;
+    }
+    .destination-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #e11d48;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      border: 2px solid white;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header Superior -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-2">
+          <img src="/assets/logo.png" alt="ExpressMart" class="h-9 w-auto object-contain" onerror="this.src='https://placehold.co/120x40/1d4e9a/white?text=ExpressMart'" />
+        </a>
+        <span class="text-slate-300 font-light">|</span>
+        <div class="flex items-center gap-1.5 text-express-blue font-bold font-heading text-lg tracking-tight">
+          <span class="material-symbols-outlined text-[24px]">local_shipping</span>
+          <span>Panel de Envíos y Almacenes (OpenStreetMap)</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div id="user-role-badge" class="hidden sm:flex items-center gap-1 px-3 py-1 bg-blue-50 text-express-blue border border-blue-200 rounded-full text-xs font-semibold">
+          <span class="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+          <span id="user-role-text">Administrador</span>
+        </div>
+        <a href="/" class="px-3.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium flex items-center gap-1 transition">
+          <span class="material-symbols-outlined text-[16px]">storefront</span>
+          <span>Ir a la Tienda</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Métricas Rápidas de Almacén y Logística -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-express-blue flex items-center justify-center font-bold">
+          <span class="material-symbols-outlined text-[28px]">warehouse</span>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Almacenes CEDIS</div>
+          <div id="metric-warehouses-count" class="text-2xl font-bold font-heading text-slate-800">5</div>
+          <div class="text-[11px] text-emerald-600 font-semibold">100% Operativos</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+          <span class="material-symbols-outlined text-[28px]">inventory_2</span>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">En Preparación</div>
+          <div id="metric-preparing-count" class="text-2xl font-bold font-heading text-slate-800">0</div>
+          <div class="text-[11px] text-amber-600 font-semibold">Embalaje y Muelle</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+          <span class="material-symbols-outlined text-[28px]">local_shipping</span>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">En Progreso</div>
+          <div id="metric-transit-count" class="text-2xl font-bold font-heading text-slate-800">0</div>
+          <div class="text-[11px] text-sky-600 font-semibold">En Ruta con Repartidor</div>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+          <span class="material-symbols-outlined text-[28px]">task_alt</span>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium uppercase tracking-wider">Entregados</div>
+          <div id="metric-delivered-count" class="text-2xl font-bold font-heading text-slate-800">0</div>
+          <div class="text-[11px] text-emerald-600 font-semibold">Garantía LFPC Cumplida</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido Principal: Lista de Pedidos en Almacenes + Mapa OpenStreetMap -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Columna Izquierda: Filtros y Pedidos de Almacén (5 cols) -->
+      <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[740px]">
+        
+        <!-- Cabecera de Columna -->
+        <div class="p-4 border-b border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="font-heading font-bold text-slate-800 flex items-center gap-2 text-base">
+              <span class="material-symbols-outlined text-express-blue">list_alt</span>
+              <span>Pedidos por Almacén</span>
+            </h2>
+            <button id="btn-refresh-shipments" type="button" class="text-xs text-express-blue font-semibold hover:underline flex items-center gap-1 cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              Actualizar
+            </button>
+          </div>
+
+          <!-- Filtros de Almacén y Estado -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Filtrar Almacén:</label>
+              <select id="select-warehouse-filter" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-express-blue outline-none bg-slate-50">
+                <option value="">Todos los Almacenes</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Estado de Envío:</label>
+              <select id="select-status-filter" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-express-blue outline-none bg-slate-50">
+                <option value="">Todos los Estados</option>
+                <option value="preparando">Preparando</option>
+                <option value="en_transito">En Progreso / Tránsito</option>
+                <option value="entregado">Entregado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Pedidos / Envíos con scroll -->
+        <div id="shipments-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-2">
+          <div class="text-center py-12 text-slate-400 text-xs">
+            <span class="material-symbols-outlined text-[36px] animate-spin text-slate-300 mb-2">progress_activity</span>
+            <p>Cargando pedidos de almacenes...</p>
+          </div>
+        </div>
+
+        <!-- Pie de lista: Info -->
+        <div class="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between rounded-b-xl">
+          <span id="total-shipments-label">0 pedidos encontrados</span>
+          <span class="text-[11px]">SGC MC-001 §23 Logística</span>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Mapa OpenStreetMap + Consola de Simulación (7 cols) -->
+      <div class="lg:col-span-7 space-y-4">
+        
+        <!-- Tarjeta del Mapa -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+          
+          <!-- Encabezado del Mapa y Selector de Vehículo -->
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <h3 id="active-shipment-title" class="font-heading font-bold text-base text-slate-800">
+                  Simulación de Envío en Vivo
+                </h3>
+              </div>
+              <p id="active-shipment-subtitle" class="text-xs text-slate-500">
+                Selecciona un pedido de la lista para proyectar su ruta sobre OpenStreetMap
+              </p>
+            </div>
+
+            <!-- Selector de Vehículo (Camión o Auto) -->
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg border border-slate-200">
+              <button id="btn-vehicle-truck" type="button" class="px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 bg-white text-express-blue shadow-sm border border-slate-200 transition">
+                <span>🚚</span>
+                <span>Camión</span>
+              </button>
+              <button id="btn-vehicle-car" type="button" class="px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 text-slate-600 hover:text-slate-800 transition">
+                <span>🚗</span>
+                <span>Auto</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra de Herramientas de Simulación (Iniciar, Parar, Reiniciar, Velocidad) -->
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <div class="flex items-center gap-2">
+              <button id="btn-sim-start" type="button" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+                <span>Iniciar Simulación</span>
+              </button>
+              <button id="btn-sim-stop" type="button" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">pause</span>
+                <span>Parar Simulación</span>
+              </button>
+              <button id="btn-sim-reset" type="button" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer">
+                <span class="material-symbols-outlined text-[16px]">restart_alt</span>
+                <span>Reiniciar</span>
+              </button>
+            </div>
+
+            <!-- Velocidad -->
+            <div class="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+              <span>Velocidad:</span>
+              <button id="btn-speed-1x" type="button" class="px-2 py-0.5 rounded bg-express-blue text-white font-bold text-xs">1x</button>
+              <button id="btn-speed-2x" type="button" class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 hover:bg-slate-300 font-bold text-xs">2x</button>
+              <button id="btn-speed-5x" type="button" class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 hover:bg-slate-300 font-bold text-xs">5x</button>
+            </div>
+          </div>
+
+          <!-- Contenedor del Mapa OpenStreetMap (Leaflet) -->
+          <div id="map-osm-container" class="map-container border border-slate-300 shadow-inner relative"></div>
+
+          <!-- Barra de Progreso y Telemetría -->
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-700 flex items-center gap-1">
+                <span id="telemetry-vehicle-badge" class="text-sm">🚚</span>
+                Progreso del Envío:
+              </span>
+              <span id="telemetry-progress-text" class="font-bold text-express-blue">0%</span>
+            </div>
+
+            <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+              <div id="telemetry-progress-bar" class="bg-express-blue h-full rounded-full transition-all duration-300" style="width: 0%;"></div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] text-slate-600 border-t border-slate-200">
+              <div>
+                <span class="text-slate-400 block">Almacén Origen:</span>
+                <span id="telemetry-origin" class="font-semibold text-slate-800">CEDIS CDMX Norte</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Destino Cliente:</span>
+                <span id="telemetry-destination" class="font-semibold text-slate-800 truncate block">Coyoacán, CDMX</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Coordenadas Vehículo:</span>
+                <span id="telemetry-coords" class="font-mono font-semibold text-slate-800">19.5186, -99.1645</span>
+              </div>
+              <div>
+                <span class="text-slate-400 block">Velocidad / Estatus:</span>
+                <span id="telemetry-status" class="font-semibold text-emerald-600">En Almacén</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones del Administrador de Envíos -->
+        <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs text-slate-600">
+            <strong>Controles de Gestión Logística:</strong> Cambia el estado de la orden seleccionada para coordinar al personal de muelle y repartidores.
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-action-prepare" type="button" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">inventory_2</span>
+              <span>Preparar en Almacén</span>
+            </button>
+            <button id="btn-action-dispatch" type="button" class="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">local_shipping</span>
+              <span>Envío en Progreso</span>
+            </button>
+            <button id="btn-action-deliver" type="button" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition cursor-pointer">
+              <span class="material-symbols-outlined text-[16px]">verified</span>
+              <span>Marcar Entregado</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+    ExpressMart México S.A. de C.V. &bull; Módulo de Distribución Logística OpenStreetMap &bull; Conforme al Sistema de Gestión de la Calidad MC-001 (§23 y §37)
+  </footer>
+
+  <script src="/envios.js"></script>
+</body>
+</html>

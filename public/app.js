@@ -604,6 +604,13 @@ function updateSessionUI() {
         adminTabText.textContent = state.user.rol === 'vendedor' ? 'Panel de Vendedor' : 'Panel de Administrador';
       }
     }
+
+    // Panel de Envíos y Logística OpenStreetMap visible para roles con permisos
+    const navBtnEnvios = document.getElementById('nav-btn-envios');
+    if (navBtnEnvios) {
+      const canAccessLogistics = ['administrador', 'vendedor', 'soporte', 'auditor'].includes(state.user.rol);
+      navBtnEnvios.classList.toggle('hidden', !canAccessLogistics);
+    }
   } else {
     statusEl.textContent = 'Hola, Identifícate';
     btnLogout.classList.add('hidden');
@@ -616,6 +623,8 @@ function updateSessionUI() {
     if (headerAvatarIcon) headerAvatarIcon.classList.remove('hidden');
     if (auditTabBtn) auditTabBtn.classList.add('hidden');
     if (adminTabBtn) adminTabBtn.classList.add('hidden');
+    const navBtnEnvios = document.getElementById('nav-btn-envios');
+    if (navBtnEnvios) navBtnEnvios.classList.add('hidden');
 
     const addrInput = document.getElementById('checkout-address');
     if (addrInput) addrInput.value = '';
@@ -1741,6 +1750,20 @@ async function loadOrders() {
               </div>
               <div><strong>Guía ExpressPrime:</strong> ${o.envio ? `${o.envio.numero_guia} (${o.envio.proveedor_paqueteria} · ${o.envio.estado_envio})` : 'Asignando guía en CEDIS'}</div>
               <div class="text-secondary truncate"><strong>Dirección:</strong> ${o.direccion_envio}</div>
+              ${o.envio ? `
+                <div class="pt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    class="track-osm-btn px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
+                    data-order-id="${o.id}"
+                    data-folio="${o.folio}"
+                  >
+                    <span class="material-symbols-outlined text-[14px]">map</span>
+                    Rastrear Envío en Vivo (OpenStreetMap)
+                  </button>
+                  ${o.envio.simulacion_activa ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 animate-pulse">🚚 Simulación en vivo</span>' : ''}
+                </div>
+              ` : ''}
             </div>
             <div class="p-2.5 rounded-lg bg-surface-container-lowest border border-surface-container space-y-1">
               <div class="text-secondary font-bold uppercase text-[10px] flex items-center gap-1">
@@ -1785,6 +1808,16 @@ async function loadOrders() {
       });
     });
 
+    box.querySelectorAll('.track-osm-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const orderId = Number(btn.dataset.orderId);
+        const folio = btn.dataset.folio;
+        if (orderId) {
+          openCustomerTrackingModal(orderId, folio);
+        }
+      });
+    });
+
     box.querySelectorAll('.return-order-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const orderId = btn.dataset.id;
@@ -1814,6 +1847,209 @@ async function loadOrders() {
   } catch (err) {
     box.innerHTML = `<p class="alert alert-error">${err.message}</p>`;
   }
+}
+
+// ============================================================================
+// RASTREO Y SIMULACIÓN EN VIVO OPENSTREETMAP (CLIENTE)
+// ============================================================================
+let customerMapInstance = null;
+let customerVehicleMarker = null;
+let customerRoutePolyline = null;
+let customerOriginMarker = null;
+let customerDestMarker = null;
+let customerTrackingInterval = null;
+
+function initCustomerTrackingModal() {
+  const dialog = document.getElementById('modal-rastreo-envio');
+  const btnClose = document.getElementById('btn-close-rastreo-modal');
+  const btnAccept = document.getElementById('btn-accept-rastreo-modal');
+
+  const closeDialog = () => {
+    if (customerTrackingInterval) {
+      clearInterval(customerTrackingInterval);
+      customerTrackingInterval = null;
+    }
+    if (dialog && dialog.open) {
+      dialog.close();
+    }
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeDialog);
+  if (btnAccept) btnAccept.addEventListener('click', closeDialog);
+  if (dialog) {
+    dialog.addEventListener('cancel', closeDialog);
+  }
+}
+
+async function openCustomerTrackingModal(orderId, fallbackFolio) {
+  const dialog = document.getElementById('modal-rastreo-envio');
+  if (!dialog) return;
+
+  if (customerTrackingInterval) {
+    clearInterval(customerTrackingInterval);
+    customerTrackingInterval = null;
+  }
+
+  dialog.showModal();
+
+  const mapContainer = document.getElementById('customer-osm-map');
+  const folioEl = document.getElementById('cust-track-folio');
+  const guiaEl = document.getElementById('cust-track-guia');
+  const almacenEl = document.getElementById('cust-track-almacen');
+  const vehiculoEl = document.getElementById('cust-track-vehiculo');
+  const progresoEl = document.getElementById('cust-track-progreso-txt');
+  const progressBar = document.getElementById('cust-track-progress-bar');
+  const simStatusEl = document.getElementById('cust-track-sim-status');
+  const destinoEl = document.getElementById('cust-track-destino');
+  const liveBadge = document.getElementById('cust-track-live-badge');
+
+  if (folioEl) folioEl.textContent = fallbackFolio || `#${orderId}`;
+
+  // Inicializar Leaflet si aún no está instanciado
+  if (typeof L !== 'undefined' && !customerMapInstance && mapContainer) {
+    customerMapInstance = L.map('customer-osm-map', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([19.4326, -99.1332], 7);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(customerMapInstance);
+  }
+
+  setTimeout(() => {
+    if (customerMapInstance) customerMapInstance.invalidateSize();
+  }, 250);
+
+  const renderData = (shipment) => {
+    if (!shipment) return;
+    if (folioEl) folioEl.textContent = shipment.folio_pedido || fallbackFolio || `#${orderId}`;
+    if (guiaEl) guiaEl.textContent = shipment.numero_guia || 'Pendiente';
+    if (almacenEl) almacenEl.textContent = shipment.almacen_origen || shipment.almacen_codigo || 'CEDIS Vallejo';
+    if (destinoEl) destinoEl.textContent = shipment.direccion_destino || 'Destino del cliente';
+
+    const progress = Math.min(100, Math.max(0, shipment.progreso_simulacion || 0));
+    if (progresoEl) progresoEl.textContent = `${progress}%`;
+    if (progressBar) progressBar.style.width = `${progress}%`;
+
+    const isTruck = shipment.tipo_vehiculo !== 'auto';
+    const vehicleIconChar = isTruck ? '🚚' : '🚗';
+    const vehicleLabel = isTruck ? 'Camión ExpressPrime' : 'Auto Utilitario Express';
+    if (vehiculoEl) vehiculoEl.innerHTML = `<span class="text-base">${vehicleIconChar}</span> <span>${vehicleLabel}</span>`;
+
+    if (shipment.simulacion_activa) {
+      if (simStatusEl) {
+        simStatusEl.textContent = 'En Tránsito (Simulación Activa)';
+        simStatusEl.className = 'font-bold text-emerald-600 block mt-0.5 animate-pulse';
+      }
+      if (liveBadge) {
+        liveBadge.textContent = 'En Ruta En Vivo';
+        liveBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 animate-pulse';
+      }
+    } else {
+      if (simStatusEl) {
+        simStatusEl.textContent = shipment.estado_envio === 'entregado' ? 'Entregado' : 'Detenida / En Almacén';
+        simStatusEl.className = 'font-bold text-secondary block mt-0.5';
+      }
+      if (liveBadge) {
+        liveBadge.textContent = shipment.estado_envio ? shipment.estado_envio.toUpperCase() : 'PREPARANDO';
+        liveBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-surface-container-high text-on-surface';
+      }
+    }
+
+    if (typeof L === 'undefined' || !customerMapInstance) return;
+
+    // Limpiar marcadores y polilíneas anteriores
+    if (customerRoutePolyline) {
+      customerMapInstance.removeLayer(customerRoutePolyline);
+      customerRoutePolyline = null;
+    }
+    if (customerOriginMarker) {
+      customerMapInstance.removeLayer(customerOriginMarker);
+      customerOriginMarker = null;
+    }
+    if (customerDestMarker) {
+      customerMapInstance.removeLayer(customerDestMarker);
+      customerDestMarker = null;
+    }
+    if (customerVehicleMarker) {
+      customerMapInstance.removeLayer(customerVehicleMarker);
+      customerVehicleMarker = null;
+    }
+
+    const route = shipment.ruta_puntos || [];
+    if (route.length > 0) {
+      const latLngs = route.map((p) => [p.lat, p.lng]);
+      customerRoutePolyline = L.polyline(latLngs, {
+        color: '#0284c7',
+        weight: 5,
+        opacity: 0.85
+      }).addTo(customerMapInstance);
+
+      // Marcador CEDIS Origen
+      const originIcon = L.divIcon({
+        className: 'cedis-map-marker',
+        html: `<div style="background:#1d4e9a; color:#fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏬</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      customerOriginMarker = L.marker([route[0].lat, route[0].lng], { icon: originIcon })
+        .bindPopup(`<strong>${escapeHtml(shipment.almacen_origen || 'CEDIS Origen')}</strong><br>Salida de almacén`)
+        .addTo(customerMapInstance);
+
+      // Marcador Destino
+      const destPoint = route[route.length - 1];
+      const destIcon = L.divIcon({
+        className: 'dest-map-marker',
+        html: `<div style="background:#059669; color:#fff; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:14px; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);">📍</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      customerDestMarker = L.marker([destPoint.lat, destPoint.lng], { icon: destIcon })
+        .bindPopup(`<strong>Destino de Entrega</strong><br>${escapeHtml(shipment.direccion_destino || '')}`)
+        .addTo(customerMapInstance);
+
+      // Marcador de Posición del Vehículo
+      const currentLat = Number(shipment.lat_actual) || route[0].lat;
+      const currentLng = Number(shipment.lng_actual) || route[0].lng;
+      const vehicleHtml = `
+        <div class="simulation-truck-marker" style="display:flex; align-items:center; justify-content:center; position:relative;">
+          ${shipment.simulacion_activa ? '<div class="radar-pulse-ring" style="position:absolute; width:44px; height:44px; border-radius:50%; background:rgba(2,132,199,0.3); animation:pulse 1.5s infinite;"></div>' : ''}
+          <div style="background:#0284c7; color:#fff; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; font-size:18px; border:2px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.4); z-index:2;">
+            ${vehicleIconChar}
+          </div>
+        </div>
+      `;
+      const vehicleDivIcon = L.divIcon({
+        className: 'vehicle-marker-wrapper',
+        html: vehicleHtml,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+      customerVehicleMarker = L.marker([currentLat, currentLng], { icon: vehicleDivIcon })
+        .bindPopup(`<strong>${vehicleLabel}</strong><br>Progreso: ${progress}%<br>Estado: ${escapeHtml(shipment.estado_envio || 'en_transito')}`)
+        .addTo(customerMapInstance);
+
+      customerMapInstance.fitBounds(L.latLngBounds(latLngs), { padding: [40, 40] });
+    }
+  };
+
+  const fetchStatus = async () => {
+    try {
+      const data = await apiFetch(`/api/logistics/shipments/${orderId}`);
+      if (data && data.shipment) {
+        renderData(data.shipment);
+      }
+    } catch (err) {
+      console.warn('Error al consultar rastreo de envío:', err.message);
+    }
+  };
+
+  await fetchStatus();
+
+  // Actualización periódica cada 2.5 segundos si la simulación está en marcha
+  customerTrackingInterval = setInterval(fetchStatus, 2500);
 }
 
 async function loadProfile() {
@@ -2585,6 +2821,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCatalog();
   setupSearchSuggestions();
   initFallingLeaves();
+  initCustomerTrackingModal();
 
   // Gestión de eventos para el modal de inactividad ("¿Sigues ahí?")
   const btnInactivityKeep = document.getElementById('btn-inactivity-keep');

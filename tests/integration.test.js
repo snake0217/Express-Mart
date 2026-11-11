@@ -807,6 +807,135 @@ describe('Pruebas Funcionales y de Integración End-to-End (CP-RF-01 a CP-RF-10)
     expect(rejectRes.status).toBe(200);
     expect(rejectRes.body.estado).toBe('denegada');
   });
+
+  test('CP-RF-17: Gestión de almacenes CEDIS, preparación de envíos y simulación OpenStreetMap (camión/auto)', async () => {
+    // 1. Consultar catálogo de almacenes CEDIS
+    const whRes = await request(app)
+      .get('/api/logistics/warehouses')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(whRes.status).toBe(200);
+    expect(Array.isArray(whRes.body.warehouses)).toBe(true);
+    expect(whRes.body.warehouses.length).toBeGreaterThanOrEqual(5);
+    const vallejo = whRes.body.warehouses.find((w) => w.codigo === 'CEDIS-CDMX-01');
+    expect(vallejo).toBeDefined();
+    expect(vallejo.latitud || vallejo.lat).toBeCloseTo(19.5186, 1);
+
+    // 2. Crear una nueva compra para generar guía logística con almacén y coordenadas
+    await request(app)
+      .post('/api/payments/simulated-cards')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        numeroTarjeta: '4111 2222 3333 9999',
+        titular: 'LOGISTICA OSM TESTER',
+        expiracion: '12/29',
+        cvv: '888',
+        saldo: 35000.00
+      });
+
+    const checkoutRes = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clienteToken}`)
+      .send({
+        items: [{ productoId: 1, cantidad: 1 }],
+        direccionEnvio: 'Calzada Vallejo 1111, Industrial Vallejo, Azcapotzalco, 02300 CDMX',
+        metodoPago: 'tarjeta',
+        cardNumber: '4111 2222 3333 9999',
+        cardHolder: 'LOGISTICA OSM TESTER',
+        expiry: '12/29',
+        cvv: '888',
+        pasosCheckout: 3
+      });
+    expect(checkoutRes.status).toBe(201);
+    const pedidoId = checkoutRes.body.order.id;
+
+    // 3. Consultar rastreo detallado de logística del pedido
+    const trackRes = await request(app)
+      .get(`/api/logistics/shipments/${pedidoId}`)
+      .set('Authorization', `Bearer ${clienteToken}`);
+    expect(trackRes.status).toBe(200);
+    expect(trackRes.body.shipment).toBeDefined();
+    expect(trackRes.body.shipment.pedido_id).toBe(pedidoId);
+    expect(trackRes.body.shipment.numero_guia).toBeDefined();
+    expect(trackRes.body.shipment.almacen_origen).toBeDefined();
+    expect(Array.isArray(trackRes.body.shipment.ruta_puntos)).toBe(true);
+    expect(trackRes.body.shipment.ruta_puntos.length).toBeGreaterThan(1);
+
+    // 4. Preparar el envío (almacén CEDIS)
+    const prepareRes = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/prepare`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(prepareRes.status).toBe(200);
+    expect(prepareRes.body.shipment.estado_envio).toBe('preparando');
+    expect(prepareRes.body.shipment.simulacion_activa).toBe(0);
+
+    // 5. Iniciar simulación de transporte con camión 🚚
+    const startTruckRes = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/simulation/start`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ tipoVehiculo: 'camion' });
+    expect(startTruckRes.status).toBe(200);
+    expect(startTruckRes.body.shipment.tipo_vehiculo).toBe('camion');
+    expect(startTruckRes.body.shipment.simulacion_activa).toBe(1);
+    expect(startTruckRes.body.shipment.estado_envio).toBe('en_transito');
+
+    // 6. Cambiar vehículo a auto utilitario 🚗 e iniciar
+    const startCarRes = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/simulation/start`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ tipoVehiculo: 'auto' });
+    expect(startCarRes.status).toBe(200);
+    expect(startCarRes.body.shipment.tipo_vehiculo).toBe('auto');
+
+    // 7. Actualizar progreso de la simulación
+    const progressRes = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/simulation/progress`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        progreso: 50,
+        lat: 19.4500,
+        lng: -99.1400
+      });
+    expect(progressRes.status).toBe(200);
+    expect(progressRes.body.shipment.progreso_simulacion).toBe(50);
+    expect(progressRes.body.shipment.lat_actual).toBeCloseTo(19.4500, 2);
+
+    // 8. Pausar / Detener simulación
+    const stopRes = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/simulation/stop`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(stopRes.status).toBe(200);
+    expect(stopRes.body.shipment.simulacion_activa).toBe(0);
+
+    // 9. Marcar como entregado
+    const deliverRes = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/deliver`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(deliverRes.status).toBe(200);
+    expect(deliverRes.body.shipment.estado_envio).toBe('entregado');
+    expect(deliverRes.body.shipment.progreso_simulacion).toBe(100);
+
+    // 10. Listar todos los envíos con filtro de estado
+    const listShipments = await request(app)
+      .get('/api/logistics/shipments?estado=entregado')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(listShipments.status).toBe(200);
+    expect(listShipments.body.shipments.some((s) => s.pedido_id === pedidoId)).toBe(true);
+
+    // 11. Acceso a rutas estáticas de logística y panel OpenStreetMap
+    const enviosHtml = await request(app).get('/envios');
+    expect(enviosHtml.status).toBe(200);
+    expect(enviosHtml.text).toContain('OpenStreetMap');
+    expect(enviosHtml.text).toContain('Leaflet');
+
+    const logisticaAlias = await request(app).get('/logistica');
+    expect(logisticaAlias.status).toBe(200);
+
+    // 12. Validación de permisos: cliente no puede preparar ni despachar pedidos de otros
+    const unauthPrepare = await request(app)
+      .post(`/api/logistics/shipments/${pedidoId}/prepare`)
+      .set('Authorization', `Bearer ${clienteToken}`);
+    expect(unauthPrepare.status).toBe(403);
+  });
 });
 
 

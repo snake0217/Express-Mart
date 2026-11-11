@@ -21,6 +21,10 @@ const {
   generateMfaSecret,
   computeAuditChainHash
 } = require('../utils/crypto');
+const {
+  ensureWarehousesTable,
+  ensureShipmentsTableExtended
+} = require('../services/logisticsService');
 
 let dbInstance = null;
 
@@ -214,7 +218,7 @@ function initDatabase(customPath) {
       FOREIGN KEY (pedido_id) REFERENCES pedidos(id)
     );
 
-    -- D6: Envíos y Logística
+    -- D6: Envíos y Logística (OpenStreetMap / Simulación en Tiempo Real)
     CREATE TABLE IF NOT EXISTS envios (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       pedido_id INTEGER UNIQUE NOT NULL,
@@ -223,6 +227,18 @@ function initDatabase(customPath) {
       estado_envio TEXT NOT NULL CHECK (estado_envio IN ('preparando', 'en_transito', 'en_reparto', 'entregado', 'devuelto')),
       fecha_estimada TEXT NOT NULL,
       historial_rastreo_json TEXT NOT NULL,
+      almacen_origen TEXT NOT NULL DEFAULT 'CEDIS CDMX Norte (Vallejo)',
+      almacen_codigo TEXT NOT NULL DEFAULT 'CEDIS-CDMX-01',
+      lat_origen REAL NOT NULL DEFAULT 19.5186,
+      lng_origen REAL NOT NULL DEFAULT -99.1645,
+      lat_destino REAL NOT NULL DEFAULT 19.3458,
+      lng_destino REAL NOT NULL DEFAULT -99.1617,
+      lat_actual REAL NOT NULL DEFAULT 19.5186,
+      lng_actual REAL NOT NULL DEFAULT -99.1645,
+      progreso_simulacion REAL NOT NULL DEFAULT 0.0,
+      simulacion_activa INTEGER NOT NULL DEFAULT 0,
+      tipo_vehiculo TEXT NOT NULL DEFAULT 'camion',
+      ruta_puntos_json TEXT NOT NULL DEFAULT '[]',
       updated_at TEXT NOT NULL,
       FOREIGN KEY (pedido_id) REFERENCES pedidos(id)
     );
@@ -371,6 +387,8 @@ function initDatabase(customPath) {
   seedDatabaseIfEmpty(db);
   seedSimulatedCardsIfEmpty(db);
   seedRefundRequestsIfEmpty(db);
+  ensureWarehousesTable(db);
+  ensureShipmentsTableExtended(db);
   syncCatalogAndReviews(db);
   return db;
 }

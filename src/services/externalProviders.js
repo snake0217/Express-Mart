@@ -9,6 +9,11 @@
 const crypto = require('node:crypto');
 const { getConfig } = require('../config/env');
 const { tokenizeCard } = require('../utils/crypto');
+const {
+  resolveDestinationCoordinates,
+  resolveWarehouseForDestination,
+  generateRouteCoordinates
+} = require('./logisticsService');
 
 // Estado del Circuit Breaker del servicio de recomendaciones (RNF-05)
 let recommendationsServiceHealthy = true;
@@ -163,24 +168,49 @@ function processPaymentGateway({
 
 /**
  * Genera guía de envío con el Proveedor de Paquetería (DFD Nivel 0 y 1, Apartado 23, DEV-09)
+ * Incluye geolocalización OpenStreetMap y trazado de ruta hacia el domicilio del comprador.
  */
-function createShipmentGuide(db, { pedidoId, folioPedido, proveedor = 'DHL Express México' }) {
+function createShipmentGuide(db, { pedidoId, folioPedido, direccionEnvio = '', proveedor = 'DHL Express México' }) {
   const numeroGuia = `EM-GUIA-${folioPedido.replace(/[^A-Z0-9]/g, '')}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
   const now = new Date();
   const estimated = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const destCoords = resolveDestinationCoordinates(direccionEnvio);
+  const warehouse = resolveWarehouseForDestination(destCoords);
+  const routePoints = generateRouteCoordinates(warehouse, destCoords, 40);
+
   const historial = [
     {
       fecha: now.toISOString(),
       estado: 'preparando',
-      ubicacion: 'CEDIS ExpressMart CDMX Norte',
-      detalle: 'Orden recolectada y guía generada con proveedor logístico.'
+      ubicacion: `${warehouse.nombre} (${warehouse.ciudad})`,
+      detalle: 'Orden recolectada en muelle y guía generada con proveedor logístico.'
     }
   ];
 
   db.prepare(`
-    INSERT INTO envios (pedido_id, proveedor_paqueteria, numero_guia, estado_envio, fecha_estimada, historial_rastreo_json, updated_at)
-    VALUES (?, ?, ?, 'preparando', ?, ?, ?)
-  `).run(pedidoId, proveedor, numeroGuia, estimated, JSON.stringify(historial), now.toISOString());
+    INSERT INTO envios (
+      pedido_id, proveedor_paqueteria, numero_guia, estado_envio, fecha_estimada, historial_rastreo_json,
+      almacen_origen, almacen_codigo, lat_origen, lng_origen, lat_destino, lng_destino,
+      lat_actual, lng_actual, progreso_simulacion, simulacion_activa, tipo_vehiculo, ruta_puntos_json, updated_at
+    ) VALUES (?, ?, ?, 'preparando', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0.0, 0, 'camion', ?, ?)
+  `).run(
+    pedidoId,
+    proveedor,
+    numeroGuia,
+    estimated,
+    JSON.stringify(historial),
+    warehouse.nombre,
+    warehouse.codigo,
+    warehouse.latitud,
+    warehouse.longitud,
+    destCoords.lat,
+    destCoords.lng,
+    warehouse.latitud,
+    warehouse.longitud,
+    JSON.stringify(routePoints),
+    now.toISOString()
+  );
 
   return {
     pedidoId,
@@ -188,6 +218,18 @@ function createShipmentGuide(db, { pedidoId, folioPedido, proveedor = 'DHL Expre
     numeroGuia,
     estadoEnvio: 'preparando',
     fechaEstimada: estimated,
+    almacenOrigen: warehouse.nombre,
+    almacenCodigo: warehouse.codigo,
+    latOrigen: warehouse.latitud,
+    lngOrigen: warehouse.longitud,
+    latDestino: destCoords.lat,
+    lngDestino: destCoords.lng,
+    latActual: warehouse.latitud,
+    lngActual: warehouse.longitud,
+    progresoSimulacion: 0.0,
+    simulacionActiva: 0,
+    tipoVehiculo: 'camion',
+    rutaPuntos: routePoints,
     historial
   };
 }

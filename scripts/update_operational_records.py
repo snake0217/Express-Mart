@@ -433,6 +433,26 @@ NUEVOS_CAMBIOS = [
         "Exitoso",
         "Requerimiento Operativo y Legal (LFPDPPP y LFPC)",
         "src/db/database.js, src/app.js, public/index.html, public/app.js, scripts/admin_panel.py, tests/integration.test.js (CP-RF-15 y CP-RF-16)"
+    ),
+    (
+        "RFC-0019",
+        datetime.datetime(2026, 11, 10),
+        "Operaciones Logísticas y Dirección de Tecnología",
+        "Logística, Almacenes y Seguimiento en Vivo (OpenStreetMap)",
+        "Panel de Envíos, Almacenes CEDIS y Simulación en Vivo con OpenStreetMap (Camión / Auto)",
+        "Implementación de infraestructura cartográfica basada en OpenStreetMap (vía Leaflet local en public/vendor/leaflet/) para el seguimiento y simulación interactiva de envíos. Creación del Panel de Envíos (public/envios.html, public/envios.js), asignación automática de CEDIS según proximidad geográfica (CDMX Vallejo, Coyoacán, Guadalajara, Monterrey, Puebla), generación de waypoints de ruta con telemetría en tiempo real, selección y animación de vehículos de reparto (Camión / Auto utilitario), controles administrativos de Play/Pausa/Reset y modal interactivo de rastreo en vivo para clientes en sus pedidos. Incorporación de endpoints /api/logistics/... y nueva pestaña en scripts/admin_panel.py.",
+        "Requerimiento operativo de trazabilidad logística y visibilidad de última milla para clientes y administradores, asegurando resiliencia offline y cumplimiento del SGC MC-001 v1.0 (Apartado 23, RF-07, DEV-09).",
+        "Normal",
+        "Medio. Agrega columnas en SQLite para geolocalización de envíos y nuevo subsistema frontend/backend de simulación cartográfica.",
+        "Revertir commits de logística y desactivar rutas en src/app.js.",
+        "Comité de cambios",
+        datetime.datetime(2026, 11, 10),
+        "10/11/2026 19:40 a 20:30",
+        "Diego Alarcón y Carlos Bautista",
+        "Cerrado",
+        "Exitoso",
+        "Requerimiento Operativo Logística OSM / RF-07 / DEV-09",
+        "public/envios.html, public/envios.js, public/vendor/leaflet/, src/services/logisticsService.js, src/app.js, scripts/admin_panel.py, tests/integration.test.js (CP-RF-17)"
     )
 ]
 
