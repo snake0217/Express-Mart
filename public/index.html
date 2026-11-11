@@ -2319,6 +2319,40 @@
   </dialog>
 
   <!-- ===============================================================
+       MODAL GENÉRICO DE CONFIRMACIÓN CON DISEÑO EXPRESSMART
+       =============================================================== -->
+  <dialog id="app-confirm-dialog" class="modal-dialog max-w-md p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="app-confirm-dialog-title">
+    <div class="modal-header border-b border-surface-container p-4.5 flex items-center justify-between bg-surface-container-low">
+      <div class="flex items-center gap-3">
+        <div id="app-confirm-icon-box" class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+          <span id="app-confirm-dialog-icon" class="material-symbols-outlined text-[24px]">help</span>
+        </div>
+        <div>
+          <h2 id="app-confirm-dialog-title" class="font-headline-sm text-base font-bold text-on-surface">
+            ¿Confirmar Acción?
+          </h2>
+          <span class="text-[10px] text-secondary uppercase font-bold tracking-wider">ExpressMart Verificación</span>
+        </div>
+      </div>
+      <button type="button" id="app-confirm-btn-close" class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-secondary hover:text-on-surface transition-colors cursor-pointer" aria-label="Cerrar">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    <div class="modal-body p-5 space-y-2.5 bg-surface-container-lowest">
+      <h3 id="app-confirm-dialog-subtitle" class="font-bold text-sm text-on-surface leading-snug"></h3>
+      <p id="app-confirm-dialog-message" class="text-xs text-secondary leading-relaxed"></p>
+    </div>
+    <div class="modal-actions flex items-center justify-end gap-2.5 p-4 bg-surface-container-low border-t border-surface-container">
+      <button type="button" id="app-confirm-btn-cancel" class="btn btn-outline btn-sm px-4 py-2 cursor-pointer font-bold">
+        Cancelar
+      </button>
+      <button type="button" id="app-confirm-btn-action" class="btn btn-primary btn-sm px-5 py-2 cursor-pointer font-bold flex items-center gap-1.5 shadow-sm">
+        Confirmar
+      </button>
+    </div>
+  </dialog>
+
+  <!-- ===============================================================
        MODAL DE CONFIRMACIÓN PARA SALIR / CERRAR SESIÓN
        =============================================================== -->
   <dialog id="logout-confirm-dialog" class="modal-dialog max-w-md" aria-labelledby="logout-dialog-title">
@@ -2562,46 +2596,71 @@
             </label>
           </div>
 
-          <div id="sub-card-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl bg-surface-container-low border border-surface-container">
-            <div class="field sm:col-span-2">
-              <label for="sub-card-name" class="text-xs font-semibold">Nombre del Titular de la Tarjeta</label>
-              <input type="text" id="sub-card-name" placeholder="DIEGO ALARCON DE JESUS" class="text-sm uppercase" />
+          <div id="sub-card-fields" class="space-y-3.5 p-4 rounded-xl bg-surface-container-low border border-surface-container">
+            <!-- Selector visual de plásticos de colores (igual que en Checkout normal) -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px] text-primary">credit_card</span>
+                  <span>Plásticos simulados de tu Cartera (haz clic para elegir con cuál pagar):</span>
+                </span>
+                <span class="text-[11px] text-secondary">Máximo 3 plásticos</span>
+              </div>
+              <div id="sub-plastics-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
             </div>
-            <div class="field">
-              <label for="sub-card-number" class="text-xs font-semibold">Número de Tarjeta (Simulación)</label>
-              <input type="text" id="sub-card-number" value="4111 1111 1111 4242" maxlength="19" class="text-sm font-mono" />
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <div class="field">
-                <label for="sub-card-exp" class="text-xs font-semibold">Expiración</label>
-                <input type="text" id="sub-card-exp" value="12/29" maxlength="5" class="text-sm font-mono" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-surface-container">
+              <div class="field sm:col-span-2">
+                <label for="sub-card-name" class="text-xs font-semibold">Nombre del Titular de la Tarjeta</label>
+                <input type="text" id="sub-card-name" placeholder="DIEGO ALARCON DE JESUS" class="text-sm uppercase" />
               </div>
               <div class="field">
-                <label for="sub-card-cvv" class="text-xs font-semibold">CVV</label>
-                <input type="password" id="sub-card-cvv" value="123" maxlength="4" class="text-sm font-mono" />
+                <label for="sub-card-number" class="text-xs font-semibold">Número de Tarjeta (Simulación)</label>
+                <input type="text" id="sub-card-number" value="4111 1111 1111 4242" maxlength="19" class="text-sm font-mono" />
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="field">
+                  <label for="sub-card-exp" class="text-xs font-semibold">Expiración</label>
+                  <input type="text" id="sub-card-exp" value="12/29" maxlength="5" class="text-sm font-mono" />
+                </div>
+                <div class="field">
+                  <label for="sub-card-cvv" class="text-xs font-semibold">CVV</label>
+                  <input type="password" id="sub-card-cvv" value="123" maxlength="4" class="text-sm font-mono" />
+                </div>
               </div>
             </div>
           </div>
 
-          <div id="sub-paypal-fields" class="hidden p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-2">
-            <div class="flex items-center justify-between pb-1.5 border-b border-blue-200">
-              <div class="flex items-center gap-1.5 font-bold text-blue-950">
+          <div id="sub-paypal-fields" class="hidden p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-200 space-y-3">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xs font-bold text-blue-950 dark:text-blue-100 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px] text-blue-600">account_balance_wallet</span>
+                  <span>Plásticos vinculados a PayPal Sandbox:</span>
+                </span>
+                <span class="text-[11px] text-blue-700 dark:text-blue-300">Selecciona para abonar</span>
+              </div>
+              <div id="sub-paypal-plastics-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
+            </div>
+
+            <div class="flex items-center justify-between pb-1.5 border-b border-blue-200 dark:border-blue-800">
+              <div class="flex items-center gap-1.5 font-bold text-blue-950 dark:text-blue-100">
                 <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
                 <span>PayPal Sandbox Oficial (bancochido@banco.com)</span>
               </div>
-              <span class="font-mono text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">https://sandbox.paypal.com</span>
+              <span class="font-mono text-[10px] text-blue-700 bg-blue-100 dark:bg-blue-900/60 dark:text-blue-300 px-1.5 py-0.5 rounded">https://sandbox.paypal.com</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               <div class="flex flex-col gap-0.5">
-                <label for="sub-paypal-email" class="text-[11px] font-bold text-blue-950">Correo Comprador:</label>
-                <input type="email" id="sub-paypal-email" value="bancochido@banco.com" class="w-full h-8 px-2.5 rounded bg-white border border-blue-300 font-mono text-xs text-blue-950 focus:outline-none focus:ring-1 focus:ring-blue-500" required />
+                <label for="sub-paypal-email" class="text-[11px] font-bold text-blue-950 dark:text-blue-100">Correo Comprador:</label>
+                <input type="email" id="sub-paypal-email" value="bancochido@banco.com" class="w-full h-8 px-2.5 rounded bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 font-mono text-xs text-blue-950 dark:text-blue-100 focus:outline-none focus:ring-1 focus:ring-blue-500" required />
               </div>
               <div class="flex flex-col gap-0.5">
-                <label for="sub-paypal-password" class="text-[11px] font-bold text-blue-950">Contraseña Sandbox:</label>
-                <input type="password" id="sub-paypal-password" value="nBBi&quot;*d6" class="w-full h-8 px-2.5 rounded bg-white border border-blue-300 font-mono text-xs text-blue-950 focus:outline-none focus:ring-1 focus:ring-blue-500" required />
+                <label for="sub-paypal-password" class="text-[11px] font-bold text-blue-950 dark:text-blue-100">Contraseña Sandbox:</label>
+                <input type="password" id="sub-paypal-password" value="nBBi&quot;*d6" class="w-full h-8 px-2.5 rounded bg-white dark:bg-slate-900 border border-blue-300 dark:border-blue-700 font-mono text-xs text-blue-950 dark:text-blue-100 focus:outline-none focus:ring-1 focus:ring-blue-500" required />
               </div>
             </div>
-            <p class="text-[10px] text-blue-800">Se validarán las credenciales sandbox antes de simular el cargo recurrente de membresía.</p>
+            <p class="text-[10px] text-blue-800 dark:text-blue-300">Se validarán las credenciales sandbox antes de simular el cargo recurrente de membresía.</p>
           </div>
         </div>
       </div>
@@ -2741,64 +2800,66 @@
   <!-- ===============================================================
        MODAL DE SOLICITUD DE DEVOLUCIÓN Y REEMBOLSO EN MXN (LFPC 30 DÍAS)
        =============================================================== -->
-  <dialog id="refund-request-dialog" class="modal modal-wide" aria-label="Solicitar Devolución y Reembolso en MXN">
-    <form id="refund-request-form" class="modal-box max-w-2xl flex flex-col gap-3.5">
+  <dialog id="refund-request-dialog" class="modal-dialog max-w-2xl p-0 rounded-2xl shadow-2xl border border-surface-container overflow-hidden w-full" aria-labelledby="refund-modal-title">
+    <div class="modal-header bg-gradient-to-r from-[#0c1e3d] via-[#123580] to-[#163e8a] text-white p-4.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0 shadow-sm">
+          <span class="material-symbols-outlined text-[24px]">assignment_return</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="refund-modal-title" class="font-headline-sm text-base sm:text-lg font-bold text-white tracking-tight">
+              Solicitar Devolución y Reembolso en MXN
+            </h2>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold uppercase tracking-wider">
+              LFPC 30 Días
+            </span>
+          </div>
+          <p class="text-xs text-blue-200 mt-0.5">Garantía oficial de satisfacción · Retorno gratuito a CEDIS y abono 100% en MXN</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-refund-modal" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer" aria-label="Cerrar modal de devolución" title="Cerrar ventana">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form id="refund-request-form" class="modal-body p-6 space-y-4 max-h-[82vh] overflow-y-auto bg-surface-container-lowest">
       <input type="hidden" id="refund-modal-order-id" value="" />
 
-      <!-- Encabezado -->
-      <div class="flex items-start justify-between gap-3 pb-3 border-b border-surface-container">
-        <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-[24px]">assignment_return</span>
-          </div>
-          <div>
-            <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold text-[10px] uppercase tracking-wider">
-              Garantía de Satisfacción de 30 Días · LFPC
-            </span>
-            <h3 class="font-headline-sm text-lg font-extrabold text-on-surface mt-0.5">
-              Solicitar Devolución y Reembolso en MXN
-            </h3>
-          </div>
-        </div>
-        <button type="button" id="btn-close-refund-modal" class="w-8 h-8 rounded-full bg-surface-container hover:bg-error hover:text-white flex items-center justify-center text-on-surface transition-colors cursor-pointer" title="Cerrar ventana">
-          <span class="material-symbols-outlined text-[18px]">close</span>
-        </button>
-      </div>
-
       <!-- Resumen del pedido a reembolsar -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs bg-surface-container-low p-3 rounded-xl border border-surface-container">
-        <div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs bg-surface-container-low p-3.5 rounded-xl border border-surface-container shadow-xs">
+        <div class="p-2 rounded-lg bg-surface-container-lowest border border-surface-container">
           <span class="text-secondary uppercase font-bold text-[10px] block">Folio del Pedido</span>
-          <strong id="refund-modal-folio" class="font-mono text-on-surface text-xs">EM-ORD-0000</strong>
+          <strong id="refund-modal-folio" class="font-mono text-on-surface text-xs block mt-0.5">EM-ORD-0000</strong>
         </div>
-        <div>
+        <div class="p-2 rounded-lg bg-surface-container-lowest border border-surface-container">
           <span class="text-secondary uppercase font-bold text-[10px] block">Importe a Reembolsar</span>
-          <strong id="refund-modal-amount" class="text-primary font-extrabold text-sm">$0.00 MXN</strong>
+          <strong id="refund-modal-amount" class="text-primary font-extrabold text-sm block mt-0.5">$0.00 MXN</strong>
         </div>
-        <div>
+        <div class="p-2 rounded-lg bg-surface-container-lowest border border-surface-container">
           <span class="text-secondary uppercase font-bold text-[10px] block">Destino del Reintegro</span>
-          <strong id="refund-modal-payment" class="text-emerald-700 dark:text-emerald-400 font-bold text-xs">Tarjeta / PayPal Original</strong>
+          <strong id="refund-modal-payment" class="text-emerald-700 dark:text-emerald-400 font-bold text-xs block mt-0.5">Tarjeta / PayPal Original</strong>
         </div>
       </div>
 
       <!-- Instrucciones claras para hacer el reembolso -->
-      <div class="p-3.5 rounded-xl bg-blue-50/80 dark:bg-slate-900/70 border border-blue-200 dark:border-blue-800/60 space-y-2 text-xs">
+      <div class="p-4 rounded-xl bg-blue-50/90 dark:bg-slate-900/80 border border-blue-200 dark:border-blue-800 space-y-2.5 text-xs shadow-xs">
         <div class="font-extrabold text-[#1d4e9a] dark:text-sky-300 flex items-center gap-1.5 text-xs uppercase tracking-wide">
-          <span class="material-symbols-outlined text-[17px]">info</span>
+          <span class="material-symbols-outlined text-[18px]">info</span>
           <span>Instrucciones paso a paso para tu Devolución y Reembolso</span>
         </div>
-        <ol class="space-y-1.5 text-slate-700 dark:text-slate-300 list-none pl-0">
-          <li class="flex items-start gap-2">
-            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
-            <span><strong>Indica el motivo de devolución:</strong> Selecciona una causa rápida abajo o redacta detalladamente el motivo en el recuadro para que quede asentado en tu expediente de garantía.</span>
+        <ol class="space-y-2 text-slate-700 dark:text-slate-300 list-none pl-0">
+          <li class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">1</span>
+            <span><strong>Indica el motivo de devolución:</strong> Selecciona una de las causas frecuentes abajo o redacta detalladamente el motivo en el recuadro para asentar tu expediente de garantía.</span>
           </li>
-          <li class="flex items-start gap-2">
-            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
-            <span><strong>Prepara el paquete sin costo:</strong> Conserva el artículo con sus accesorios y empaque original. Al enviar esta solicitud se genera tu orden de retorno gratuito a nuestro almacén CEDIS.</span>
+          <li class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">2</span>
+            <span><strong>Prepara el paquete sin costo:</strong> Conserva el artículo con sus accesorios y empaque original. Al enviar esta solicitud se genera tu orden de recolección y retorno gratuito a nuestro almacén CEDIS.</span>
           </li>
-          <li class="flex items-start gap-2">
-            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
-            <span><strong>Autorización y abono del 100% en MXN:</strong> El Administrador revisará tu petición en el Panel de Reembolsos. Al aprobarse, el monto íntegro se reintegrará automáticamente al saldo de tu plástico simulado / cuenta PayPal y recibirás una notificación.</span>
+          <li class="flex items-start gap-2.5">
+            <span class="w-5 h-5 rounded-full bg-[#1d4e9a] text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5 shadow-xs">3</span>
+            <span><strong>Autorización y abono del 100% en MXN:</strong> El Administrador revisará tu petición en el Panel de Reembolsos. Al aprobarse, el monto íntegro se reintegrará automáticamente al saldo de tu plástico simulado / cuenta PayPal.</span>
           </li>
         </ol>
       </div>
@@ -2809,19 +2870,19 @@
           Selecciona una causa frecuente (opcional) o escribe directamente abajo:
         </span>
         <div class="flex flex-wrap gap-1.5">
-          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="El producto presenta un defecto de fábrica o falla técnica y solicito reembolso bajo garantía LFPC.">
+          <button type="button" class="refund-reason-preset px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer border border-surface-container" data-reason="El producto presenta un defecto de fábrica o falla técnica y solicito reembolso bajo garantía LFPC.">
             🔧 Defecto o falla técnica
           </button>
-          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="El empaque o el artículo llegó con daño estético durante el envío.">
+          <button type="button" class="refund-reason-preset px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer border border-surface-container" data-reason="El empaque o el artículo llegó con daño estético durante el envío.">
             📦 Empaque o producto dañado
           </button>
-          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="El producto no cumplió con mis expectativas y solicito devolución dentro de los 30 días de garantía.">
+          <button type="button" class="refund-reason-preset px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer border border-surface-container" data-reason="El producto no cumplió con mis expectativas y solicito devolución dentro de los 30 días de garantía.">
             🔄 No cumplió expectativas
           </button>
-          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="Recibí un modelo, color o especificación diferente al que solicité en mi pedido.">
+          <button type="button" class="refund-reason-preset px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer border border-surface-container" data-reason="Recibí un modelo, color o especificación diferente al que solicité en mi pedido.">
             📋 Producto diferente al pedido
           </button>
-          <button type="button" class="refund-reason-preset px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer" data-reason="Compré este artículo por equivocación y deseo cancelar/devolver la compra para reembolso.">
+          <button type="button" class="refund-reason-preset px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-[11px] font-semibold transition-colors cursor-pointer border border-surface-container" data-reason="Compré este artículo por equivocación y deseo cancelar/devolver la compra para reembolso.">
             🛒 Compra por equivocación
           </button>
         </div>
@@ -2839,16 +2900,16 @@
           required
           minlength="5"
           placeholder="Escribe aquí detalladamente el motivo por el cual solicitas la devolución y el reembolso de tu pedido..."
-          class="text-xs rounded-xl p-2.5 border border-surface-dim bg-surface-container-lowest focus:border-primary"
+          class="text-xs rounded-xl p-3 border border-surface-dim bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary w-full leading-relaxed"
         >El producto no cumplió con mis expectativas y solicito devolución bajo garantía de satisfacción de 30 días.</textarea>
       </div>
 
       <!-- Pie del modal con botones -->
-      <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-surface-container">
-        <button type="button" id="btn-cancel-refund-modal" class="btn btn-outline btn-sm px-4 py-2 cursor-pointer">
+      <div class="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-surface-container">
+        <button type="button" id="btn-cancel-refund-modal" class="btn btn-outline btn-sm px-4 py-2 cursor-pointer font-bold">
           Cancelar
         </button>
-        <button type="submit" id="btn-submit-refund-modal" class="btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer">
+        <button type="submit" id="btn-submit-refund-modal" class="btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer shadow-md">
           <span class="material-symbols-outlined text-[16px]">send</span>
           <span>Enviar Solicitud de Reembolso en MXN</span>
         </button>

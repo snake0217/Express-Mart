@@ -654,15 +654,15 @@ function initWalletCardsEvents() {
 }
 
 /**
- * Renderiza los plásticos físicos con sus respectivos colores en la pantalla de Pago (Checkout Paso 2)
- * tanto para Tarjeta de Crédito/Débito/MSI (#checkout-plastics-grid) como para PayPal (#paypal-plastics-grid).
+ * Renderiza los plásticos físicos con sus respectivos colores en la pantalla de Pago
+ * (tanto para Checkout normal como para el modal de compra de suscripción ExpressPrime).
  */
-function renderCheckoutPlasticCards(cards = [], selectedCardId = null, onSelectCard = null) {
-  const containers = [
-    document.getElementById('checkout-plastics-grid'),
-    document.getElementById('paypal-plastics-grid')
-  ].filter(Boolean);
+function renderCheckoutPlasticCards(cards = [], selectedCardId = null, onSelectCard = null, targetContainerIds = null) {
+  const containerIds = Array.isArray(targetContainerIds) && targetContainerIds.length
+    ? targetContainerIds
+    : ['checkout-plastics-grid', 'paypal-plastics-grid'];
 
+  const containers = containerIds.map((id) => document.getElementById(id)).filter(Boolean);
   if (!containers.length) return;
 
   containers.forEach((grid) => {
@@ -745,9 +745,50 @@ function renderCheckoutPlasticCards(cards = [], selectedCardId = null, onSelectC
   });
 }
 
+/**
+ * Carga y renderiza los plásticos visuales para la compra/simulación de Membresía ExpressPrime
+ */
+async function loadAndRenderSubscriptionPlastics(selectedCardId = null) {
+  const containers = [
+    document.getElementById('sub-plastics-grid'),
+    document.getElementById('sub-paypal-plastics-grid')
+  ].filter(Boolean);
+  if (!containers.length) return;
+
+  try {
+    const cards = await apiFetch('/api/payments/simulated-cards?mine=1');
+    const userCards = Array.isArray(cards) ? cards : [];
+    if (!userCards.length) {
+      renderCheckoutPlasticCards([], null, null, ['sub-plastics-grid', 'sub-paypal-plastics-grid']);
+      return;
+    }
+
+    const applySubCard = (pickedCard) => {
+      if (!pickedCard) return;
+      const nameInput = document.getElementById('sub-card-name');
+      const numInput = document.getElementById('sub-card-number');
+      const expInput = document.getElementById('sub-card-exp');
+      const cvvInput = document.getElementById('sub-card-cvv');
+      if (nameInput) nameInput.value = (pickedCard.titular || '').toUpperCase();
+      if (numInput) numInput.value = pickedCard.numero_tarjeta || '';
+      if (expInput) expInput.value = pickedCard.expiracion || '';
+      if (cvvInput) cvvInput.value = pickedCard.cvv || '123';
+
+      renderCheckoutPlasticCards(userCards, pickedCard.id, (clickedId) => {
+        const c = userCards.find((x) => Number(x.id) === Number(clickedId));
+        applySubCard(c);
+      }, ['sub-plastics-grid', 'sub-paypal-plastics-grid']);
+    };
+
+    const initialCard = (selectedCardId ? userCards.find((c) => Number(c.id) === Number(selectedCardId)) : null) || userCards[0];
+    applySubCard(initialCard);
+  } catch (_) {}
+}
+
 window.WALLET_PLASTIC_COLORS = WALLET_PLASTIC_COLORS;
 window.getPlasticStyle = getPlasticStyle;
 window.loadUserWalletCards = loadUserWalletCards;
 window.openEmergingCardCreator = openEmergingCardCreator;
 window.renderCheckoutPlasticCards = renderCheckoutPlasticCards;
+window.loadAndRenderSubscriptionPlastics = loadAndRenderSubscriptionPlastics;
 window.initWalletCardsEvents = initWalletCardsEvents;

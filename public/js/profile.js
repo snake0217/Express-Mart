@@ -417,9 +417,16 @@ function renderMembershipProfile() {
     const btnCancel = document.getElementById('btn-cancel-membership');
     if (btnCancel) {
       btnCancel.addEventListener('click', async () => {
-        if (!confirm('¿Estás seguro de que deseas cancelar tu suscripción a ExpressPrime? Perderás tus envíos gratis y el 5% de cashback en futuras compras.')) {
-          return;
-        }
+        const confirmed = await window.showAppConfirm({
+          title: 'Cancelar Suscripción',
+          subtitle: '¿Deseas cancelar tu suscripción a ExpressPrime?',
+          message: 'Perderás de inmediato los envíos gratis en todas tus compras y el 5% de cashback en futuras compras.',
+          confirmText: 'Sí, Cancelar Membresía',
+          cancelText: 'Mantener Beneficios',
+          isDanger: true,
+          icon: 'cancel'
+        });
+        if (!confirmed) return;
         try {
           btnCancel.disabled = true;
           btnCancel.textContent = 'Cancelando...';
@@ -552,6 +559,10 @@ function openSubscriptionDialog(defaultPlan = '1_mes') {
   const cardNameInput = document.getElementById('sub-card-name');
   if (cardNameInput && state.user && state.user.nombre) {
     cardNameInput.value = state.user.nombre.toUpperCase();
+  }
+
+  if (typeof window.loadAndRenderSubscriptionPlastics === 'function') {
+    window.loadAndRenderSubscriptionPlastics();
   }
 
   dialog.showModal();
@@ -832,10 +843,15 @@ function initProfileEvents() {
   const btnDeleteOwn = document.getElementById('btn-delete-own-account');
   if (btnDeleteOwn) {
     btnDeleteOwn.addEventListener('click', async () => {
-      const confirmDelete = window.confirm(
-        'ADVERTENCIA: ¿Estás seguro de que deseas eliminar permanentemente tu cuenta de ExpressMart?\n\n' +
-        'Esta acción cerrará tu sesión, cancelará beneficios activos y borrará tus datos personales de manera irreversible.'
-      );
+      const confirmDelete = await window.showAppConfirm({
+        title: 'Eliminar Cuenta Permanentemente',
+        subtitle: 'ADVERTENCIA: ¿Estás seguro de que deseas eliminar permanentemente tu cuenta?',
+        message: 'Esta acción cerrará tu sesión, cancelará beneficios activos y borrará tus datos personales de manera irreversible.',
+        confirmText: 'Sí, Eliminar Mi Cuenta',
+        cancelText: 'Conservar Cuenta',
+        isDanger: true,
+        icon: 'delete_forever'
+      });
       if (!confirmDelete) return;
 
       try {

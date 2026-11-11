@@ -292,8 +292,17 @@ function initFavoritesEvents() {
   // Botón para vaciar favoritos
   const btnFavClearAll = document.getElementById('btn-fav-clear-all');
   if (btnFavClearAll) {
-    btnFavClearAll.addEventListener('click', () => {
-      if (confirm('¿Deseas vaciar tu lista de favoritos?')) {
+    btnFavClearAll.addEventListener('click', async () => {
+      const confirmClear = await window.showAppConfirm({
+        title: 'Vaciar Lista de Favoritos',
+        subtitle: '¿Deseas vaciar tu lista de productos guardados?',
+        message: 'Se eliminarán todos los artículos guardados en tus favoritos.',
+        confirmText: 'Sí, Vaciar Lista',
+        cancelText: 'Cancelar',
+        isDanger: true,
+        icon: 'delete_sweep'
+      });
+      if (confirmClear) {
         saveFavorites([]);
         renderFavoritesView();
         showAlert('Se han vaciado tus favoritos.');

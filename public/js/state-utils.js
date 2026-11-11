@@ -56,6 +56,70 @@ function showAlert(msg, isError = false) {
   setTimeout(() => el.classList.add('hidden'), 6000);
 }
 
+function showAppConfirm({
+  title = '¿Confirmar Acción?',
+  subtitle = '',
+  message = '',
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  isDanger = false,
+  icon = 'help'
+} = {}) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('app-confirm-dialog');
+    if (!dialog) {
+      resolve(window.confirm(message || subtitle || title));
+      return;
+    }
+    const titleEl = document.getElementById('app-confirm-dialog-title');
+    const subEl = document.getElementById('app-confirm-dialog-subtitle');
+    const msgEl = document.getElementById('app-confirm-dialog-message');
+    const iconEl = document.getElementById('app-confirm-dialog-icon');
+    const iconBox = document.getElementById('app-confirm-icon-box');
+    const btnCancel = document.getElementById('app-confirm-btn-cancel');
+    const btnAction = document.getElementById('app-confirm-btn-action');
+    const btnClose = document.getElementById('app-confirm-btn-close');
+
+    if (titleEl) titleEl.textContent = title;
+    if (subEl) {
+      subEl.textContent = subtitle;
+      subEl.classList.toggle('hidden', !subtitle);
+    }
+    if (msgEl) msgEl.textContent = message;
+    if (iconEl) iconEl.textContent = icon;
+    if (iconBox) {
+      iconBox.className = `w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
+        isDanger ? 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+      }`;
+    }
+    if (btnCancel) btnCancel.textContent = cancelText;
+    if (btnAction) {
+      btnAction.textContent = confirmText;
+      btnAction.className = isDanger
+        ? 'btn bg-red-600 hover:bg-red-700 text-white btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer shadow-md'
+        : 'btn btn-primary btn-sm px-5 py-2 font-bold flex items-center gap-1.5 cursor-pointer shadow-md';
+    }
+
+    let settled = false;
+    const cleanup = (val) => {
+      if (settled) return;
+      settled = true;
+      if (dialog.open) dialog.close();
+      resolve(val);
+    };
+
+    btnCancel.onclick = () => cleanup(false);
+    if (btnClose) btnClose.onclick = () => cleanup(false);
+    btnAction.onclick = () => cleanup(true);
+    dialog.oncancel = (e) => {
+      e.preventDefault();
+      cleanup(false);
+    };
+
+    if (!dialog.open) dialog.showModal();
+  });
+}
+
 function showToast({ title, message, imageUrl, price }) {
   const container = document.getElementById('toast-container');
   if (!container) return;
@@ -151,6 +215,12 @@ function clearSessionState(reason = '', isError = true) {
 
   const notifDialog = document.getElementById('notifications-dialog');
   if (notifDialog && notifDialog.open) notifDialog.close();
+
+  const confirmDialog = document.getElementById('app-confirm-dialog');
+  if (confirmDialog && confirmDialog.open) confirmDialog.close();
+
+  const refundDialog = document.getElementById('refund-request-dialog');
+  if (refundDialog && refundDialog.open) refundDialog.close();
 
   updateSessionUI();
   refreshCartModal();
@@ -726,6 +796,7 @@ window.state = state;
 window.formatMxn = formatMxn;
 window.escapeHtml = escapeHtml;
 window.showAlert = showAlert;
+window.showAppConfirm = showAppConfirm;
 window.showToast = showToast;
 window.clearSessionState = clearSessionState;
 window.executeLogout = executeLogout;
