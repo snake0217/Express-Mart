@@ -653,7 +653,101 @@ function initWalletCardsEvents() {
   }
 }
 
+/**
+ * Renderiza los plásticos físicos con sus respectivos colores en la pantalla de Pago (Checkout Paso 2)
+ * tanto para Tarjeta de Crédito/Débito/MSI (#checkout-plastics-grid) como para PayPal (#paypal-plastics-grid).
+ */
+function renderCheckoutPlasticCards(cards = [], selectedCardId = null, onSelectCard = null) {
+  const containers = [
+    document.getElementById('checkout-plastics-grid'),
+    document.getElementById('paypal-plastics-grid')
+  ].filter(Boolean);
+
+  if (!containers.length) return;
+
+  containers.forEach((grid) => {
+    if (!Array.isArray(cards) || cards.length === 0) {
+      grid.innerHTML = `
+        <div class="col-span-full p-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-secondary">
+          No tienes plásticos registrados todavía. Usa el botón <strong>"+ Crear / Cambiar Color"</strong> para diseñar tu plástico.
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = cards.map((card) => {
+      const style = getPlasticStyle(card.color_plastico);
+      const isSelected = Number(card.id) === Number(selectedCardId);
+      const cleanDigits = String(card.numero_tarjeta || '').replace(/\D/g, '');
+      const first4 = cleanDigits.slice(0, 4) || '4032';
+      const last4 = cleanDigits.slice(-4) || '0000';
+      const isLightPlastic = style.id.toLowerCase() === '#f8fafc';
+      const borderClass = isSelected
+        ? 'ring-4 ring-amber-400 dark:ring-amber-300 shadow-xl scale-[1.02] -translate-y-0.5'
+        : (isLightPlastic ? 'border border-slate-300 opacity-90 hover:opacity-100 hover:-translate-y-0.5' : 'border border-white/20 opacity-90 hover:opacity-100 hover:-translate-y-0.5');
+
+      return `
+        <button
+          type="button"
+          data-checkout-plastic-id="${card.id}"
+          class="checkout-plastic-card-btn group relative text-left rounded-2xl p-3.5 transition-all duration-200 cursor-pointer select-none overflow-hidden ${borderClass}"
+          style="background: ${style.bg}; color: ${style.text}; min-height: 132px;"
+          title="Seleccionar plástico ${escapeHtml(style.name)} (${escapeHtml(card.marca)} •••• ${last4})"
+        >
+          <div style="position:absolute; right:-24px; bottom:-24px; width:95px; height:95px; border-radius:50%; background:rgba(255,255,255,0.09); pointer-events:none;"></div>
+
+          <div class="flex items-center justify-between gap-1 mb-2">
+            <div class="flex items-center gap-1.5">
+              <span
+                style="width:26px; height:19px; border-radius:4px; background:linear-gradient(135deg,#fde047 0%,#ca8a04 100%); display:inline-block; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.22);"
+              ></span>
+              <span class="text-[10px] font-extrabold uppercase tracking-wider opacity-90">${escapeHtml(card.marca || 'VISA')}</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide ${
+              isSelected
+                ? 'bg-amber-300 text-slate-950 shadow-sm'
+                : (isLightPlastic ? 'bg-slate-900/10 text-slate-800' : 'bg-black/30 text-white')
+            }">
+              ${isSelected ? '✓ Seleccionada' : 'Elegir'}
+            </span>
+          </div>
+
+          <div class="font-mono text-xs sm:text-[13px] font-extrabold tracking-widest mb-2">
+            ${escapeHtml(first4)} •••• •••• ${escapeHtml(last4)}
+          </div>
+
+          <div class="flex items-end justify-between gap-1 text-[10px] leading-tight">
+            <div class="truncate max-w-[62%]">
+              <div class="opacity-75 uppercase text-[8px]">Titular · ${escapeHtml(style.name)}</div>
+              <div class="font-bold truncate uppercase">${escapeHtml(card.titular || 'CLIENTE')}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="opacity-75 text-[8px]">Exp ${escapeHtml(card.expiracion || '10/28')}</div>
+              <div class="font-extrabold text-[10px] px-1.5 py-0.5 rounded ${
+                isLightPlastic ? 'bg-emerald-600 text-white' : 'bg-black/35 text-emerald-300'
+              }">
+                ${formatMxn(card.saldo || 0)}
+              </div>
+            </div>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.checkout-plastic-card-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const pickedId = Number(btn.getAttribute('data-checkout-plastic-id'));
+        if (typeof onSelectCard === 'function') {
+          onSelectCard(pickedId);
+        }
+      });
+    });
+  });
+}
+
 window.WALLET_PLASTIC_COLORS = WALLET_PLASTIC_COLORS;
+window.getPlasticStyle = getPlasticStyle;
 window.loadUserWalletCards = loadUserWalletCards;
 window.openEmergingCardCreator = openEmergingCardCreator;
+window.renderCheckoutPlasticCards = renderCheckoutPlasticCards;
 window.initWalletCardsEvents = initWalletCardsEvents;

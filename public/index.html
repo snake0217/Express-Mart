@@ -2209,12 +2209,12 @@
             </div>
           </div>
 
-          <!-- Selector de Tarjeta de Crédito Simulada vinculada a PayPal (Manage credit cards) -->
+          <!-- Selector Visual de Plásticos con sus Colores vinculado a PayPal -->
           <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-[#0070ba]/30 space-y-2.5">
             <div class="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-slate-100 dark:border-slate-800">
               <label for="paypal-sim-card-selector" class="text-xs font-extrabold text-[#003087] dark:text-sky-300 flex items-center gap-1.5">
                 <span class="material-symbols-outlined text-[16px]">credit_card</span>
-                <span>Manage credit cards · Credit cards vinculadas a tu usuario:</span>
+                <span>Selecciona uno de tus plásticos para el pago con PayPal:</span>
               </label>
               <button
                 type="button"
@@ -2222,9 +2222,13 @@
                 class="text-[11px] font-bold text-[#0070ba] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <span class="material-symbols-outlined text-[14px]">account_balance_wallet</span>
-                <span>+ Agregar / Editar en Mi Cartera (Máx. 3)</span>
+                <span>+ Personalizar Colores en Mi Cartera (Máx. 3)</span>
               </button>
             </div>
+
+            <!-- Tarjetas físicas con sus colores respectivos para seleccionar con un clic -->
+            <div id="paypal-plastics-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1"></div>
+
             <select id="paypal-sim-card-selector" class="w-full h-9 px-2.5 rounded-lg bg-surface-container-low border border-surface-dim text-xs font-semibold">
               <option value="">-- Seleccionar tarjeta simulada de mi cartera PayPal --</option>
             </select>
@@ -2246,15 +2250,29 @@
         </div>
 
         <div id="credit-card-fields-group">
-          <!-- Selector de Tarjetas Simuladas con Saldo -->
-          <div class="field mb-3 p-3 rounded-xl bg-surface-container-low border border-primary/20">
-            <div class="flex items-center justify-between mb-1.5">
+          <!-- Selector Visual de Plásticos con sus Colores y Saldo -->
+          <div class="field mb-3 p-3.5 rounded-xl bg-surface-container-low border border-primary/20 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <label for="simulated-card-selector" class="text-xs font-bold text-primary flex items-center gap-1.5 cursor-pointer">
                 <span class="material-symbols-outlined text-[16px]">credit_card</span>
-                <span>Tarjeta Simulada con Saldo Registrado</span>
+                <span>Mis Plásticos Registrados (Haz clic en una tarjeta para seleccionarla en el pago)</span>
               </label>
-              <span id="simulated-card-badge" class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">Saldo Activo</span>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-card-group-open-wallet"
+                  class="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span class="material-symbols-outlined text-[14px]">palette</span>
+                  <span>Cambiar color / Agregar en Mi Cartera</span>
+                </button>
+                <span id="simulated-card-badge" class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">Saldo Activo</span>
+              </div>
             </div>
+
+            <!-- Cuadrícula visual de plásticos con sus respectivos colores -->
+            <div id="checkout-plastics-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3 py-1"></div>
+
             <select id="simulated-card-selector" class="w-full text-xs">
               <option value="">-- Seleccionar tarjeta con saldo para simular compra --</option>
             </select>

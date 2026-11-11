@@ -521,6 +521,45 @@ function initCartCheckoutEvents() {
     `;
   }
 
+  function applySelectedCheckoutCard(cardId) {
+    const numericId = Number(cardId || 0);
+    const card = loadedSimulatedCards.find((c) => Number(c.id) === numericId) || null;
+    const selector = document.getElementById('simulated-card-selector');
+    const paypalSelector = document.getElementById('paypal-sim-card-selector');
+    const infoBox = document.getElementById('simulated-card-balance-info');
+    const holderText = document.getElementById('simulated-card-holder-text');
+    const amountText = document.getElementById('simulated-card-amount-text');
+
+    if (selector) selector.value = card ? String(card.id) : '';
+    if (paypalSelector) paypalSelector.value = card ? String(card.id) : '';
+
+    if (card) {
+      state.preferredPaypalCardId = card.id;
+      const holderInput = document.getElementById('card-holder');
+      const numInput = document.getElementById('card-number');
+      const expInput = document.getElementById('card-expiry');
+      if (holderInput) holderInput.value = card.titular;
+      if (numInput) numInput.value = card.numero_tarjeta;
+      if (expInput) expInput.value = card.expiracion;
+
+      if (infoBox && holderText && amountText) {
+        const plasticStyle = typeof window.getPlasticStyle === 'function' ? window.getPlasticStyle(card.color_plastico) : { name: 'Azul Rey' };
+        holderText.textContent = `Plástico ${plasticStyle.name} · Titular: ${card.titular} (${String(card.tipo || 'credito').toUpperCase()})`;
+        amountText.textContent = `Saldo Disponible: $${Number(card.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`;
+        infoBox.classList.remove('hidden');
+      }
+    } else if (infoBox) {
+      infoBox.classList.add('hidden');
+    }
+
+    renderPaypalCheckoutCardPreview(card);
+    if (typeof window.renderCheckoutPlasticCards === 'function') {
+      window.renderCheckoutPlasticCards(loadedSimulatedCards, card ? card.id : null, (clickedId) => {
+        applySelectedCheckoutCard(clickedId);
+      });
+    }
+  }
+
   async function loadSimulatedCardsForCheckout() {
     const selector = document.getElementById('simulated-card-selector');
     const paypalSelector = document.getElementById('paypal-sim-card-selector');
@@ -529,26 +568,23 @@ function initCartCheckoutEvents() {
       const cards = await apiFetch('/api/payments/simulated-cards?mine=1');
       if (Array.isArray(cards)) {
         loadedSimulatedCards = cards;
-        const optionsHtml = cards.map((c) => `
-          <option value="${c.id}">
-            ${c.marca} · •••• ${c.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)} · Saldo: $${Number(c.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN (${c.titular})
-          </option>
-        `).join('');
+        const optionsHtml = cards.map((c) => {
+          const pStyle = typeof window.getPlasticStyle === 'function' ? window.getPlasticStyle(c.color_plastico) : { name: 'Plástico' };
+          return `
+            <option value="${c.id}">
+              [${pStyle.name}] ${c.marca} · •••• ${c.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)} · Saldo: $${Number(c.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN (${c.titular})
+            </option>
+          `;
+        }).join('');
 
         if (selector) {
-          selector.innerHTML = '<option value="">-- Seleccionar tarjeta de mi cartera con saldo --</option>' + optionsHtml;
+          selector.innerHTML = '<option value="">-- Seleccionar plástico de mi cartera con saldo --</option>' + optionsHtml;
         }
         if (paypalSelector) {
-          paypalSelector.innerHTML = '<option value="">-- Seleccionar tarjeta simulada de mi cartera PayPal --</option>' + optionsHtml;
-          const preferredId = state.preferredPaypalCardId || (cards[0] && cards[0].id);
-          if (preferredId) {
-            paypalSelector.value = String(preferredId);
-            const picked = cards.find((c) => Number(c.id) === Number(preferredId));
-            renderPaypalCheckoutCardPreview(picked || null);
-          } else {
-            renderPaypalCheckoutCardPreview(null);
-          }
+          paypalSelector.innerHTML = '<option value="">-- Seleccionar plástico simulado de mi cartera PayPal --</option>' + optionsHtml;
         }
+        const preferredId = state.preferredPaypalCardId || (cards[0] && cards[0].id) || null;
+        applySelectedCheckoutCard(preferredId);
       }
     } catch (_) {}
   }
@@ -557,39 +593,22 @@ function initCartCheckoutEvents() {
   const simCardSelector = document.getElementById('simulated-card-selector');
   if (simCardSelector) {
     simCardSelector.addEventListener('change', (e) => {
-      const cardId = Number(e.target.value);
-      const card = loadedSimulatedCards.find((c) => c.id === cardId);
-      const infoBox = document.getElementById('simulated-card-balance-info');
-      const holderText = document.getElementById('simulated-card-holder-text');
-      const amountText = document.getElementById('simulated-card-amount-text');
-
-      if (card) {
-        document.getElementById('card-holder').value = card.titular;
-        document.getElementById('card-number').value = card.numero_tarjeta;
-        document.getElementById('card-expiry').value = card.expiracion;
-        if (infoBox && holderText && amountText) {
-          holderText.textContent = `Titular: ${card.titular} (${card.tipo.toUpperCase()})`;
-          amountText.textContent = `Saldo Disponible: $${Number(card.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`;
-          infoBox.classList.remove('hidden');
-        }
-      } else if (infoBox) {
-        infoBox.classList.add('hidden');
-      }
+      applySelectedCheckoutCard(Number(e.target.value));
     });
   }
 
   const paypalSimSelector = document.getElementById('paypal-sim-card-selector');
   if (paypalSimSelector) {
     paypalSimSelector.addEventListener('change', (e) => {
-      const cardId = Number(e.target.value);
-      const card = loadedSimulatedCards.find((c) => c.id === cardId) || null;
-      renderPaypalCheckoutCardPreview(card);
+      applySelectedCheckoutCard(Number(e.target.value));
     });
   }
 
-  const btnCheckoutOpenWallet = document.getElementById('btn-checkout-open-wallet-tab');
-  if (btnCheckoutOpenWallet) {
-    btnCheckoutOpenWallet.addEventListener('click', () => {
+  [
+    document.getElementById('btn-checkout-open-wallet-tab'),
+    document.getElementById('btn-card-group-open-wallet')
+  ].filter(Boolean).forEach((btn) => {
+    btn.addEventListener('click', () => {
       cartDialog.close();
       switchTab('view-wallet');
       setTimeout(() => {
@@ -598,7 +617,7 @@ function initCartCheckoutEvents() {
         }
       }, 200);
     });
-  }
+  });
 
   document.getElementById('btn-to-step-2').addEventListener('click', () => {
     if (!state.cart.length) {
@@ -636,18 +655,28 @@ function initCartCheckoutEvents() {
     const summaryEl = document.getElementById('checkout-final-summary');
     const addr = document.getElementById('checkout-address').value.trim();
 
-    let methodDisplay = 'Tarjeta de Crédito / Débito';
+    const activeCardId = Number(
+      (method === 'paypal'
+        ? document.getElementById('paypal-sim-card-selector')?.value
+        : document.getElementById('simulated-card-selector')?.value) || 0
+    );
+    const activeCard = loadedSimulatedCards.find((c) => Number(c.id) === activeCardId) || null;
+    const activePlastic = activeCard && typeof window.getPlasticStyle === 'function'
+      ? window.getPlasticStyle(activeCard.color_plastico)
+      : null;
+    const plasticBadgeHtml = activeCard && activePlastic
+      ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold shadow-sm ml-1" style="background:${activePlastic.bg}; color:${activePlastic.text};">
+           💳 ${escapeHtml(activePlastic.name)} · ${escapeHtml(activeCard.marca)} •••• ${String(activeCard.numero_tarjeta).replace(/\D/g, '').slice(-4)} (${formatMxn(activeCard.saldo)})
+         </span>`
+      : '';
+
+    let methodDisplay = `Tarjeta de Crédito / Débito ${plasticBadgeHtml}`;
     if (method === 'paypal') {
-      const ppCardId = Number(document.getElementById('paypal-sim-card-selector')?.value || 0);
-      const ppCard = loadedSimulatedCards.find((c) => c.id === ppCardId);
-      const ppCardSuffix = ppCard
-        ? ` · Tarjeta ${ppCard.marca} •••• ${String(ppCard.numero_tarjeta).replace(/\D/g, '').slice(-4)} (Saldo: ${formatMxn(ppCard.saldo)})`
-        : '';
-      methodDisplay = `PayPal Sandbox Oficial MX (${state.paypalEmail || 'bancochido@banco.com'})${ppCardSuffix}`;
+      methodDisplay = `PayPal Sandbox Oficial MX (${state.paypalEmail || 'bancochido@banco.com'}) ${plasticBadgeHtml}`;
     } else if (method === 'wallet') {
       methodDisplay = 'Billetera Digital (ExpressPay / SPEI)';
     } else if (method === 'msi') {
-      methodDisplay = `Meses Sin Intereses (${document.getElementById('payment-msi').value} MSI)`;
+      methodDisplay = `Meses Sin Intereses (${document.getElementById('payment-msi').value} MSI) ${plasticBadgeHtml}`;
     }
 
     const itemsSummaryHtml = state.cart
