@@ -163,9 +163,11 @@ function clearSessionState(reason = '', isError = true) {
 
   // Si el usuario estaba en una pestaña protegida, volver a Inicio
   const profileView = document.getElementById('view-profile');
+  const walletView = document.getElementById('view-wallet');
   const auditView = document.getElementById('view-audit');
   const adminView = document.getElementById('view-admin');
   if ((profileView && !profileView.classList.contains('hidden')) ||
+      (walletView && !walletView.classList.contains('hidden')) ||
       (auditView && !auditView.classList.contains('hidden')) ||
       (adminView && !adminView.classList.contains('hidden'))) {
     switchTab('view-home');
@@ -365,10 +367,10 @@ function switchTab(tabId, bypassPanelAuth = false) {
     }
   }
 
-  // Verificación de autenticación para Mi Cuenta y Privacidad
-  if (tabId === 'view-profile') {
+  // Verificación de autenticación para Mi Cuenta y Privacidad y Mi Cartera y PayPal
+  if (tabId === 'view-profile' || tabId === 'view-wallet') {
     if (!state.user || !state.token) {
-      showAlert('Debes iniciar sesión para acceder a tu cuenta y privacidad.', true);
+      showAlert('Debes iniciar sesión para acceder a tu cuenta y métodos de pago.', true);
       const authDialog = document.getElementById('auth-dialog');
       if (authDialog) authDialog.showModal();
       switchTab('view-home');
@@ -392,6 +394,7 @@ function switchTab(tabId, bypassPanelAuth = false) {
   if (tabId === 'view-favorites') renderFavoritesView();
   if (tabId === 'view-orders') loadOrders();
   if (tabId === 'view-profile') loadProfile();
+  if (tabId === 'view-wallet' && typeof loadUserWalletCards === 'function') loadUserWalletCards();
   if (tabId === 'view-admin') loadAdminReports();
   if (tabId === 'view-audit') loadAuditCenter();
 }

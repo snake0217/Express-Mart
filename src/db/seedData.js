@@ -313,21 +313,34 @@ function syncCatalogAndReviews(db) {
 
 function seedSimulatedCardsIfEmpty(db) {
   const countRow = db.prepare('SELECT COUNT(*) as total FROM tarjetas_simuladas').get();
-  if (countRow && countRow.total > 0) return;
+  if (countRow && countRow.total > 0) {
+    // Asegurar que las tarjetas existentes tengan usuario_id y color_plastico asignados
+    try {
+      db.prepare("UPDATE tarjetas_simuladas SET usuario_id = 3, color_plastico = '#1d4ed8' WHERE numero_tarjeta = '4111 1111 1111 4242' AND usuario_id IS NULL").run();
+      db.prepare("UPDATE tarjetas_simuladas SET usuario_id = 1, color_plastico = '#22c55e' WHERE numero_tarjeta = '5500 0000 0000 1234' AND usuario_id IS NULL").run();
+      db.prepare("UPDATE tarjetas_simuladas SET usuario_id = 2, color_plastico = '#0f172a' WHERE numero_tarjeta = '3782 8224 6310 005' AND usuario_id IS NULL").run();
+      db.prepare("UPDATE tarjetas_simuladas SET usuario_id = 3, color_plastico = '#e11d48' WHERE numero_tarjeta = '4000 1234 5678 9010' AND usuario_id IS NULL").run();
+    } catch (_) {}
+    return;
+  }
 
   const now = new Date().toISOString();
   const seedCards = [
     {
+      usuario_id: 3,
       numero_tarjeta: '4111 1111 1111 4242',
-      titular: 'CLIENTE EXPRESSMART',
+      titular: 'CRISTOPHER ERIK SAN JUAN',
       expiracion: '12/29',
       cvv: '123',
       saldo: 50000.00,
       saldo_inicial: 50000.00,
       marca: 'Visa',
-      tipo: 'credito'
+      tipo: 'credito',
+      color_plastico: '#1d4ed8',
+      vinculada_paypal: 1
     },
     {
+      usuario_id: 1,
       numero_tarjeta: '5500 0000 0000 1234',
       titular: 'DIEGO ALARCON PRUEBAS',
       expiracion: '08/28',
@@ -335,19 +348,25 @@ function seedSimulatedCardsIfEmpty(db) {
       saldo: 25000.00,
       saldo_inicial: 25000.00,
       marca: 'Mastercard',
-      tipo: 'debito'
+      tipo: 'debito',
+      color_plastico: '#22c55e',
+      vinculada_paypal: 1
     },
     {
+      usuario_id: 2,
       numero_tarjeta: '3782 8224 6310 005',
-      titular: 'EMPRESA EXPRESSMART S.A.',
+      titular: 'CARLOS ADAIR BAUTISTA',
       expiracion: '10/27',
       cvv: '789',
       saldo: 100000.00,
       saldo_inicial: 100000.00,
       marca: 'American Express',
-      tipo: 'corporativa'
+      tipo: 'corporativa',
+      color_plastico: '#0f172a',
+      vinculada_paypal: 1
     },
     {
+      usuario_id: 3,
       numero_tarjeta: '4000 1234 5678 9010',
       titular: 'TARJETA SALDO INSUFICIENTE',
       expiracion: '05/26',
@@ -355,18 +374,21 @@ function seedSimulatedCardsIfEmpty(db) {
       saldo: 50.00,
       saldo_inicial: 50.00,
       marca: 'Visa',
-      tipo: 'debito'
+      tipo: 'debito',
+      color_plastico: '#e11d48',
+      vinculada_paypal: 1
     }
   ];
 
   const insertCard = db.prepare(`
     INSERT INTO tarjetas_simuladas (
-      numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+      usuario_id, numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, color_plastico, vinculada_paypal, activa, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
   `);
 
   for (const c of seedCards) {
     insertCard.run(
+      c.usuario_id,
       c.numero_tarjeta,
       c.titular,
       c.expiracion,
@@ -375,6 +397,8 @@ function seedSimulatedCardsIfEmpty(db) {
       c.saldo_inicial,
       c.marca,
       c.tipo,
+      c.color_plastico,
+      c.vinculada_paypal,
       now,
       now
     );

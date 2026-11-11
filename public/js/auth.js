@@ -10,12 +10,14 @@ function updateSessionUI() {
   const auditTabBtn = document.querySelector('.tab-btn[data-tab="view-audit"]');
   const adminTabBtn = document.querySelector('.tab-btn[data-tab="view-admin"]');
   const profileTabBtn = document.querySelector('.tab-btn[data-tab="view-profile"]');
+  const walletTabBtn = document.querySelector('.tab-btn[data-tab="view-wallet"]');
 
   if (state.user && state.token) {
     const firstName = state.user.nombre.split(' ')[0];
     statusEl.textContent = `Hola, ${firstName}`;
     btnLogout.classList.remove('hidden');
     if (profileTabBtn) profileTabBtn.classList.remove('hidden');
+    if (walletTabBtn) walletTabBtn.classList.remove('hidden');
 
     if (state.user.fotoPerfil && headerAvatarImg) {
       headerAvatarImg.onerror = () => {
@@ -67,6 +69,7 @@ function updateSessionUI() {
     statusEl.textContent = 'Hola, Identifícate';
     btnLogout.classList.add('hidden');
     if (profileTabBtn) profileTabBtn.classList.add('hidden');
+    if (walletTabBtn) walletTabBtn.classList.add('hidden');
     if (headerAvatarImg) {
       headerAvatarImg.onerror = null;
       headerAvatarImg.removeAttribute('src');
@@ -96,6 +99,9 @@ function updateSessionUI() {
   }
   if (typeof renderMembershipProfile === 'function') {
     renderMembershipProfile();
+  }
+  if (state.user && state.token && typeof loadUserWalletCards === 'function') {
+    loadUserWalletCards();
   }
 }
 

@@ -235,6 +235,24 @@ function setProfileMapCoordinates(lat, lng, customAddressText) {
       opacity: 0.85
     }).addTo(profilePickerMap);
   }
+
+  if (customAddressText === undefined && typeof resolveStreetNameFromMapClick === 'function') {
+    resolveStreetNameFromMapClick(cleanLat, cleanLng).then((geo) => {
+      if (geo && geo.direccionCompleta) {
+        if (addrInput) {
+          addrInput.value = `${geo.direccionCompleta} [Lat: ${cleanLat}, Lng: ${cleanLng}]`;
+        }
+        if (coordsText) {
+          coordsText.textContent = `${cleanLat}, ${cleanLng} · 🛣️ ${geo.calle || ''}`;
+        }
+        if (profileDestMarker) {
+          profileDestMarker.setPopupContent(
+            `<strong>📍 ${escapeHtml(geo.calle || 'Domicilio de Entrega')}</strong><br><span style="font-size:11px;">${escapeHtml(geo.direccionCompleta)}</span><br><code>${cleanLat}, ${cleanLng}</code>`
+          ).openPopup();
+        }
+      }
+    });
+  }
 }
 
 function initProfileOsmPicker() {

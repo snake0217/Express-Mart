@@ -274,6 +274,11 @@
               <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
               Mi Cuenta y Privacidad
             </button>
+            <button type="button" class="tab-btn hidden px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-wallet" role="tab" aria-selected="false">
+              <span class="material-symbols-outlined text-[18px] text-amber-300">account_balance_wallet</span>
+              <span>Mi Cartera y PayPal</span>
+              <span id="nav-wallet-cards-count" class="hidden px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-[#ffc439] text-[#003087]">0/3</span>
+            </button>
             <button type="button" class="tab-btn hidden px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all" data-tab="view-admin" role="tab" aria-selected="false">
               <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
               <span id="admin-tab-text">Panel de Administrador</span>
@@ -1392,6 +1397,306 @@
     </section>
 
     <!-- ===============================================================
+         VISTA 3.5: MI CARTERA INTERACTIVA Y MÉTODOS DE PAGO PAYPAL POR USUARIO
+         =============================================================== -->
+    <section id="view-wallet" class="tab-view hidden max-w-[1440px] mx-auto px-margin pt-space-md" aria-labelledby="heading-wallet">
+      <div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg mb-space-lg border border-surface-container flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black tracking-tight text-[#003087] bg-[#ffc439] shadow-xs">
+              <span>Pay</span><span class="text-[#0079C1]">Pal</span>&nbsp;Wallet
+            </span>
+            <h2 id="heading-wallet" class="font-headline-md text-headline-md text-on-surface font-extrabold">
+              Mi Cartera Digital y Tarjetas Simuladas PayPal
+            </h2>
+            <span id="wallet-counter-badge" class="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-700 border border-emerald-400/30">
+              0 / 3 Tarjetas
+            </span>
+          </div>
+          <p class="font-body-sm text-body-sm text-secondary mt-1">
+            Tus tarjetas están vinculadas exclusivamente a tu usuario para pagos con <strong>PayPal Sandbox</strong> y compras en ExpressMart. Haz clic en <strong>"+ Add Card"</strong> para que la tarjeta salga de tu cartera y personaliza el color del plástico (máximo <strong>3 tarjetas</strong> por usuario).
+          </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" onclick="openEmergingCardCreator(true)" class="px-4 py-2.5 rounded-full bg-[#0070ba] hover:bg-[#005ea6] text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer">
+            <span class="material-symbols-outlined text-[18px]">add_card</span>
+            <span>Sacar Nueva Tarjeta de la Cartera</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="wallet-limit-warning" class="hidden mb-space-md p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-amber-600 text-[20px]">info</span>
+          <span>Has alcanzado el máximo permitido de <strong>3 tarjetas en tu cartera</strong>. Si deseas crear otra con diferente color o saldo, elimina primero una tarjeta con el ícono de papelera (🗑).</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+        <!-- COLUMNA IZQUIERDA (6 cols): CARTERA CON COSTURA Y ANIMACIÓN DE TARJETA SALIENDO -->
+        <div class="lg:col-span-6 bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white rounded-2xl shadow-xl p-6 border border-slate-800 relative overflow-hidden">
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <span class="text-[11px] uppercase tracking-wider font-extrabold text-amber-400 block">Cartera Personal del Usuario</span>
+              <h3 class="font-headline-sm text-lg font-extrabold text-white">Tus Plásticos en Cartera (Clic para deslizar)</h3>
+            </div>
+            <span class="text-xs text-slate-400 font-mono">Máx. 3 plásticos</span>
+          </div>
+
+          <!-- Escena de la Cartera con Costura (inspirada en la referencia visual) -->
+          <div class="stitched-wallet-scene">
+            <!-- Ranura superior donde se asoman hasta 3 tarjetas del usuario -->
+            <div id="wallet-cards-stack-slot" class="wallet-cards-stack-slot">
+              <!-- Inyectado dinámicamente por wallet-cards.js -->
+            </div>
+
+            <!-- Bolsillo frontal de cuero con costura punteada y botón "+ Add Card" -->
+            <div class="stitched-wallet-pocket">
+              <div class="stitched-wallet-inner-stitch">
+                <div class="text-center space-y-1">
+                  <span class="material-symbols-outlined text-slate-400 text-[28px]">account_balance_wallet</span>
+                  <p class="text-xs text-slate-400 font-medium">Billetera Cifrada ExpressMart · PayPal Sandbox</p>
+                </div>
+                <button
+                  type="button"
+                  id="btn-wallet-add-card"
+                  class="px-7 py-3.5 rounded-2xl bg-zinc-800/90 hover:bg-zinc-700 text-white font-headline-sm text-base font-bold border border-zinc-600 shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
+                >
+                  <span class="text-xl leading-none font-black">+</span>
+                  <span>Add Card</span>
+                </button>
+                <span class="text-[11px] text-zinc-500">Haz clic en "+ Add Card" para que emerja una tarjeta nueva</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ESCENARIO DE ANIMACIÓN: TARJETA EMERGIENDO DE LA CARTERA PARA EDITAR DATOS Y COLOR -->
+          <div id="wallet-emerging-stage" class="hidden mt-6 pt-6 border-t border-slate-800 space-y-5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                <span>Nueva Tarjeta Emergiendo de tu Cartera</span>
+              </span>
+              <button type="button" id="btn-wallet-cancel-emerging" class="text-xs text-slate-400 hover:text-white cursor-pointer flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">close</span>
+                <span>Guardar en cartera sin crear</span>
+              </button>
+            </div>
+
+            <!-- Plástico en vivo que sale de la cartera y cambia de color -->
+            <div id="wallet-emerging-plastic-card" class="wallet-emerging-plastic-card">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <span class="wallet-card-chip"></span>
+                  <span class="material-symbols-outlined text-[20px] opacity-80">contactless</span>
+                </div>
+                <div class="text-right">
+                  <span id="emerging-preview-brand" class="font-headline-md text-xl font-black tracking-wider italic uppercase">VISA</span>
+                  <span class="block text-[10px] uppercase tracking-widest opacity-80">PayPal Sandbox</span>
+                </div>
+              </div>
+
+              <div id="emerging-preview-number" class="mt-6 font-mono text-lg sm:text-xl font-extrabold tracking-[3px] drop-shadow">
+                4032 0377 9923 0187
+              </div>
+
+              <div class="mt-5 flex items-end justify-between gap-2">
+                <div>
+                  <span class="text-[9px] uppercase tracking-wider opacity-75 block">Titular de la Tarjeta</span>
+                  <span id="emerging-preview-holder" class="font-bold text-xs sm:text-sm tracking-wide uppercase">CLIENTE EXPRESSMART</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-[9px] uppercase tracking-wider opacity-75 block">Expira / CVC</span>
+                  <span class="font-mono text-xs font-bold"><span id="emerging-preview-exp">10/28</span> · <span id="emerging-preview-cvv">734</span></span>
+                </div>
+              </div>
+
+              <div class="mt-3 pt-2 border-t border-white/20 flex items-center justify-between text-[11px]">
+                <span>Saldo Inicial Autorizado:</span>
+                <strong id="emerging-preview-balance" class="text-sm font-extrabold">$15,000.00 MXN</strong>
+              </div>
+            </div>
+
+            <!-- Selector de Color del Plástico -->
+            <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-200 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[16px] text-amber-400">palette</span>
+                  <span>Cambiar Color del Plástico:</span>
+                </span>
+                <span id="wallet-selected-color-name" class="font-bold text-amber-300">Azul Rey PayPal</span>
+              </div>
+              <div id="wallet-color-swatches" class="flex flex-wrap items-center gap-3 pt-1">
+                <!-- Swatches inyectados por wallet-cards.js -->
+              </div>
+            </div>
+
+            <!-- Formulario para personalizar los datos de la tarjeta emergente -->
+            <form id="wallet-emerging-card-form" class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3 text-slate-100">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span class="text-xs font-bold text-slate-300">Datos de la Tarjeta Simulada (PayPal / ExpressMart)</span>
+                <button type="button" id="btn-wallet-randomize-card" class="px-2.5 py-1 rounded-lg bg-sky-600/30 hover:bg-sky-600 text-sky-200 hover:text-white text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">casino</span>
+                  <span>Auto-Generar Número Luhn</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="wallet-new-holder" class="text-[11px] font-bold text-slate-300 block mb-1">Nombre del Titular</label>
+                  <input type="text" id="wallet-new-holder" required class="w-full h-9 px-3 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white uppercase font-semibold" />
+                </div>
+                <div>
+                  <label for="wallet-new-number" class="text-[11px] font-bold text-slate-300 block mb-1">Card Number (16 dígitos)</label>
+                  <input type="text" id="wallet-new-number" required maxlength="19" class="w-full h-9 px-3 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div>
+                  <label for="wallet-new-brand" class="text-[11px] font-bold text-slate-300 block mb-1">Type (Marca)</label>
+                  <select id="wallet-new-brand" class="w-full h-9 px-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-bold">
+                    <option value="Visa">VISA</option>
+                    <option value="Mastercard">Mastercard</option>
+                    <option value="American Express">AMEX</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="wallet-new-type" class="text-[11px] font-bold text-slate-300 block mb-1">Modalidad</label>
+                  <select id="wallet-new-type" class="w-full h-9 px-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white">
+                    <option value="credito">Crédito</option>
+                    <option value="debito">Débito</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="wallet-new-expiry" class="text-[11px] font-bold text-slate-300 block mb-1">Expiry (MM/AA)</label>
+                  <input type="text" id="wallet-new-expiry" required maxlength="7" value="10/28" class="w-full h-9 px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+                </div>
+                <div>
+                  <label for="wallet-new-cvv" class="text-[11px] font-bold text-slate-300 block mb-1">CVC Code</label>
+                  <input type="text" id="wallet-new-cvv" required maxlength="4" value="734" class="w-full h-9 px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white font-mono" />
+                </div>
+              </div>
+
+              <div>
+                <label for="wallet-new-balance" class="text-[11px] font-bold text-slate-300 block mb-1">Saldo Disponible Inicial para Compras ($ MXN)</label>
+                <input type="number" id="wallet-new-balance" min="100" max="500000" step="100" value="15000" required class="w-full h-9 px-3 rounded-lg bg-slate-950 border border-slate-700 text-xs text-emerald-400 font-extrabold font-mono" />
+              </div>
+
+              <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#0070ba] to-[#003087] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider shadow-lg cursor-pointer flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">save</span>
+                <span>Guardar Tarjeta en Mi Cartera y Vincular a PayPal</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA (6 cols): PANEL PAYPAL "MANAGE CREDIT CARDS" (COMO EN LA IMAGEN DE PAYPAL) -->
+        <div class="lg:col-span-6 space-y-6">
+          <div class="bg-surface-container-lowest rounded-2xl shadow-sm p-6 border border-surface-container space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-surface-container">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-black tracking-tight text-[#003087] bg-blue-50 border border-[#003087]/20">
+                    <span class="text-[#003087]">Pay</span><span class="text-[#0079C1]">Pal</span>
+                  </span>
+                  <h3 class="font-headline-sm text-lg font-extrabold text-on-surface">Manage credit cards</h3>
+                </div>
+                <p class="text-xs text-secondary mt-1">
+                  Tarjetas de crédito simuladas asignadas únicamente a tu cuenta activa.
+                </p>
+              </div>
+              <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-[#003087] font-mono text-xs font-bold">Sandbox MXN</span>
+            </div>
+
+            <div>
+              <h4 class="text-sm font-bold text-secondary mb-3">Credit cards:</h4>
+              <div id="paypal-manage-cards-list" class="space-y-4">
+                <!-- Inyectado dinámicamente por wallet-cards.js con formato exacto Type / Card Number / Expiry / CVC Code -->
+              </div>
+            </div>
+
+            <!-- Botón "Generate New Card" idéntico a la captura de PayPal -->
+            <div class="pt-3 flex flex-col items-center justify-center gap-2">
+              <button
+                type="button"
+                id="btn-paypal-generate-new-card"
+                class="w-full sm:w-auto min-w-[260px] py-3 px-8 rounded-full border-2 border-[#0070ba] text-[#0070ba] hover:bg-[#0070ba] hover:text-white font-headline-sm text-sm font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Generate New Card
+              </button>
+              <span class="text-[11px] text-secondary">Máximo 3 tarjetas simuladas por usuario · Saldo deducible en Checkout</span>
+            </div>
+          </div>
+
+          <!-- SECCIÓN EXCLUSIVA PARA ADMINISTRADOR: ASIGNAR TARJETAS A CUALQUIER USUARIO -->
+          <div id="wallet-admin-assign-section" class="hidden bg-surface-container-lowest rounded-2xl shadow-sm p-6 border-2 border-primary/30 space-y-4">
+            <div class="flex items-center justify-between pb-2 border-b border-surface-container">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">admin_panel_settings</span>
+                <div>
+                  <h3 class="font-headline-sm text-base font-extrabold text-on-surface">Panel Admin: Asignar Tarjetas por Usuario</h3>
+                  <p class="text-xs text-secondary">Crea y asigna tarjetas simuladas a usuarios específicos para que no compartan la misma tarjeta (máx. 3 por usuario).</p>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed text-[10px] font-extrabold uppercase">Solo Admin</span>
+            </div>
+
+            <form id="admin-assign-card-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="sm:col-span-2">
+                <label for="admin-card-assign-user" class="font-bold text-on-surface block mb-1">Seleccionar Usuario Destinatario *</label>
+                <select id="admin-card-assign-user" class="w-full h-9 px-3 rounded-lg bg-surface-container-low border border-surface-dim font-semibold"></select>
+              </div>
+              <div>
+                <label for="admin-card-holder" class="font-bold text-on-surface block mb-1">Nombre del Titular</label>
+                <input type="text" id="admin-card-holder" placeholder="CLIENTE VERIFICADO" required class="w-full h-9 px-3 rounded-lg bg-surface-container-low border border-surface-dim uppercase" />
+              </div>
+              <div>
+                <label for="admin-card-number" class="font-bold text-on-surface block mb-1">Número de Tarjeta (16 dígitos)</label>
+                <input type="text" id="admin-card-number" value="4032037799230187" maxlength="19" required class="w-full h-9 px-3 rounded-lg bg-surface-container-low border border-surface-dim font-mono" />
+              </div>
+              <div>
+                <label for="admin-card-balance" class="font-bold text-on-surface block mb-1">Saldo Asignado ($ MXN)</label>
+                <input type="number" id="admin-card-balance" value="25000" min="0" step="500" required class="w-full h-9 px-3 rounded-lg bg-surface-container-low border border-surface-dim font-mono font-bold text-emerald-700" />
+              </div>
+              <div>
+                <label for="admin-card-color" class="font-bold text-on-surface block mb-1">Color del Plástico</label>
+                <select id="admin-card-color" class="w-full h-9 px-3 rounded-lg bg-surface-container-low border border-surface-dim font-semibold">
+                  <option value="#1d4ed8">Azul Rey PayPal (#1d4ed8)</option>
+                  <option value="#22c55e">Verde Esmeralda (#22c55e)</option>
+                  <option value="#0f172a">Negro Obsidiana (#0f172a)</option>
+                  <option value="#d97706">Dorado VIP (#d97706)</option>
+                  <option value="#7c3aed">Morado Neón (#7c3aed)</option>
+                  <option value="#e11d48">Rojo Carmesí (#e11d48)</option>
+                </select>
+              </div>
+              <div class="sm:col-span-2 pt-1">
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-bold cursor-pointer">
+                  + Crear y Asignar Tarjeta al Usuario Seleccionado
+                </button>
+              </div>
+            </form>
+
+            <div class="overflow-x-auto pt-2">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-surface-dim text-[11px] text-secondary uppercase">
+                    <th class="py-1.5 px-2">ID</th>
+                    <th class="py-1.5 px-2">Tarjeta</th>
+                    <th class="py-1.5 px-2">Titular</th>
+                    <th class="py-1.5 px-2">Saldo</th>
+                    <th class="py-1.5 px-2">Usuario Asignado</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-simulated-cards-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================================================
          VISTA 4: PANEL DE VENDEDOR Y ADMINISTRADOR
          =============================================================== -->
     <section id="view-admin" class="tab-view hidden max-w-[1440px] mx-auto px-margin pt-space-md" aria-labelledby="heading-admin">
@@ -1901,6 +2206,30 @@
                   <span class="material-symbols-outlined text-[18px]">visibility</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          <!-- Selector de Tarjeta de Crédito Simulada vinculada a PayPal (Manage credit cards) -->
+          <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-[#0070ba]/30 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-slate-100 dark:border-slate-800">
+              <label for="paypal-sim-card-selector" class="text-xs font-extrabold text-[#003087] dark:text-sky-300 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[16px]">credit_card</span>
+                <span>Manage credit cards · Credit cards vinculadas a tu usuario:</span>
+              </label>
+              <button
+                type="button"
+                id="btn-checkout-open-wallet-tab"
+                class="text-[11px] font-bold text-[#0070ba] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span class="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+                <span>+ Agregar / Editar en Mi Cartera (Máx. 3)</span>
+              </button>
+            </div>
+            <select id="paypal-sim-card-selector" class="w-full h-9 px-2.5 rounded-lg bg-surface-container-low border border-surface-dim text-xs font-semibold">
+              <option value="">-- Seleccionar tarjeta simulada de mi cartera PayPal --</option>
+            </select>
+            <!-- Vista previa estilo PayPal Sandbox (Type, Card Number, Expiry, CVC Code) -->
+            <div id="paypal-sim-card-preview" class="hidden p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
             </div>
           </div>
 
@@ -2521,6 +2850,7 @@
   <script src="/js/profile.js"></script>
   <script src="/js/orders-logistics.js"></script>
   <script src="/js/admin-audit.js"></script>
+  <script src="/js/wallet-cards.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

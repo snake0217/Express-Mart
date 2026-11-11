@@ -438,6 +438,119 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
     expect(
       (await request(app).post(`/api/logistics/shipments/${pid}/deliver`).set('Authorization', `Bearer ${adminToken}`)).status
     ).toBe(200);
+
+    // Cálculo de nombre de calle al hacer clic en el mapa (Reverse Geocoding)
+    const geoRes = await request(app).get('/api/logistics/reverse-geocode?lat=19.3907&lng=-99.1636');
+    expect(geoRes.status).toBe(200);
+    expect(geoRes.body.calle).toBeDefined();
+    expect(geoRes.body.direccionCompleta).toContain('C.P.');
+    expect(geoRes.body.almacenAsignado).toBeDefined();
+
+    // Tarjetas simuladas por usuario (?mine=1), color de plástico, límite de 3 tarjetas y pago con PayPal
+    const { createSession } = require('../src/middleware/security');
+    const clientRow = db.prepare('SELECT id, email, rol, nombre FROM usuarios WHERE id = 3').get();
+    const clientToken = createSession(db, { usuarioId: clientRow.id, rol: clientRow.rol, mfaVerificado: true }).tokenId;
+    const clientId = clientRow.id;
+
+    db.prepare("DELETE FROM tarjetas_simuladas WHERE usuario_id = 3 AND numero_tarjeta LIKE '403203779923999%'").run();
+
+    const myCardsRes = await request(app)
+      .get('/api/payments/simulated-cards?mine=1')
+      .set('Authorization', `Bearer ${clientToken}`);
+    expect(myCardsRes.status).toBe(200);
+    expect(myCardsRes.body.length).toBe(2); // Semilla tiene 2 tarjetas para usuario_id = 3
+    expect(myCardsRes.body.every((c) => Number(c.usuario_id) === Number(clientId))).toBe(true);
+
+    // Crear 3ra tarjeta para cliente (debe permitir con color de plástico personalizado)
+    const createCard3 = await request(app)
+      .post('/api/payments/simulated-cards')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        numeroTarjeta: '4032037799239991',
+        titular: 'SOFIA CLIENTE PAYPAL',
+        expiracion: '10/28',
+        cvv: '734',
+        tipo: 'credito',
+        marca: 'Visa',
+        saldo: 12000,
+        colorPlastico: '#7c3aed',
+        vinculadaPaypal: true
+      });
+    expect(createCard3.status).toBe(201);
+    expect(createCard3.body.colorPlastico).toBe('#7c3aed');
+    expect(Number(createCard3.body.usuarioId)).toBe(Number(clientId));
+    const createdCardId = createCard3.body.cardId;
+
+    // Intentar crear 4ta tarjeta para el mismo usuario -> debe rechazar con HTTP 400 (máx. 3 tarjetas)
+    const createCard4 = await request(app)
+      .post('/api/payments/simulated-cards')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        numeroTarjeta: '4032037799238884',
+        titular: 'SOFIA CLIENTE EXTRA',
+        expiracion: '11/29',
+        cvv: '555',
+        saldo: 5000,
+        colorPlastico: '#e11d48'
+      });
+    expect(createCard4.status).toBe(400);
+    expect(createCard4.body.error).toContain('3 tarjetas');
+
+    // Pagar con PayPal usando tarjeta con saldo insuficiente (12,000 < 15,078.84) -> debe rechazar con HTTP 400
+    const insufficientPaypal = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        items: [{ productoId: 4, cantidad: 1 }],
+        direccionEnvio: geoRes.body.direccionCompleta,
+        latDestino: 19.3907,
+        lngDestino: -99.1636,
+        metodoPago: 'paypal',
+        simulatedCardId: createdCardId,
+        cardHolder: 'SOFIA CLIENTE PAYPAL',
+        cardNumber: '4032037799239991',
+        expiry: '10/28',
+        pasosCheckout: 3
+      });
+    expect(insufficientPaypal.status).toBe(400);
+    expect(insufficientPaypal.body.error).toContain('Saldo insuficiente');
+
+    // Pagar con PayPal usando la tarjeta simulada recién creada con saldo suficiente (productoId: 2 = $2,499) y verificar descuento de saldo
+    const checkoutPaypalCard = await request(app)
+      .post('/api/checkout')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({
+        items: [{ productoId: 2, cantidad: 1 }],
+        direccionEnvio: geoRes.body.direccionCompleta,
+        latDestino: 19.3907,
+        lngDestino: -99.1636,
+        metodoPago: 'paypal',
+        simulatedCardId: createdCardId,
+        cardHolder: 'SOFIA CLIENTE PAYPAL',
+        cardNumber: '4032037799239991',
+        expiry: '10/28',
+        pasosCheckout: 3
+      });
+    expect(checkoutPaypalCard.status).toBe(201);
+    expect(checkoutPaypalCard.body.order.pago.metodoPago).toBe('paypal');
+    expect(checkoutPaypalCard.body.order.pago.tarjetaSimulada).toBeDefined();
+    expect(checkoutPaypalCard.body.order.pago.tarjetaSimulada.saldoNuevo).toBeLessThan(12000);
+
+    // Reasignar color y usuario desde administrador
+    const assignRes = await request(app)
+      .put(`/api/payments/simulated-cards/${createdCardId}/assign`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ usuarioId: clientId, colorPlastico: '#22c55e' });
+    expect(assignRes.status).toBe(200);
+    expect(assignRes.body.colorPlastico).toBe('#22c55e');
+
+    // Eliminar la 3ra tarjeta desde la cartera del usuario
+    const delCard = await request(app)
+      .delete(`/api/payments/simulated-cards/${createdCardId}`)
+      .set('Authorization', `Bearer ${clientToken}`);
+    expect(delCard.status).toBe(200);
   });
 });
+
+
 

@@ -331,13 +331,19 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(customerMapInstance);
 
-    // Permitir al comprador hacer clic en el mapa para actualizar las coordenadas de destino
+    // Permitir al comprador hacer clic en el mapa para actualizar las coordenadas y calcular el nombre de la calle
     customerMapInstance.on('click', async (ev) => {
       if (!currentCustomerTrackedOrderId) return;
       const clickedLat = Number(ev.latlng.lat.toFixed(5));
       const clickedLng = Number(ev.latlng.lng.toFixed(5));
-      const currentDestTxt = destinoEl ? destinoEl.textContent.replace(/\s*\[Lat:.*?\]/g, '').trim() : 'Domicilio seleccionado en mapa';
-      const newAddressWithCoords = `${currentDestTxt} [Lat: ${clickedLat}, Lng: ${clickedLng}]`;
+      let streetAddress = destinoEl ? destinoEl.textContent.replace(/\s*\[Lat:.*?\]/g, '').trim() : 'Domicilio seleccionado en mapa';
+      if (typeof resolveStreetNameFromMapClick === 'function') {
+        const geo = await resolveStreetNameFromMapClick(clickedLat, clickedLng);
+        if (geo && geo.direccionCompleta) {
+          streetAddress = geo.direccionCompleta;
+        }
+      }
+      const newAddressWithCoords = `${streetAddress} [Lat: ${clickedLat}, Lng: ${clickedLng}]`;
       try {
         await apiFetch(`/api/logistics/shipments/${currentCustomerTrackedOrderId}/destination`, {
           method: 'PUT',
@@ -348,8 +354,8 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
           })
         });
         showToast({
-          title: '📍 Destino actualizado en el mapa',
-          message: `Coordenadas guardadas: ${clickedLat}, ${clickedLng}`,
+          title: '📍 Destino y calle actualizados en el mapa',
+          message: `${streetAddress} (${clickedLat}, ${clickedLng})`,
           imageUrl: '/assets/logo.png'
         });
         initialFitDone = false;

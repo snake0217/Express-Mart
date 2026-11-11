@@ -73,6 +73,7 @@ def ensure_simulated_cards_table(con):
         con.execute("""
             CREATE TABLE IF NOT EXISTS tarjetas_simuladas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER DEFAULT NULL,
                 numero_tarjeta TEXT UNIQUE NOT NULL,
                 titular TEXT NOT NULL,
                 expiracion TEXT NOT NULL,
@@ -81,24 +82,36 @@ def ensure_simulated_cards_table(con):
                 saldo_inicial REAL NOT NULL DEFAULT 0,
                 marca TEXT NOT NULL DEFAULT 'Visa',
                 tipo TEXT NOT NULL DEFAULT 'credito',
+                color_plastico TEXT NOT NULL DEFAULT '#1d4ed8',
+                vinculada_paypal INTEGER NOT NULL DEFAULT 1,
                 activa INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
         """)
+        for col_sql in (
+            "ALTER TABLE tarjetas_simuladas ADD COLUMN usuario_id INTEGER DEFAULT NULL",
+            "ALTER TABLE tarjetas_simuladas ADD COLUMN color_plastico TEXT NOT NULL DEFAULT '#1d4ed8'",
+            "ALTER TABLE tarjetas_simuladas ADD COLUMN vinculada_paypal INTEGER NOT NULL DEFAULT 1"
+        ):
+            try:
+                con.execute(col_sql)
+            except Exception:
+                pass
         count = con.execute("SELECT COUNT(*) FROM tarjetas_simuladas").fetchone()[0]
         if count == 0:
             now_iso = datetime.utcnow().isoformat() + "Z"
             seeds = [
-                ('4111 1111 1111 4242', 'CLIENTE EXPRESSMART', '12/29', '123', 50000.0, 50000.0, 'Visa', 'credito', 1, now_iso, now_iso),
-                ('5500 0000 0000 1234', 'DIEGO ALARCON PRUEBAS', '08/28', '456', 25000.0, 25000.0, 'Mastercard', 'debito', 1, now_iso, now_iso),
-                ('3782 8224 6310 005', 'EMPRESA EXPRESSMART S.A.', '10/27', '789', 100000.0, 100000.0, 'American Express', 'corporativa', 1, now_iso, now_iso),
-                ('4000 1234 5678 9010', 'TARJETA SALDO INSUFICIENTE', '05/26', '999', 50.0, 50.0, 'Visa', 'debito', 1, now_iso, now_iso)
+                (3, '4111 1111 1111 4242', 'CRISTOPHER ERIK SAN JUAN', '12/29', '123', 50000.0, 50000.0, 'Visa', 'credito', '#1d4ed8', 1, 1, now_iso, now_iso),
+                (1, '5500 0000 0000 1234', 'DIEGO ALARCON PRUEBAS', '08/28', '456', 25000.0, 25000.0, 'Mastercard', 'debito', '#22c55e', 1, 1, now_iso, now_iso),
+                (2, '3782 8224 6310 005', 'CARLOS ADAIR BAUTISTA', '10/27', '789', 100000.0, 100000.0, 'American Express', 'corporativa', '#0f172a', 1, 1, now_iso, now_iso),
+                (3, '4000 1234 5678 9010', 'TARJETA SALDO INSUFICIENTE', '05/26', '999', 50.0, 50.0, 'Visa', 'debito', '#e11d48', 1, 1, now_iso, now_iso)
             ]
             con.executemany("""
                 INSERT INTO tarjetas_simuladas (
-                    numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    usuario_id, numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial,
+                    marca, tipo, color_plastico, vinculada_paypal, activa, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, seeds)
             con.commit()
     except Exception:

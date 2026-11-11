@@ -198,6 +198,44 @@ let checkoutPickerMap = null;
 let checkoutDestMarker = null;
 let checkoutPreviewLine = null;
 
+async function resolveStreetNameFromMapClick(lat, lng) {
+  const cleanLat = Number(Number(lat).toFixed(5));
+  const cleanLng = Number(Number(lng).toFixed(5));
+  try {
+    const data = await apiFetch(`/api/logistics/reverse-geocode?lat=${cleanLat}&lng=${cleanLng}`);
+    // Intentar enriquecer con OpenStreetMap Nominatim si hay conexión externa rápida
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 1400);
+      const nomRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${cleanLat}&lon=${cleanLng}&accept-language=es`,
+        { signal: ctrl.signal }
+      );
+      clearTimeout(timer);
+      if (nomRes.ok) {
+        const nom = await nomRes.json();
+        if (nom && nom.address && (nom.address.road || nom.address.pedestrian || nom.address.suburb)) {
+          const road = nom.address.road || nom.address.pedestrian || data.calle;
+          const num = nom.address.house_number || data.numero;
+          const suburb = nom.address.suburb || nom.address.neighbourhood || data.colonia;
+          const postcode = nom.address.postcode || data.cp;
+          const city = nom.address.city || nom.address.town || nom.address.state || data.ciudad;
+          return {
+            ...data,
+            calle: `${road} ${num}`.trim(),
+            direccionCompleta: `${road} ${num}, Col. ${suburb}, C.P. ${postcode}, ${city}`
+          };
+        }
+      }
+    } catch (_) {
+      // Fallback determinístico instantáneo del backend
+    }
+    return data;
+  } catch (_) {
+    return null;
+  }
+}
+
 function setCheckoutMapCoordinates(lat, lng, customAddressText) {
   const cleanLat = Number(Number(lat).toFixed(5));
   const cleanLng = Number(Number(lng).toFixed(5));
@@ -220,7 +258,7 @@ function setCheckoutMapCoordinates(lat, lng, customAddressText) {
     whAddrInfo.innerHTML = `🏭 Dirección del Almacén de Salida: <strong class="text-on-surface">${escapeHtml(nearestWh.nombre)} — ${escapeHtml(nearestWh.direccion)}</strong>`;
   }
 
-  if (addrInput) {
+  if (addrInput && customAddressText !== false) {
     const baseAddr = customAddressText
       ? customAddressText
       : (addrInput.value.replace(/\s*\[Lat:.*?\]/g, '').trim() || `Av. Insurgentes Sur 1602, Col. Crédito Constructor, CDMX`);
@@ -251,6 +289,25 @@ function setCheckoutMapCoordinates(lat, lng, customAddressText) {
       dashArray: '8, 6',
       opacity: 0.85
     }).addTo(checkoutPickerMap);
+  }
+
+  // Si se hizo clic en el mapa sin dirección predefinida, calcular el nombre de la calle automáticamente
+  if (customAddressText === undefined) {
+    resolveStreetNameFromMapClick(cleanLat, cleanLng).then((geo) => {
+      if (geo && geo.direccionCompleta) {
+        if (addrInput) {
+          addrInput.value = `${geo.direccionCompleta} [Lat: ${cleanLat}, Lng: ${cleanLng}]`;
+        }
+        if (coordsDisp) {
+          coordsDisp.textContent = `${cleanLat}, ${cleanLng} · 🛣️ ${geo.calle || ''}`;
+        }
+        if (checkoutDestMarker) {
+          checkoutDestMarker.setPopupContent(
+            `<strong>📍 ${escapeHtml(geo.calle || 'Punto de Entrega')}</strong><br><span style="font-size:11px;">${escapeHtml(geo.direccionCompleta)}</span><br><code>${cleanLat}, ${cleanLng}</code>`
+          ).openPopup();
+        }
+      }
+    });
   }
 }
 
@@ -290,7 +347,7 @@ function initCheckoutOsmPicker() {
     });
   }
 
-  setCheckoutMapCoordinates(initLat, initLng);
+  setCheckoutMapCoordinates(initLat, initLng, false);
   setTimeout(() => {
     if (checkoutPickerMap) {
       checkoutPickerMap.invalidateSize();
@@ -425,30 +482,83 @@ function initCartCheckoutEvents() {
     });
   }
 
-  // Carga y sincronización de tarjetas simuladas con saldo para compras
+  // Carga y sincronización de tarjetas simuladas asignadas al usuario (?mine=1)
   let loadedSimulatedCards = [];
+
+  function renderPaypalCheckoutCardPreview(card) {
+    const previewBox = document.getElementById('paypal-sim-card-preview');
+    if (!previewBox) return;
+    if (!card) {
+      previewBox.classList.add('hidden');
+      previewBox.innerHTML = '';
+      return;
+    }
+    const cleanNum = String(card.numero_tarjeta || '').replace(/\s+/g, '');
+    const expDisplay = card.expiracion && card.expiracion.length === 5
+      ? `${card.expiracion.slice(0, 2)}/20${card.expiracion.slice(3, 5)}`
+      : (card.expiracion || '10/2028');
+    previewBox.classList.remove('hidden');
+    previewBox.innerHTML = `
+      <div class="grid grid-cols-[105px_1fr] items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-1">
+        <span class="font-bold text-slate-900 dark:text-slate-100">Type</span>
+        <span class="font-extrabold uppercase text-[#003087] dark:text-sky-300 flex items-center gap-2">
+          <span>${escapeHtml(card.marca || 'VISA')}</span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-bold">Saldo: ${formatMxn(card.saldo || 0)}</span>
+        </span>
+      </div>
+      <div class="grid grid-cols-[105px_1fr] items-center gap-1.5">
+        <span class="font-bold text-slate-900 dark:text-slate-100">Card Number</span>
+        <span class="font-mono font-bold text-slate-800 dark:text-slate-200">${escapeHtml(cleanNum)}</span>
+      </div>
+      <div class="grid grid-cols-[105px_1fr] items-center gap-1.5">
+        <span class="font-bold text-slate-900 dark:text-slate-100">Expiry</span>
+        <span class="font-mono text-slate-700 dark:text-slate-300">${escapeHtml(expDisplay)}</span>
+      </div>
+      <div class="grid grid-cols-[105px_1fr] items-center gap-1.5">
+        <span class="font-bold text-slate-900 dark:text-slate-100">CVC Code</span>
+        <span class="text-slate-700 dark:text-slate-300">Any 3 digits <span class="font-mono">(${escapeHtml(card.cvv || '123')})</span></span>
+      </div>
+    `;
+  }
+
   async function loadSimulatedCardsForCheckout() {
     const selector = document.getElementById('simulated-card-selector');
-    if (!selector) return;
+    const paypalSelector = document.getElementById('paypal-sim-card-selector');
+    if (!selector && !paypalSelector) return;
     try {
-      const cards = await apiFetch('/api/payments/simulated-cards');
+      const cards = await apiFetch('/api/payments/simulated-cards?mine=1');
       if (Array.isArray(cards)) {
         loadedSimulatedCards = cards;
-        selector.innerHTML = '<option value="">-- Seleccionar tarjeta con saldo para simular compra --</option>' +
-          cards.map(c => `
-            <option value="${c.id}">
-              ${c.marca} · terminación ${c.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)} · Saldo: $${Number(c.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN (${c.titular})
-            </option>
-          `).join('');
+        const optionsHtml = cards.map((c) => `
+          <option value="${c.id}">
+            ${c.marca} · •••• ${c.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)} · Saldo: $${Number(c.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN (${c.titular})
+          </option>
+        `).join('');
+
+        if (selector) {
+          selector.innerHTML = '<option value="">-- Seleccionar tarjeta de mi cartera con saldo --</option>' + optionsHtml;
+        }
+        if (paypalSelector) {
+          paypalSelector.innerHTML = '<option value="">-- Seleccionar tarjeta simulada de mi cartera PayPal --</option>' + optionsHtml;
+          const preferredId = state.preferredPaypalCardId || (cards[0] && cards[0].id);
+          if (preferredId) {
+            paypalSelector.value = String(preferredId);
+            const picked = cards.find((c) => Number(c.id) === Number(preferredId));
+            renderPaypalCheckoutCardPreview(picked || null);
+          } else {
+            renderPaypalCheckoutCardPreview(null);
+          }
+        }
       }
     } catch (_) {}
   }
+  window.loadSimulatedCardsForCheckout = loadSimulatedCardsForCheckout;
 
   const simCardSelector = document.getElementById('simulated-card-selector');
   if (simCardSelector) {
     simCardSelector.addEventListener('change', (e) => {
       const cardId = Number(e.target.value);
-      const card = loadedSimulatedCards.find(c => c.id === cardId);
+      const card = loadedSimulatedCards.find((c) => c.id === cardId);
       const infoBox = document.getElementById('simulated-card-balance-info');
       const holderText = document.getElementById('simulated-card-holder-text');
       const amountText = document.getElementById('simulated-card-amount-text');
@@ -462,9 +572,31 @@ function initCartCheckoutEvents() {
           amountText.textContent = `Saldo Disponible: $${Number(card.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`;
           infoBox.classList.remove('hidden');
         }
-      } else {
-        if (infoBox) infoBox.classList.add('hidden');
+      } else if (infoBox) {
+        infoBox.classList.add('hidden');
       }
+    });
+  }
+
+  const paypalSimSelector = document.getElementById('paypal-sim-card-selector');
+  if (paypalSimSelector) {
+    paypalSimSelector.addEventListener('change', (e) => {
+      const cardId = Number(e.target.value);
+      const card = loadedSimulatedCards.find((c) => c.id === cardId) || null;
+      renderPaypalCheckoutCardPreview(card);
+    });
+  }
+
+  const btnCheckoutOpenWallet = document.getElementById('btn-checkout-open-wallet-tab');
+  if (btnCheckoutOpenWallet) {
+    btnCheckoutOpenWallet.addEventListener('click', () => {
+      cartDialog.close();
+      switchTab('view-wallet');
+      setTimeout(() => {
+        if (typeof openEmergingCardCreator === 'function') {
+          openEmergingCardCreator(true);
+        }
+      }, 200);
     });
   }
 
@@ -506,7 +638,12 @@ function initCartCheckoutEvents() {
 
     let methodDisplay = 'Tarjeta de Crédito / Débito';
     if (method === 'paypal') {
-      methodDisplay = `PayPal Sandbox Oficial MX (${state.paypalEmail || 'bancochido@banco.com'})`;
+      const ppCardId = Number(document.getElementById('paypal-sim-card-selector')?.value || 0);
+      const ppCard = loadedSimulatedCards.find((c) => c.id === ppCardId);
+      const ppCardSuffix = ppCard
+        ? ` · Tarjeta ${ppCard.marca} •••• ${String(ppCard.numero_tarjeta).replace(/\D/g, '').slice(-4)} (Saldo: ${formatMxn(ppCard.saldo)})`
+        : '';
+      methodDisplay = `PayPal Sandbox Oficial MX (${state.paypalEmail || 'bancochido@banco.com'})${ppCardSuffix}`;
     } else if (method === 'wallet') {
       methodDisplay = 'Billetera Digital (ExpressPay / SPEI)';
     } else if (method === 'msi') {
@@ -587,6 +724,11 @@ function initCartCheckoutEvents() {
       btnConfirm.textContent = 'Procesando pago seguro...';
 
       const isPaypal = document.getElementById('payment-method').value === 'paypal';
+      const selectedPaypalCardId = Number(document.getElementById('paypal-sim-card-selector')?.value || 0);
+      const selectedDirectCardId = Number(document.getElementById('simulated-card-selector')?.value || 0);
+      const chosenSimCardId = isPaypal ? selectedPaypalCardId : selectedDirectCardId;
+      const chosenSimCard = loadedSimulatedCards.find((c) => c.id === chosenSimCardId) || null;
+
       const latVal = document.getElementById('checkout-lat')?.value || state.checkoutCoords?.lat || state.user?.latitud || null;
       const lngVal = document.getElementById('checkout-lng')?.value || state.checkoutCoords?.lng || state.user?.longitud || null;
       const res = await apiFetch('/api/checkout', {
@@ -599,9 +741,16 @@ function initCartCheckoutEvents() {
           lngDestino: lngVal ? Number(lngVal) : null,
           metodoPago: document.getElementById('payment-method').value,
           mesesSinIntereses: Number(document.getElementById('payment-msi').value || 1),
-          cardHolder: isPaypal ? 'CLIENTE PAYPAL SANDBOX' : document.getElementById('card-holder').value,
-          cardNumber: isPaypal ? '4111111111114242' : document.getElementById('card-number').value,
-          expiry: isPaypal ? '12/29' : document.getElementById('card-expiry').value,
+          simulatedCardId: chosenSimCard ? chosenSimCard.id : undefined,
+          cardHolder: isPaypal
+            ? (chosenSimCard ? chosenSimCard.titular : 'CLIENTE PAYPAL SANDBOX')
+            : document.getElementById('card-holder').value,
+          cardNumber: isPaypal
+            ? (chosenSimCard ? chosenSimCard.numero_tarjeta : '4111111111114242')
+            : document.getElementById('card-number').value,
+          expiry: isPaypal
+            ? (chosenSimCard ? chosenSimCard.expiracion : '12/29')
+            : document.getElementById('card-expiry').value,
           pasosCheckout: 3
         })
       });
@@ -610,6 +759,9 @@ function initCartCheckoutEvents() {
       state.coupon = '';
       saveCart();
       loadCatalog();
+      if (typeof loadUserWalletCards === 'function') {
+        loadUserWalletCards();
+      }
 
       const pagoDesc = res.order?.pago?.metodoPago === 'paypal'
         ? `PayPal Sandbox (${res.order.pago?.tarjetaEnmascarada || 'bancochido@banco.com'})`
@@ -670,6 +822,7 @@ function initCartCheckoutEvents() {
 
 window.EXPRESSMART_WAREHOUSES = EXPRESSMART_WAREHOUSES;
 window.findNearestCedisWarehouse = findNearestCedisWarehouse;
+window.resolveStreetNameFromMapClick = resolveStreetNameFromMapClick;
 window.setCheckoutStep = setCheckoutStep;
 window.refreshCartModal = refreshCartModal;
 window.initCartCheckoutEvents = initCartCheckoutEvents;

@@ -221,22 +221,27 @@ function registerCheckoutRoutes(app) {
         total: totals.total
       });
 
-      // Validación de saldo sobre tarjetas simuladas registradas (Sandbox / Pruebas de Compra)
+      // Validación de saldo sobre tarjetas simuladas registradas (Sandbox / Pruebas de Compra / PayPal)
       let matchedSimCard = null;
-      if (['tarjeta', 'msi'].includes(metodoPago)) {
+      const explicitSimCardId = Number(req.body?.simulatedCardId || 0);
+      if (explicitSimCardId > 0) {
+        matchedSimCard = db.prepare('SELECT * FROM tarjetas_simuladas WHERE id = ? AND activa = 1').get(explicitSimCardId);
+      } else if (['tarjeta', 'msi', 'paypal', 'wallet'].includes(metodoPago) && cardNumber) {
         const cleanCardNum = String(cardNumber || '').replace(/[\s-]/g, '');
-        matchedSimCard = db.prepare(`
-          SELECT * FROM tarjetas_simuladas 
-          WHERE REPLACE(REPLACE(numero_tarjeta, ' ', ''), '-', '') = ? AND activa = 1
-        `).get(cleanCardNum);
+        if (metodoPago !== 'paypal' || (req.body?.cardNumber && cleanCardNum !== '4111111111114242')) {
+          matchedSimCard = db.prepare(`
+            SELECT * FROM tarjetas_simuladas 
+            WHERE REPLACE(REPLACE(numero_tarjeta, ' ', ''), '-', '') = ? AND activa = 1
+          `).get(cleanCardNum);
+        }
+      }
 
-        if (matchedSimCard) {
-          if (Number(matchedSimCard.saldo) < totals.total) {
-            db.exec('ROLLBACK;');
-            return res.status(400).json({
-              error: `Saldo insuficiente en la tarjeta ${matchedSimCard.marca} (terminación ${matchedSimCard.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)}). Saldo disponible: $${Number(matchedSimCard.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN. Total requerido: $${totals.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN.`
-            });
-          }
+      if (matchedSimCard) {
+        if (Number(matchedSimCard.saldo) < totals.total) {
+          db.exec('ROLLBACK;');
+          return res.status(400).json({
+            error: `Saldo insuficiente en la tarjeta ${matchedSimCard.marca} (terminación ${matchedSimCard.numero_tarjeta.replace(/[\s-]/g, '').slice(-4)}). Saldo disponible: $${Number(matchedSimCard.saldo).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN. Total requerido: $${totals.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN.`
+          });
         }
       }
 
@@ -244,9 +249,9 @@ function registerCheckoutRoutes(app) {
       const paymentResult = processPaymentGateway({
         metodoPago,
         monto: totals.total,
-        cardNumber,
-        cardHolder: cardHolder || req.user.nombre,
-        expiry,
+        cardNumber: matchedSimCard ? matchedSimCard.numero_tarjeta : cardNumber,
+        cardHolder: matchedSimCard ? matchedSimCard.titular : (cardHolder || req.user.nombre),
+        expiry: matchedSimCard ? matchedSimCard.expiracion : expiry,
         mesesSinIntereses,
         idempotencyKey: finalIdemKey,
         simulateTransientFailureCount: Number(simulateTransientFailureCount || 0),
@@ -469,30 +474,70 @@ function registerCheckoutRoutes(app) {
   });
 
   // =========================================================================
-  // GESTIÓN DE TARJETAS SIMULADAS Y SALDOS DE COMPRA (PCI DSS / Sandbox Local)
+  // GESTIÓN DE TARJETAS SIMULADAS, CARTERA POR USUARIO Y PAYPAL (Máx. 3 por usuario)
   // =========================================================================
 
-  // Listar tarjetas registradas con su saldo disponible
-  app.get('/api/payments/simulated-cards', (_req, res) => {
+  function resolveOptionalAuthUser(req, db) {
+    if (req.user) return req.user;
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : (req.headers['x-session-token'] || '').trim();
+    if (!token) return null;
+    try {
+      return db.prepare(`
+        SELECT u.id, u.email, u.nombre, u.rol
+        FROM sesiones s
+        JOIN usuarios u ON u.id = s.usuario_id
+        WHERE s.token_id = ? AND s.revocada = 0 AND s.expira_en > ?
+      `).get(token, Date.now()) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // Listar tarjetas registradas con su saldo disponible (filtrables por usuario autenticado)
+  app.get('/api/payments/simulated-cards', (req, res) => {
     const db = getDb();
-    const cards = db.prepare(`
-      SELECT id, numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
-      FROM tarjetas_simuladas
-      ORDER BY id ASC
-    `).all();
+    const optUser = resolveOptionalAuthUser(req, db);
+    const mineOnly = req.query?.mine === '1' || req.query?.mine === 'true';
+    const filterUserId = req.query?.usuarioId ? Number(req.query.usuarioId) : (mineOnly && optUser ? optUser.id : null);
+
+    let sql = `
+      SELECT 
+        c.id, c.usuario_id, c.numero_tarjeta, c.titular, c.expiracion, c.cvv,
+        c.saldo, c.saldo_inicial, c.marca, c.tipo,
+        COALESCE(c.color_plastico, '#1d4ed8') as color_plastico,
+        COALESCE(c.vinculada_paypal, 1) as vinculada_paypal,
+        c.activa, c.created_at, c.updated_at,
+        u.nombre as usuario_nombre, u.email as usuario_email
+      FROM tarjetas_simuladas c
+      LEFT JOIN usuarios u ON u.id = c.usuario_id
+    `;
+    const params = [];
+    if (filterUserId) {
+      sql += ' WHERE c.usuario_id = ?';
+      params.push(filterUserId);
+    }
+    sql += ' ORDER BY c.id ASC';
+
+    const cards = db.prepare(sql).all(...params);
     res.json(cards);
   });
 
-  // Registrar nueva tarjeta con saldo asignado para simular compras
+  // Registrar nueva tarjeta con saldo asignado para simular compras (Máximo 3 tarjetas por usuario)
   app.post('/api/payments/simulated-cards', (req, res) => {
     const {
+      usuarioId,
       numeroTarjeta,
       titular,
       expiracion = '12/29',
       cvv = '123',
-      saldo = 10000,
+      saldo = 15000,
       marca = 'Visa',
-      tipo = 'credito'
+      tipo = 'credito',
+      colorPlastico = '#1d4ed8',
+      vinculadaPaypal = true
     } = req.body || {};
 
     if (!numeroTarjeta || String(numeroTarjeta).trim().length < 12) {
@@ -502,17 +547,36 @@ function registerCheckoutRoutes(app) {
       return res.status(400).json({ error: 'Debe ingresar el nombre del titular (mínimo 3 caracteres).' });
     }
 
+    const db = getDb();
+    const optUser = resolveOptionalAuthUser(req, db);
+    const assignedUserId = usuarioId !== undefined
+      ? (usuarioId ? Number(usuarioId) : null)
+      : (optUser ? optUser.id : null);
+
+    // Validar máximo 3 tarjetas por usuario
+    if (assignedUserId) {
+      const countRow = db.prepare('SELECT COUNT(*) as total FROM tarjetas_simuladas WHERE usuario_id = ?').get(assignedUserId);
+      if (countRow && Number(countRow.total) >= 3) {
+        return res.status(400).json({
+          error: 'Límite alcanzado: Cada usuario puede tener como máximo 3 tarjetas en su cartera digital.'
+        });
+      }
+    }
+
     const cleanCard = String(numeroTarjeta).trim();
     const montoSaldo = Math.max(0, Number(saldo) || 0);
-    const db = getDb();
+    const cleanColor = String(colorPlastico || '#1d4ed8').trim();
+    const isPaypalLinked = vinculadaPaypal ? 1 : 0;
     const now = new Date().toISOString();
 
     try {
       const result = db.prepare(`
         INSERT INTO tarjetas_simuladas (
-          numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial, marca, tipo, activa, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+          usuario_id, numero_tarjeta, titular, expiracion, cvv, saldo, saldo_inicial,
+          marca, tipo, color_plastico, vinculada_paypal, activa, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
       `).run(
+        assignedUserId,
         cleanCard,
         String(titular).trim().toUpperCase(),
         String(expiracion || '12/29').trim(),
@@ -521,27 +585,33 @@ function registerCheckoutRoutes(app) {
         montoSaldo,
         String(marca || 'Visa').trim(),
         String(tipo || 'credito').trim(),
+        cleanColor,
+        isPaypalLinked,
         now,
         now
       );
 
       recordAuditLog(db, {
-        usuarioId: req.user ? req.user.id : null,
-        rol: req.user ? req.user.rol : 'administrador',
+        usuarioId: optUser ? optUser.id : assignedUserId,
+        rol: optUser ? optUser.rol : 'administrador',
         accion: 'REGISTRO_TARJETA_SIMULADA',
-        modulo: 'Simulador de Pagos (RF-05)',
+        modulo: 'Simulador de Pagos / Cartera PayPal (RF-05)',
         entidadId: String(result.lastInsertRowid),
         detalles: {
+          usuarioAsignado: assignedUserId,
           numero_tarjeta_enmascarado: cleanCard.replace(/\d(?=\d{4})/g, '*'),
           titular: String(titular).trim().toUpperCase(),
           saldoInicial: montoSaldo,
-          marca
+          marca,
+          colorPlastico: cleanColor
         }
       });
 
       res.status(201).json({
-        message: 'Tarjeta registrada exitosamente con saldo asignado para compras.',
+        message: 'Tarjeta registrada exitosamente en la cartera y vinculada con PayPal.',
         cardId: Number(result.lastInsertRowid),
+        usuarioId: assignedUserId,
+        colorPlastico: cleanColor,
         saldo: montoSaldo
       });
     } catch (err) {
@@ -550,6 +620,70 @@ function registerCheckoutRoutes(app) {
       }
       return res.status(500).json({ error: `Error al registrar tarjeta: ${err.message}` });
     }
+  });
+
+  // Eliminar una tarjeta simulada de la cartera del usuario o desde el panel de administrador
+  app.delete('/api/payments/simulated-cards/:id', (req, res) => {
+    const cardId = Number(req.params.id);
+    const db = getDb();
+    const optUser = resolveOptionalAuthUser(req, db);
+    const card = db.prepare('SELECT * FROM tarjetas_simuladas WHERE id = ?').get(cardId);
+    if (!card) {
+      return res.status(404).json({ error: `Tarjeta #${cardId} no encontrada.` });
+    }
+    if (optUser && optUser.rol === 'cliente' && card.usuario_id && card.usuario_id !== optUser.id) {
+      return res.status(403).json({ error: 'No tienes permiso para eliminar una tarjeta de otro usuario.' });
+    }
+
+    db.prepare('DELETE FROM tarjetas_simuladas WHERE id = ?').run(cardId);
+    recordAuditLog(db, {
+      usuarioId: optUser ? optUser.id : 1,
+      rol: optUser ? optUser.rol : 'administrador',
+      accion: 'ELIMINACION_TARJETA_CARTERA',
+      modulo: 'Simulador de Pagos / Cartera PayPal (RF-05)',
+      entidadId: String(cardId),
+      detalles: { tarjetaId: cardId, titular: card.titular, marca: card.marca }
+    });
+
+    res.json({
+      success: true,
+      message: 'Tarjeta eliminada de tu cartera digital.',
+      cardId
+    });
+  });
+
+  // Asignar tarjeta a un usuario y/o cambiar color del plástico (Panel Admin / Cartera)
+  app.put('/api/payments/simulated-cards/:id/assign', (req, res) => {
+    const cardId = Number(req.params.id);
+    const { usuarioId, colorPlastico } = req.body || {};
+    const db = getDb();
+    const card = db.prepare('SELECT * FROM tarjetas_simuladas WHERE id = ?').get(cardId);
+    if (!card) {
+      return res.status(404).json({ error: `Tarjeta #${cardId} no encontrada.` });
+    }
+
+    const targetUserId = usuarioId !== undefined ? (usuarioId ? Number(usuarioId) : null) : card.usuario_id;
+    if (targetUserId && targetUserId !== card.usuario_id) {
+      const countRow = db.prepare('SELECT COUNT(*) as total FROM tarjetas_simuladas WHERE usuario_id = ? AND id != ?').get(targetUserId, cardId);
+      if (countRow && Number(countRow.total) >= 3) {
+        return res.status(400).json({
+          error: 'El usuario seleccionado ya tiene el máximo permitido de 3 tarjetas asignadas.'
+        });
+      }
+    }
+
+    const newColor = colorPlastico || card.color_plastico || '#1d4ed8';
+    const now = new Date().toISOString();
+    db.prepare('UPDATE tarjetas_simuladas SET usuario_id = ?, color_plastico = ?, updated_at = ? WHERE id = ?')
+      .run(targetUserId, newColor, now, cardId);
+
+    res.json({
+      success: true,
+      message: 'Tarjeta actualizada y asignada al usuario correctamente.',
+      cardId,
+      usuarioId: targetUserId,
+      colorPlastico: newColor
+    });
   });
 
   // Recargar saldo a una tarjeta simulada
@@ -617,3 +751,4 @@ function registerCheckoutRoutes(app) {
 module.exports = {
   registerCheckoutRoutes
 };
+

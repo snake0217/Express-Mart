@@ -658,4 +658,127 @@ img[src=""], img:not([src]) {
   border: 2px solid white;
 }
 
+/* ===============================================================
+   CARTERA INTERACTIVA CON COSTURA (STITCHED WALLET) Y ANIMACIÓN
+   DE TARJETA EMERGIENDO DE LA CARTERA (MÁX. 3 TARJETAS)
+   =============================================================== */
+.stitched-wallet-scene {
+  position: relative;
+  width: 100%;
+  max-width: 470px;
+  margin: 0 auto;
+  padding-top: 120px;
+}
+
+.wallet-cards-stack-slot {
+  position: relative;
+  width: 90%;
+  height: 125px;
+  margin: 0 auto -36px auto;
+  z-index: 10;
+}
+
+.wallet-stacked-card {
+  position: absolute;
+  left: 50%;
+  width: 100%;
+  max-width: 390px;
+  height: 205px;
+  border-radius: 18px;
+  padding: 18px 22px;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  cursor: pointer;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, top 0.35s ease;
+  user-select: none;
+  overflow: hidden;
+}
+
+.wallet-stacked-card:hover {
+  box-shadow: 0 -12px 30px rgba(29, 78, 216, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.wallet-card-chip {
+  display: inline-block;
+  width: 36px;
+  height: 26px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fde68a 0%, #f59e0b 55%, #b45309 100%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.35);
+}
+
+.stitched-wallet-pocket {
+  position: relative;
+  z-index: 25;
+  background: linear-gradient(180deg, #18181b 0%, #09090b 100%);
+  border-radius: 26px;
+  padding: 16px;
+  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.12);
+  border: 1px solid #27272a;
+}
+
+.stitched-wallet-inner-stitch {
+  border: 2px dashed rgba(161, 161, 170, 0.38);
+  border-radius: 18px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 215px;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+}
+
+/* Tarjeta emergiendo fuera de la cartera al pulsar "+ Add Card" */
+.wallet-emerging-plastic-card {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  min-height: 220px;
+  margin: 0 auto;
+  border-radius: 20px;
+  padding: 22px 24px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.42), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  transition: background 0.35s ease, color 0.25s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: bottom center;
+}
+
+.wallet-emerging-plastic-card.is-emerging {
+  animation: cardEmergeFromWalletPocket 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.wallet-emerging-plastic-card.is-sliding-in {
+  animation: cardSlideIntoWalletPocket 0.32s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes cardEmergeFromWalletPocket {
+  0% {
+    opacity: 0;
+    transform: translateY(150px) scale(0.84) rotateX(22deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-14px) scale(1.03) rotateX(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0deg);
+  }
+}
+
+@keyframes cardSlideIntoWalletPocket {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(130px) scale(0.85);
+  }
+}
+
+
 

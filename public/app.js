@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof initCartCheckoutEvents === 'function') initCartCheckoutEvents();
   if (typeof initAuthEvents === 'function') initAuthEvents();
   if (typeof initProfileEvents === 'function') initProfileEvents();
+  if (typeof initWalletCardsEvents === 'function') initWalletCardsEvents();
   if (typeof initOrdersLogisticsEvents === 'function') initOrdersLogisticsEvents();
   if (typeof initAdminAuditEvents === 'function') initAdminAuditEvents();
 

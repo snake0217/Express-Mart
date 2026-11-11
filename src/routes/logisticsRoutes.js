@@ -15,13 +15,26 @@ const {
   resolveDestinationCoordinates,
   resolveWarehouseForDestination,
   generateRouteCoordinates,
-  advanceActiveSimulations
+  advanceActiveSimulations,
+  resolveStreetNameFromCoordinates
 } = require('../services/logisticsService');
 
 function registerLogisticsRoutes(app) {
   // Vista HTML para el módulo de Envíos y Logística
   app.get(['/envios', '/logistica'], (_req, res) => {
     res.sendFile(path.join(__dirname, '../../public/envios.html'));
+  });
+
+  // Geocodificación inversa para calcular el nombre de la calle donde se hace clic en el mapa OpenStreetMap
+  app.get('/api/logistics/reverse-geocode', (req, res) => {
+    const { lat, lng } = req.query || {};
+    const info = resolveStreetNameFromCoordinates(lat, lng);
+    const warehouse = resolveWarehouseForDestination({ lat: info.lat, lng: info.lng });
+    return res.json({
+      ...info,
+      almacenAsignado: warehouse.nombre,
+      almacenDireccion: warehouse.direccion
+    });
   });
 
   // Autenticación directa para el Panel de Logística y Rastreo en Vivo (/envios)

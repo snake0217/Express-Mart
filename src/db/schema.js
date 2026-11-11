@@ -263,9 +263,10 @@ function createAllTables(db) {
       hash_cadena TEXT NOT NULL
     );
 
-    -- Tarjetas Simuladas para Compras y Saldo (PCI DSS / Sandbox Local)
+    -- Tarjetas Simuladas para Compras y Saldo (PCI DSS / Sandbox Local / PayPal)
     CREATE TABLE IF NOT EXISTS tarjetas_simuladas (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER DEFAULT NULL,
       numero_tarjeta TEXT UNIQUE NOT NULL,
       titular TEXT NOT NULL,
       expiracion TEXT NOT NULL,
@@ -274,9 +275,12 @@ function createAllTables(db) {
       saldo_inicial REAL NOT NULL DEFAULT 0,
       marca TEXT NOT NULL DEFAULT 'Visa',
       tipo TEXT NOT NULL DEFAULT 'credito',
+      color_plastico TEXT NOT NULL DEFAULT '#1d4ed8',
+      vinculada_paypal INTEGER NOT NULL DEFAULT 1,
       activa INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     );
 
     -- D9: Solicitudes de Devolución y Reembolso (LFPC NOR-09 / SGC)
@@ -296,6 +300,16 @@ function createAllTables(db) {
       FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     );
   `);
+
+  try {
+    db.exec('ALTER TABLE tarjetas_simuladas ADD COLUMN usuario_id INTEGER DEFAULT NULL;');
+  } catch (_) {}
+  try {
+    db.exec("ALTER TABLE tarjetas_simuladas ADD COLUMN color_plastico TEXT NOT NULL DEFAULT '#1d4ed8';");
+  } catch (_) {}
+  try {
+    db.exec('ALTER TABLE tarjetas_simuladas ADD COLUMN vinculada_paypal INTEGER NOT NULL DEFAULT 1;');
+  } catch (_) {}
 
   try {
     db.exec("ALTER TABLE usuarios ADD COLUMN foto_perfil TEXT DEFAULT '';");
