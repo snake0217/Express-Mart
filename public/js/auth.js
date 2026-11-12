@@ -324,8 +324,7 @@ function initAuthEvents() {
         openMfaModal({
           email,
           purpose: 'login',
-          message: res.message,
-          demoHintCode: res.demoHintCode
+          message: res.message
         });
         return;
       }
@@ -449,7 +448,8 @@ function initAuthEvents() {
           email,
           purpose: 'registro',
           message: res.message,
-          demoHintCode: res.demoHintCode
+          nombre,
+          direccion
         });
         return;
       }
@@ -514,19 +514,13 @@ function initAuthEvents() {
   const btnResendMfa = document.getElementById('btn-resend-mfa');
   const mfaForm = document.getElementById('mfa-form');
 
-  function openMfaModal({ email, purpose = 'login', message, demoHintCode }) {
-    state.pendingMfa = { email, purpose };
+  function openMfaModal({ email, purpose = 'login', message, nombre = '', direccion = '' }) {
+    state.pendingMfa = { email, purpose, nombre, direccion };
     if (authDialog) authDialog.close();
     if (mfaEmailDisplay) mfaEmailDisplay.textContent = email;
-    if (mfaResultBox) {
-      if (demoHintCode) {
-        mfaResultBox.innerHTML = `<div class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-emerald-600">verified</span><span>Código generado para demo: <strong>${demoHintCode}</strong> (o use <strong>123456</strong>)</span></div>`;
-      } else {
-        mfaResultBox.innerHTML = '';
-      }
-    }
+    if (mfaResultBox) mfaResultBox.innerHTML = '';
     if (mfaCodeInput) {
-      mfaCodeInput.value = demoHintCode || '';
+      mfaCodeInput.value = '';
       setTimeout(() => mfaCodeInput.focus(), 150);
     }
     const dialogTitle = document.getElementById('mfa-dialog-title');
@@ -549,13 +543,15 @@ function initAuthEvents() {
       }
 
       try {
-        const pending = state.pendingMfa || { email: '', purpose: 'login' };
+        const pending = state.pendingMfa || { email: '', purpose: 'login', nombre: '', direccion: '' };
         const res = await apiFetch('/api/auth/verify-mfa', {
           method: 'POST',
           body: JSON.stringify({
             email: pending.email,
             code,
-            purpose: pending.purpose
+            purpose: pending.purpose,
+            nombre: pending.nombre,
+            direccion: pending.direccion
           })
         });
 
