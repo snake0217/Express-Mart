@@ -405,10 +405,17 @@ async function openProductDetailPage(productId) {
         showAlert('Inicia sesión o regístrate para comprar productos en ExpressMart.', true);
         return;
       }
-      const qty = Number(document.getElementById('buybox-quantity').value || 1);
+      const maxStock = Number(p.stock_disponible || 0);
+      if (maxStock <= 0) {
+        showAlert('Este producto no cuenta con stock disponible por el momento.', true);
+        return;
+      }
+      const rawQty = Number(document.getElementById('buybox-quantity').value || 1);
+      const qty = Math.max(1, Math.min(rawQty, maxStock));
       const existing = state.cart.find((i) => i.productoId === p.id);
       if (existing) {
-        existing.cantidad += qty;
+        // Comprar Ahora fija exactamente la cantidad elegida sin acumular intentos cerrados previos
+        existing.cantidad = qty;
         if (!existing.imagen_url) existing.imagen_url = mainImgUrl;
       } else {
         state.cart.push({

@@ -59,6 +59,38 @@ async function loadAuditCenter() {
 
 let sellerDashboardData = null;
 let sellerSelectedPlasticColor = '#1d4ed8';
+let cachedWarehousesList = null;
+
+const DEFAULT_CEDIS_OPTIONS = [
+  { codigo: 'CEDIS-CDMX-01', nombre: 'CEDIS ExpressMart CDMX Norte (Vallejo)', ciudad: 'Ciudad de México' },
+  { codigo: 'CEDIS-CDMX-02', nombre: 'CEDIS ExpressMart CDMX Sur (Coyoacán)', ciudad: 'Ciudad de México' },
+  { codigo: 'CEDIS-GDL-01', nombre: 'CEDIS ExpressMart Guadalajara (Occidente)', ciudad: 'Guadalajara / El Salto' },
+  { codigo: 'CEDIS-MTY-01', nombre: 'CEDIS ExpressMart Monterrey (Noreste)', ciudad: 'Monterrey / Apodaca' },
+  { codigo: 'CEDIS-PUE-01', nombre: 'CEDIS ExpressMart Puebla (Centro-Oriente)', ciudad: 'Puebla' }
+];
+
+async function populateWarehouseSelectOptions(selectId, selectedCode = 'CEDIS-CDMX-01') {
+  const selectEl = document.getElementById(selectId);
+  if (!selectEl) return;
+
+  if (!cachedWarehousesList) {
+    try {
+      const data = await apiFetch('/api/logistics/warehouses');
+      if (Array.isArray(data.warehouses) && data.warehouses.length > 0) {
+        cachedWarehousesList = data.warehouses;
+      }
+    } catch (_) {
+      // Mantiene fallback local si aún no carga red
+    }
+  }
+
+  const list = cachedWarehousesList || DEFAULT_CEDIS_OPTIONS;
+  const normalizedTarget = selectedCode === 'CEDIS-CDMX-NORTE' ? 'CEDIS-CDMX-01' : (selectedCode || 'CEDIS-CDMX-01');
+  selectEl.innerHTML = list.map((w) => `
+    <option value="${escapeHtml(w.codigo)}">${escapeHtml(w.nombre)} — ${escapeHtml(w.ciudad || w.estado || '')}</option>
+  `).join('');
+  selectEl.value = normalizedTarget;
+}
 
 const SELLER_PLASTIC_PALETTE = [
   { id: '#1d4ed8', name: 'Azul Rey PayPal', bg: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%)', text: '#ffffff', badge: '#93c5fd' },
@@ -273,6 +305,9 @@ function renderSellerProducts(products) {
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${lowStock ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}">
                   ${p.stock_disponible} en almacén
                 </span>
+                <span class="block text-[10px] text-primary font-semibold mt-1">
+                  🏢 ${escapeHtml(p.almacen_nombre || p.ubicacion_almacen || 'CEDIS-CDMX-01')}
+                </span>
               </td>
               <td class="py-3 px-3 text-center">
                 <span class="font-bold text-slate-800 text-xs">${p.total_vendido_unidades || 0} uds</span>
@@ -380,6 +415,8 @@ function renderSellerSales(sales) {
 function openSellerProductModal() {
   const dlg = document.getElementById('seller-product-dialog');
   if (!dlg) return;
+
+  populateWarehouseSelectOptions('prod-almacen', 'CEDIS-CDMX-01');
 
   const skuInput = document.getElementById('prod-sku');
   if (skuInput && (!skuInput.value || skuInput.value.startsWith('EM-VEN-'))) {
@@ -546,6 +583,7 @@ function openSellerStockEditModal(prodId) {
   document.getElementById('seller-edit-stock-amount').value = prod.stock_disponible || 0;
   document.getElementById('seller-edit-stock-price').value = prod.precio || 1;
   document.getElementById('seller-edit-stock-active').value = prod.activo ? '1' : '0';
+  populateWarehouseSelectOptions('seller-edit-almacen', prod.ubicacion_almacen || 'CEDIS-CDMX-01');
 
   if (typeof dlg.showModal === 'function') {
     if (!dlg.open) dlg.showModal();
@@ -571,6 +609,7 @@ function initAdminAuditEvents() {
             marca: document.getElementById('prod-marca').value,
             precio: Number(document.getElementById('prod-precio').value),
             stock: Number(document.getElementById('prod-stock').value),
+            ubicacion_almacen: document.getElementById('prod-almacen')?.value || 'CEDIS-CDMX-01',
             imagen_url: imgVal || '/assets/logo.png',
             descripcion: document.getElementById('prod-desc').value,
             condiciones_envio: document.getElementById('prod-envio').value,
@@ -714,10 +753,11 @@ function initAdminAuditEvents() {
       const stock = Number(document.getElementById('seller-edit-stock-amount').value);
       const precio = Number(document.getElementById('seller-edit-stock-price').value);
       const activo = Number(document.getElementById('seller-edit-stock-active').value);
+      const ubicacion_almacen = document.getElementById('seller-edit-almacen')?.value || 'CEDIS-CDMX-01';
 
       const res = await apiFetch(`/api/seller/products/${prodId}/stock`, {
         method: 'PUT',
-        body: JSON.stringify({ stock, precio, activo })
+        body: JSON.stringify({ stock, precio, activo, ubicacion_almacen })
       });
       showAlert(res.message);
       document.getElementById('seller-stock-dialog')?.close();

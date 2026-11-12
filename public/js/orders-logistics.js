@@ -338,7 +338,7 @@ async function openCustomerTrackingModal(orderId, fallbackFolio) {
       scrollWheelZoom: true
     }).setView([19.4326, -99.1332], 11);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('/api/logistics/tiles/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(customerMapInstance);

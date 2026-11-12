@@ -12,17 +12,39 @@ const { sendUserNotification } = require('../services/externalProviders');
 const {
   WAREHOUSES,
   getWarehouseDetails,
+  resolveValidWarehouse,
+  getWarehousesWithInventory,
   resolveDestinationCoordinates,
   resolveWarehouseForDestination,
   generateRouteCoordinates,
   advanceActiveSimulations,
   resolveStreetNameFromCoordinates
 } = require('../services/logisticsService');
+const { validateTileCoords, fetchMapTile } = require('../services/tileProxyService');
 
 function registerLogisticsRoutes(app) {
   // Vista HTML para el módulo de Envíos y Logística
   app.get(['/envios', '/logistica'], (_req, res) => {
     res.sendFile(path.join(__dirname, '../../public/envios.html'));
+  });
+
+  // Proxy caché de mosaicos cartográficos (cumple política OSM §1/§5 y evita 403 en navegadores)
+  app.get('/api/logistics/tiles/:z/:x/:y', async (req, res) => {
+    const check = validateTileCoords(req.params.z, req.params.x, req.params.y);
+    if (!check.valid) {
+      return res.status(400).json({ error: check.error });
+    }
+    const reqReferer = req.get('referer') || (req.get('host') ? `${req.protocol}://${req.get('host')}/` : undefined);
+    const tile = await fetchMapTile(check.z, check.x, check.y, { referer: reqReferer });
+    if (tile.error) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(502).json({ error: 'No fue posible obtener el mosaico del mapa.', detail: tile.error });
+    }
+    res.setHeader('Content-Type', tile.contentType);
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    res.setHeader('X-Tile-Provider', tile.provider);
+    res.setHeader('X-Tile-Cache', tile.cacheStatus);
+    return res.status(200).send(tile.buffer);
   });
 
   // Geocodificación inversa para calcular el nombre de la calle donde se hace clic en el mapa OpenStreetMap
@@ -101,47 +123,46 @@ function registerLogisticsRoutes(app) {
     });
   });
 
-  // Listar Almacenes (CEDIS) con métricas de inventario y pedidos
-  app.get('/api/logistics/warehouses', (req, res) => {
+  // Listar Almacenes (CEDIS) con métricas de inventario, productos y pedidos
+  app.get('/api/logistics/warehouses', (_req, res) => {
     const db = getDb();
     advanceActiveSimulations(db);
-    let rows = [];
-    try {
-      rows = db.prepare('SELECT * FROM almacenes WHERE activo = 1 ORDER BY id ASC').all();
-    } catch (_) {
-      rows = WAREHOUSES.map((w, idx) => ({ id: idx + 1, ...w, activo: 1 }));
-    }
-
-    const enriched = rows.map((wh) => {
-      const details = getWarehouseDetails(wh.codigo || wh.nombre);
-      let stats = { totalPedidos: 0, preparando: 0, enTransito: 0, entregados: 0 };
-      try {
-        const counts = db.prepare(`
-          SELECT 
-            COUNT(*) as total,
-            SUM(CASE WHEN estado_envio = 'preparando' THEN 1 ELSE 0 END) as preparando,
-            SUM(CASE WHEN estado_envio = 'en_transito' THEN 1 ELSE 0 END) as enTransito,
-            SUM(CASE WHEN estado_envio = 'entregado' THEN 1 ELSE 0 END) as entregados
-          FROM envios
-          WHERE almacen_codigo = ? OR almacen_origen LIKE '%' || ? || '%'
-        `).get(wh.codigo, wh.codigo);
-        if (counts) {
-          stats = {
-            totalPedidos: Number(counts.total || 0),
-            preparando: Number(counts.preparando || 0),
-            enTransito: Number(counts.enTransito || 0),
-            entregados: Number(counts.entregados || 0)
-          };
-        }
-      } catch (_) {}
-      return {
-        ...wh,
-        direccion: wh.direccion || details.direccion,
-        stats
-      };
+    const { warehouses } = getWarehousesWithInventory(db);
+    res.json({
+      total: warehouses.length,
+      warehouses: warehouses.map(({ productos, ...summary }) => summary)
     });
+  });
 
-    res.json({ total: enriched.length, warehouses: enriched });
+  // Listar Almacenes junto con los productos asignados a cada almacén CEDIS
+  app.get('/api/logistics/warehouses/inventory', (req, res) => {
+    const db = getDb();
+    advanceActiveSimulations(db);
+    const { almacen = '', q = '', categoria = '' } = req.query || {};
+    const { warehouses, productos } = getWarehousesWithInventory(db, { almacen, q, categoria });
+    res.json({
+      totalAlmacenes: warehouses.length,
+      totalProductos: productos.length,
+      warehouses,
+      productos
+    });
+  });
+
+  // Listar productos de un almacén específico por código CEDIS
+  app.get('/api/logistics/warehouses/:codigo/products', (req, res) => {
+    const db = getDb();
+    const wh = resolveValidWarehouse(db, req.params.codigo);
+    if (!wh) {
+      return res.status(404).json({ error: `Almacén '${req.params.codigo}' no encontrado.` });
+    }
+    const { q = '', categoria = '' } = req.query || {};
+    const { warehouses, productos } = getWarehousesWithInventory(db, { almacen: wh.codigo, q, categoria });
+    const matchedWh = warehouses.find((w) => w.codigo === wh.codigo) || warehouses[0];
+    res.json({
+      warehouse: matchedWh,
+      total: productos.length,
+      productos
+    });
   });
 
   // Listar envíos para el Panel de Envíos y Almacenes (Admin/Vendedor/Soporte/Auditor)

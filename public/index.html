@@ -2046,6 +2046,7 @@
             <input type="checkbox" id="reg-privacy" required checked />
             <label for="reg-privacy">Acepto el Aviso de Privacidad Integral y las Condiciones de Compra.</label>
           </div>
+          <button type="submit" id="btn-submit-register" class="btn btn-primary btn-block">Registrarse en ExpressMart</button>
         </form>
       </div>
     </div>
@@ -3081,6 +3082,17 @@
         </div>
       </div>
       <div class="field">
+        <label for="prod-almacen">Almacén CEDIS de Origen *</label>
+        <span id="prod-almacen-hint" class="hint">Selecciona el centro de distribución donde estará resguardado este producto</span>
+        <select id="prod-almacen" name="ubicacion_almacen" required aria-describedby="prod-almacen-hint">
+          <option value="CEDIS-CDMX-01">CEDIS ExpressMart CDMX Norte (Vallejo) — Ciudad de México</option>
+          <option value="CEDIS-CDMX-02">CEDIS ExpressMart CDMX Sur (Coyoacán) — Ciudad de México</option>
+          <option value="CEDIS-GDL-01">CEDIS ExpressMart Guadalajara (Occidente) — Guadalajara / El Salto</option>
+          <option value="CEDIS-MTY-01">CEDIS ExpressMart Monterrey (Noreste) — Monterrey / Apodaca</option>
+          <option value="CEDIS-PUE-01">CEDIS ExpressMart Puebla (Centro-Oriente) — Puebla</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="prod-desc">Descripción completa *</label>
         <textarea id="prod-desc" rows="2" required placeholder="Especificaciones técnicas y beneficios principales..."></textarea>
       </div>
@@ -3288,6 +3300,17 @@
           <label for="seller-edit-stock-price" class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1">Precio ($ MXN) *</label>
           <input type="number" id="seller-edit-stock-price" min="1" step="0.01" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:border-primary" />
         </div>
+      </div>
+
+      <div>
+        <label for="seller-edit-almacen" class="block text-xs font-bold uppercase tracking-wider text-secondary mb-1">Almacén CEDIS Asignado</label>
+        <select id="seller-edit-almacen" name="ubicacion_almacen" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none focus:border-primary">
+          <option value="CEDIS-CDMX-01">CEDIS ExpressMart CDMX Norte (Vallejo)</option>
+          <option value="CEDIS-CDMX-02">CEDIS ExpressMart CDMX Sur (Coyoacán)</option>
+          <option value="CEDIS-GDL-01">CEDIS ExpressMart Guadalajara (Occidente)</option>
+          <option value="CEDIS-MTY-01">CEDIS ExpressMart Monterrey (Noreste)</option>
+          <option value="CEDIS-PUE-01">CEDIS ExpressMart Puebla (Centro-Oriente)</option>
+        </select>
       </div>
 
       <div>

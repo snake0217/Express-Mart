@@ -657,6 +657,86 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
     expect(dashAfterCheckout.body.ventas.some((v) => v.producto_id === prodId)).toBe(true);
     expect(dashAfterCheckout.body.metricas.unidadesVendidas).toBeGreaterThanOrEqual(2);
   });
+
+  test('Proxy cartográfico /api/logistics/tiles rechaza tiles x-blocked de OSM, usa respaldo y aplica caché', async () => {
+    const {
+      validateTileCoords,
+      fetchMapTile,
+      clearTileCache,
+      EXPRESSMART_TILE_UA
+    } = require('../src/services/tileProxyService');
+    const { initDatabase } = require('../src/db/database');
+    initDatabase(':memory:');
+    const app = createApp();
+
+    // Validación de coordenadas y límites de zoom
+    expect(validateTileCoords('12', '920', '1822.png')).toEqual({ valid: true, z: 12, x: 920, y: 1822 });
+    expect(validateTileCoords('25', '0', '0.png').valid).toBe(false);
+    expect(validateTileCoords('2', '9', '0.png').valid).toBe(false);
+    expect(validateTileCoords('12', 'abc', '1822.png').valid).toBe(false);
+
+    clearTileCache();
+    const fakeJpg = Buffer.alloc(128, 0xab);
+    const seenCalls = [];
+    const origFetch = globalThis.fetch;
+
+    try {
+      globalThis.fetch = async (url, init) => {
+        seenCalls.push({ url, headers: init?.headers || {} });
+        if (url.includes('tile.openstreetmap.org/')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'image/png', 'x-blocked': 'Access denied' }),
+            arrayBuffer: async () => Buffer.alloc(6672, 0xff).buffer
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'image/jpeg' }),
+          arrayBuffer: async () => fakeJpg.buffer
+        };
+      };
+
+      const badRes = await request(app).get('/api/logistics/tiles/25/0/0.png');
+      expect(badRes.status).toBe(400);
+
+      // Primera llamada: OSM envía 200 + x-blocked -> descarta y cae a Esri (MISS)
+      const tileRes1 = await request(app)
+        .get('/api/logistics/tiles/12/920/1822.png')
+        .set('Referer', 'http://localhost:3000/envios');
+      expect(tileRes1.status).toBe(200);
+      expect(tileRes1.headers['x-tile-provider']).toBe('esri-world-street');
+      expect(tileRes1.headers['x-tile-cache']).toBe('MISS');
+      expect(tileRes1.headers['cache-control']).toContain('max-age=604800');
+      expect(seenCalls.length).toBe(2);
+      expect(seenCalls[0].headers['User-Agent']).toBe(EXPRESSMART_TILE_UA);
+
+      // Segunda llamada idéntica: servida directamente desde caché sin peticiones externas (HIT)
+      const tileRes2 = await request(app).get('/api/logistics/tiles/12/920/1822.png');
+      expect(tileRes2.status).toBe(200);
+      expect(tileRes2.headers['x-tile-cache']).toBe('HIT');
+      expect(seenCalls.length).toBe(2);
+
+      // Si todos los proveedores fallan sin caché -> 502 no-store
+      clearTileCache();
+      globalThis.fetch = async () => ({
+        ok: false,
+        status: 503,
+        headers: new Headers(),
+        arrayBuffer: async () => new ArrayBuffer(0)
+      });
+      const offlineTile = await fetchMapTile(12, 920, 1822, { bypassCache: true });
+      expect(offlineTile.error).toBeDefined();
+      const errHttp = await request(app).get('/api/logistics/tiles/12/920/1822.png');
+      expect(errHttp.status).toBe(502);
+      expect(errHttp.headers['cache-control']).toBe('no-store');
+    } finally {
+      globalThis.fetch = origFetch;
+      clearTileCache();
+    }
+  });
 });
 
 

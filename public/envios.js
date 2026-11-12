@@ -84,7 +84,7 @@
       zoomControl: true
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('/api/logistics/tiles/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors | ExpressMart Logística'
     }).addTo(map);
@@ -602,6 +602,9 @@
 
           await loadWarehouses();
           await loadShipments();
+          if (window.EnviosAlmacenes) {
+            window.EnviosAlmacenes.loadWarehouseInventory();
+          }
 
           if (backendSyncInterval) clearInterval(backendSyncInterval);
           backendSyncInterval = setInterval(() => loadShipments(true), 3000);
@@ -773,5 +776,13 @@
     initMap();
     bindEvents();
     loadWarehouses();
+    if (window.EnviosAlmacenes) {
+      window.EnviosAlmacenes.initTabs({
+        onSimulationTabShown: () => {
+          setTimeout(() => { if (map) map.invalidateSize(); }, 60);
+        }
+      });
+      window.EnviosAlmacenes.bindWarehouseTabEvents();
+    }
   });
 })();

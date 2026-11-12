@@ -6,6 +6,7 @@
 const { hashPassword, generateMfaSecret, encryptData } = require('../utils/crypto');
 const { catalogDataset } = require('./seedCatalog');
 const { recordAuditLog } = require('./auditLog');
+const { WAREHOUSES } = require('../services/logisticsService');
 
 function seedDatabaseIfEmpty(db) {
   const countRow = db.prepare('SELECT COUNT(*) as total FROM usuarios').get();
@@ -95,10 +96,10 @@ function seedDatabaseIfEmpty(db) {
   `);
   const insertInv = db.prepare(`
     INSERT INTO inventario (producto_id, stock_disponible, stock_reservado, ubicacion_almacen, ultima_conciliacion, updated_at)
-    VALUES (?, ?, 0, 'CEDIS-CDMX-NORTE', ?, ?)
+    VALUES (?, ?, 0, ?, ?, ?)
   `);
 
-  for (const p of catalogDataset) {
+  catalogDataset.forEach((p, idx) => {
     const res = insertProd.run(
       p.sku,
       p.nombre,
@@ -113,8 +114,9 @@ function seedDatabaseIfEmpty(db) {
       now,
       now
     );
-    insertInv.run(res.lastInsertRowid, p.stock, now, now);
-  }
+    const whCode = p.ubicacion_almacen || WAREHOUSES[idx % WAREHOUSES.length].codigo;
+    insertInv.run(res.lastInsertRowid, p.stock, whCode, now, now);
+  });
 
   // Cupones promocionales (RF-04)
   const insertCupon = db.prepare(`
@@ -261,10 +263,10 @@ function syncCatalogAndReviews(db) {
   `);
   const insertInv = db.prepare(`
     INSERT OR IGNORE INTO inventario (producto_id, stock_disponible, stock_reservado, ubicacion_almacen, ultima_conciliacion, updated_at)
-    VALUES (?, ?, 0, 'CEDIS-CDMX-NORTE', ?, ?)
+    VALUES (?, ?, 0, ?, ?, ?)
   `);
 
-  for (const p of catalogDataset) {
+  catalogDataset.forEach((p, idx) => {
     const existing = db.prepare('SELECT id FROM catalogo WHERE sku = ?').get(p.sku);
     let productId;
     if (!existing) {
@@ -283,7 +285,8 @@ function syncCatalogAndReviews(db) {
         now
       );
       productId = Number(res.lastInsertRowid);
-      insertInv.run(productId, p.stock, now, now);
+      const whCode = p.ubicacion_almacen || WAREHOUSES[idx % WAREHOUSES.length].codigo;
+      insertInv.run(productId, p.stock, whCode, now, now);
     } else {
       productId = existing.id;
       db.prepare('UPDATE catalogo SET imagen_url = ?, precio = ?, nombre = ?, descripcion = ? WHERE id = ?').run(
@@ -308,7 +311,7 @@ function syncCatalogAndReviews(db) {
         `).run(productId, clienteId, r.calificacion, r.comentario, now);
       }
     }
-  }
+  });
 }
 
 function seedSimulatedCardsIfEmpty(db) {

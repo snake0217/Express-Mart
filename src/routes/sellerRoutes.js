@@ -7,6 +7,7 @@
 const { getDb, recordAuditLog } = require('../db/database');
 const { authenticateRequest, requireRoles } = require('../middleware/security');
 const { isPositiveNumber } = require('../utils/sanitizer');
+const { getWarehouseDetails, resolveValidWarehouse } = require('../services/logisticsService');
 
 function registerSellerRoutes(app) {
   // =========================================================================
@@ -22,7 +23,7 @@ function registerSellerRoutes(app) {
       SELECT c.*,
              COALESCE(i.stock_disponible, 0) as stock_disponible,
              COALESCE(i.stock_reservado, 0) as stock_reservado,
-             COALESCE(i.ubicacion_almacen, 'CEDIS-CDMX-NORTE') as ubicacion_almacen,
+             COALESCE(i.ubicacion_almacen, 'CEDIS-CDMX-01') as ubicacion_almacen,
              COALESCE((
                SELECT SUM(pi.cantidad) 
                FROM pedido_items pi 
@@ -39,7 +40,15 @@ function registerSellerRoutes(app) {
       LEFT JOIN inventario i ON i.producto_id = c.id
       WHERE c.vendedor_id = ?
       ORDER BY c.id DESC
-    `).all(vendorId);
+    `).all(vendorId).map((p) => {
+      const wh = getWarehouseDetails(p.ubicacion_almacen);
+      return {
+        ...p,
+        ubicacion_almacen: wh.codigo,
+        almacen_nombre: wh.nombre,
+        almacen_ciudad: wh.ciudad || ''
+      };
+    });
 
     // 2. Ventas que corresponden a productos subidos por este usuario
     const ventas = db.prepare(`
@@ -289,7 +298,7 @@ function registerSellerRoutes(app) {
   app.put('/api/seller/products/:id/stock', authenticateRequest, requireRoles('administrador', 'vendedor'), (req, res) => {
     const db = getDb();
     const productId = Number(req.params.id);
-    const { stock, precio, activo } = req.body || {};
+    const { stock, precio, activo, ubicacion_almacen, almacenCodigo, almacen_codigo } = req.body || {};
 
     const prod = db.prepare('SELECT * FROM catalogo WHERE id = ?').get(productId);
     if (!prod) {
@@ -300,17 +309,29 @@ function registerSellerRoutes(app) {
       return res.status(403).json({ error: 'No tienes permiso para modificar productos de otros vendedores.' });
     }
 
+    const requestedWh = ubicacion_almacen ?? almacenCodigo ?? almacen_codigo;
+    let resolvedWh = null;
+    if (requestedWh !== undefined && String(requestedWh).trim() !== '') {
+      resolvedWh = resolveValidWarehouse(db, requestedWh);
+      if (!resolvedWh) {
+        return res.status(400).json({ error: `El almacén especificado (${requestedWh}) no existe en los CEDIS activos.` });
+      }
+    }
+
     const now = new Date().toISOString();
 
-    if (stock !== undefined) {
-      if (!isPositiveNumber(stock)) {
+    if (stock !== undefined || resolvedWh) {
+      if (stock !== undefined && !isPositiveNumber(stock)) {
         return res.status(400).json({ error: 'El stock no puede ser negativo.' });
       }
+      const currentInv = db.prepare('SELECT stock_disponible, ubicacion_almacen FROM inventario WHERE producto_id = ?').get(productId);
+      const nextStock = stock !== undefined ? Number(stock) : Number(currentInv ? currentInv.stock_disponible : 0);
+      const nextWh = resolvedWh ? resolvedWh.codigo : (currentInv ? currentInv.ubicacion_almacen : 'CEDIS-CDMX-01');
       db.prepare(`
         UPDATE inventario 
-        SET stock_disponible = ?, ultima_conciliacion = ?, updated_at = ? 
+        SET stock_disponible = ?, ubicacion_almacen = ?, ultima_conciliacion = ?, updated_at = ? 
         WHERE producto_id = ?
-      `).run(Number(stock), now, now, productId);
+      `).run(nextStock, nextWh, now, now, productId);
     }
 
     if (precio !== undefined || activo !== undefined) {
@@ -337,12 +358,13 @@ function registerSellerRoutes(app) {
       accion: 'ACTUALIZACION_STOCK_PRECIO_VENDEDOR',
       modulo: 'Panel de Vendedor (RF-06)',
       entidadId: String(productId),
-      detalles: { productId, stock, precio, activo }
+      detalles: { productId, stock, precio, activo, ubicacion_almacen: resolvedWh ? resolvedWh.codigo : undefined }
     });
 
     res.json({
       message: 'Producto actualizado exitosamente.',
-      productId
+      productId,
+      ubicacion_almacen: resolvedWh ? resolvedWh.codigo : undefined
     });
   });
 }

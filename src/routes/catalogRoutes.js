@@ -11,6 +11,7 @@ const {
   setRecommendationsServiceHealth,
   getRecommendationsServiceHealth
 } = require('../services/externalProviders');
+const { getWarehouseDetails, resolveValidWarehouse } = require('../services/logisticsService');
 
 function registerCatalogRoutes(app) {
   // =========================================================================
@@ -18,7 +19,7 @@ function registerCatalogRoutes(app) {
   // =========================================================================
   app.get('/api/products', (req, res) => {
     const start = Date.now();
-    const { q = '', categoria = '', marca = '', minPrecio, maxPrecio, orden = '' } = req.query || {};
+    const { q = '', categoria = '', marca = '', almacen = '', minPrecio, maxPrecio, orden = '' } = req.query || {};
     const db = getDb();
 
     let sql = `
@@ -44,6 +45,12 @@ function registerCatalogRoutes(app) {
       sql += ' AND LOWER(c.marca) = LOWER(?)';
       params.push(String(marca).trim());
     }
+    if (almacen && String(almacen).trim()) {
+      const resolvedFilterWh = resolveValidWarehouse(db, almacen);
+      const whCode = resolvedFilterWh ? resolvedFilterWh.codigo : String(almacen).trim();
+      sql += " AND LOWER(COALESCE(i.ubicacion_almacen, 'CEDIS-CDMX-01')) = LOWER(?)";
+      params.push(whCode);
+    }
     if (minPrecio !== undefined && minPrecio !== '') {
       sql += ' AND c.precio >= ?';
       params.push(Number(minPrecio));
@@ -61,10 +68,16 @@ function registerCatalogRoutes(app) {
       sql += ' ORDER BY c.id ASC';
     }
 
-    const rows = db.prepare(sql).all(...params).map((r) => ({
-      ...r,
-      especificaciones: JSON.parse(r.especificaciones_json || '{}')
-    }));
+    const rows = db.prepare(sql).all(...params).map((r) => {
+      const wh = getWarehouseDetails(r.ubicacion_almacen);
+      return {
+        ...r,
+        ubicacion_almacen: wh.codigo,
+        almacen_nombre: wh.nombre,
+        almacen_direccion: wh.direccion,
+        especificaciones: JSON.parse(r.especificaciones_json || '{}')
+      };
+    });
 
     const recommendations = getProductRecommendations(db, categoria || null);
     const responseTimeMs = Math.max(1, Date.now() - start);
@@ -110,8 +123,12 @@ function registerCatalogRoutes(app) {
       ORDER BY r.id DESC
     `).all(product.id);
 
+    const wh = getWarehouseDetails(product.ubicacion_almacen);
     res.json({
       ...product,
+      ubicacion_almacen: wh.codigo,
+      almacen_nombre: wh.nombre,
+      almacen_direccion: wh.direccion,
       especificaciones: JSON.parse(product.especificaciones_json || '{}'),
       reviews
     });
@@ -129,7 +146,10 @@ function registerCatalogRoutes(app) {
       imagen_url = '/assets/logo.png',
       especificaciones = {},
       condiciones_envio,
-      stock = 0
+      stock = 0,
+      ubicacion_almacen,
+      almacenCodigo,
+      almacen_codigo
     } = req.body || {};
 
     // Verificación de completitud ISO/IEC 25012 (Apartado 19)
@@ -146,6 +166,14 @@ function registerCatalogRoutes(app) {
     }
 
     const db = getDb();
+    const requestedWh = ubicacion_almacen ?? almacenCodigo ?? almacen_codigo;
+    const resolvedWh = requestedWh !== undefined && String(requestedWh).trim() !== ''
+      ? resolveValidWarehouse(db, requestedWh)
+      : resolveValidWarehouse(db, 'CEDIS-CDMX-01');
+    if (!resolvedWh) {
+      return res.status(400).json({ error: `El almacén especificado (${requestedWh}) no existe en los CEDIS activos.` });
+    }
+
     const existingSku = db.prepare('SELECT id FROM catalogo WHERE LOWER(sku) = LOWER(?)').get(String(sku).trim());
     if (existingSku) {
       return res.status(409).json({ error: 'El SKU especificado ya existe en el catálogo.' });
@@ -175,8 +203,8 @@ function registerCatalogRoutes(app) {
     const productId = Number(insertRes.lastInsertRowid);
     db.prepare(`
       INSERT INTO inventario (producto_id, stock_disponible, stock_reservado, ubicacion_almacen, ultima_conciliacion, updated_at)
-      VALUES (?, ?, 0, 'CEDIS-CDMX-NORTE', ?, ?)
-    `).run(productId, Number(stock), now, now);
+      VALUES (?, ?, 0, ?, ?, ?)
+    `).run(productId, Number(stock), resolvedWh.codigo, now, now);
 
     recordAuditLog(db, {
       usuarioId: req.user.id,
@@ -185,20 +213,34 @@ function registerCatalogRoutes(app) {
       modulo: 'Catálogo e Inventario (RF-06)',
       entidadId: productId,
       ip: req.ip || '127.0.0.1',
-      detalles: { sku, nombre, precio: Number(precio), stock: Number(stock) }
+      detalles: { sku, nombre, precio: Number(precio), stock: Number(stock), ubicacion_almacen: resolvedWh.codigo }
     });
 
     res.status(201).json({
-      message: 'Producto registrado y publicado en catálogo con inventario inicial.',
+      message: `Producto registrado en catálogo y asignado al almacén ${resolvedWh.nombre}.`,
       productId,
-      sku: String(sku).trim().toUpperCase()
+      sku: String(sku).trim().toUpperCase(),
+      ubicacion_almacen: resolvedWh.codigo,
+      almacenNombre: resolvedWh.nombre
     });
   });
 
   // Edición de producto e inventario (RF-06, SEG-04)
   app.put('/api/products/:id', authenticateRequest, requireRoles('administrador', 'vendedor'), (req, res) => {
     const productId = Number(req.params.id);
-    const { nombre, descripcion, categoria, marca, precio, stock, condiciones_envio, activo } = req.body || {};
+    const {
+      nombre,
+      descripcion,
+      categoria,
+      marca,
+      precio,
+      stock,
+      condiciones_envio,
+      activo,
+      ubicacion_almacen,
+      almacenCodigo,
+      almacen_codigo
+    } = req.body || {};
     const db = getDb();
 
     const current = db.prepare('SELECT * FROM catalogo WHERE id = ?').get(productId);
@@ -211,6 +253,15 @@ function registerCatalogRoutes(app) {
     }
     if (stock !== undefined && !isPositiveNumber(stock)) {
       return res.status(400).json({ error: 'El stock no puede ser negativo.' });
+    }
+
+    const requestedWh = ubicacion_almacen ?? almacenCodigo ?? almacen_codigo;
+    let resolvedWh = null;
+    if (requestedWh !== undefined && String(requestedWh).trim() !== '') {
+      resolvedWh = resolveValidWarehouse(db, requestedWh);
+      if (!resolvedWh) {
+        return res.status(400).json({ error: `El almacén especificado (${requestedWh}) no existe en los CEDIS activos.` });
+      }
     }
 
     const now = new Date().toISOString();
@@ -230,10 +281,13 @@ function registerCatalogRoutes(app) {
       productId
     );
 
-    if (stock !== undefined) {
+    if (stock !== undefined || resolvedWh) {
+      const currentInv = db.prepare('SELECT stock_disponible, ubicacion_almacen FROM inventario WHERE producto_id = ?').get(productId);
+      const nextStock = stock !== undefined ? Number(stock) : Number(currentInv ? currentInv.stock_disponible : 0);
+      const nextWh = resolvedWh ? resolvedWh.codigo : (currentInv ? currentInv.ubicacion_almacen : 'CEDIS-CDMX-01');
       db.prepare(`
-        UPDATE inventario SET stock_disponible = ?, ultima_conciliacion = ?, updated_at = ? WHERE producto_id = ?
-      `).run(Number(stock), now, now, productId);
+        UPDATE inventario SET stock_disponible = ?, ubicacion_almacen = ?, ultima_conciliacion = ?, updated_at = ? WHERE producto_id = ?
+      `).run(nextStock, nextWh, now, now, productId);
     }
 
     recordAuditLog(db, {
@@ -243,10 +297,14 @@ function registerCatalogRoutes(app) {
       modulo: 'Catálogo e Inventario (RF-06)',
       entidadId: productId,
       ip: req.ip || '127.0.0.1',
-      detalles: { precio, stock, activo }
+      detalles: { precio, stock, activo, ubicacion_almacen: resolvedWh ? resolvedWh.codigo : undefined }
     });
 
-    res.json({ message: 'Producto e inventario actualizados correctamente.', productId });
+    res.json({
+      message: 'Producto e inventario actualizados correctamente.',
+      productId,
+      ubicacion_almacen: resolvedWh ? resolvedWh.codigo : undefined
+    });
   });
 
   // Alta de reseña (RF-08)

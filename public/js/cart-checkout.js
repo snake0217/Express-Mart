@@ -324,7 +324,7 @@ function initCheckoutOsmPicker() {
       scrollWheelZoom: true
     }).setView([initLat, initLng], 11);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('/api/logistics/tiles/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
     }).addTo(checkoutPickerMap);

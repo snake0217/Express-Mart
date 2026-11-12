@@ -97,6 +97,28 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.25);
       border: 2px solid white;
     }
+    .envios-tab-btn {
+      position: relative;
+      color: #475569;
+      transition: color 0.15s ease;
+    }
+    .envios-tab-btn:hover {
+      color: #1d4e9a;
+    }
+    .envios-tab-btn[aria-selected="true"] {
+      color: #1d4e9a;
+    }
+    .envios-tab-btn[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      border-block-end: 3px solid #1d4e9a;
+    }
+    .envios-tab-btn:focus-visible {
+      outline: 3px solid #0284c7;
+      outline-offset: 2px;
+      border-radius: 0.5rem;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -254,6 +276,20 @@
       </div>
     </div>
 
+    <!-- Barra de Pestañas Accesible (WAI-ARIA Tabs) -->
+    <div id="envios-tablist" role="tablist" aria-label="Vistas del módulo de logística" class="flex flex-wrap items-center gap-2 border-b border-slate-200 mb-6 bg-white rounded-t-xl px-4 pt-2 shadow-sm">
+      <button id="tab-envios-simulacion" type="button" role="tab" aria-selected="true" tabindex="0" class="envios-tab-btn px-4 py-3 text-sm font-semibold text-slate-700 hover:text-brand-700 transition-colors flex items-center gap-2">
+        <span>🚚</span>
+        <span>Simulación de Repartidor</span>
+      </button>
+      <button id="tab-envios-almacenes" type="button" role="tab" aria-selected="false" tabindex="-1" class="envios-tab-btn px-4 py-3 text-sm font-semibold text-slate-600 hover:text-brand-700 transition-colors flex items-center gap-2">
+        <span>🏭</span>
+        <span>Almacenes y Productos</span>
+        <span id="tab-warehouses-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold">5</span>
+      </button>
+    </div>
+
+    <section id="panel-envios-simulacion" role="tabpanel" aria-labelledby="tab-envios-simulacion">
     <!-- Contenido Principal: Lista de Pedidos en Almacenes + Mapa OpenStreetMap -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       
@@ -433,12 +469,68 @@
 
       </div>
     </div>
+    </section>
+
+    <!-- Panel 2: Almacenes CEDIS y Productos por Almacén -->
+    <section id="panel-envios-almacenes" role="tabpanel" aria-labelledby="tab-envios-almacenes" hidden>
+      <div class="space-y-6">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="font-heading font-bold text-lg text-slate-800 flex items-center gap-2">
+                <span>🏭</span>
+                <span>Red de Almacenes CEDIS y Stock Asignado</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Selecciona un almacén CEDIS para inspeccionar su catálogo y disponibilidad física.</p>
+            </div>
+            <button id="btn-refresh-warehouses-inv" type="button" class="text-xs px-3 py-2 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold transition cursor-pointer flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              <span>Actualizar Inventario</span>
+            </button>
+          </div>
+
+          <div id="warehouses-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3"></div>
+        </div>
+
+        <div id="selected-warehouse-banner"></div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <search aria-label="Filtrar productos de almacenes CEDIS">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+              <div class="md:col-span-5">
+                <label for="warehouse-products-search" class="block text-xs font-bold text-slate-600 mb-1">Buscar producto, SKU o marca</label>
+                <input id="warehouse-products-search" type="search" placeholder="Ej. Sony, EM-ELEC, Laptop..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none" />
+              </div>
+              <div class="md:col-span-4">
+                <label for="warehouse-inv-filter" class="block text-xs font-bold text-slate-600 mb-1">Almacén CEDIS</label>
+                <select id="warehouse-inv-filter" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none">
+                  <option value="ALL">Todos los almacenes CEDIS</option>
+                </select>
+              </div>
+              <div class="md:col-span-3">
+                <label for="warehouse-category-filter" class="block text-xs font-bold text-slate-600 mb-1">Categoría</label>
+                <select id="warehouse-category-filter" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none">
+                  <option value="ALL">Todas las categorías</option>
+                </select>
+              </div>
+            </div>
+          </search>
+
+          <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+            <p id="warehouse-inv-count-status" role="status" aria-live="polite" class="text-xs font-semibold text-slate-600">Cargando inventario de almacenes...</p>
+          </div>
+
+          <div id="warehouses-products-table"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
     ExpressMart México S.A. de C.V. &bull; Módulo de Distribución Logística OpenStreetMap &bull; Conforme al Sistema de Gestión de la Calidad MC-001 (§23 y §37)
   </footer>
 
+  <script src="/envios-almacenes.js"></script>
   <script src="/envios.js"></script>
 </body>
 </html>

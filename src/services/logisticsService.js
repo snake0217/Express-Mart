@@ -98,21 +98,37 @@ const REFERENCE_DESTINATIONS = [
 ];
 
 /**
- * Obtiene los detalles completos del almacén por código o nombre
+ * Busca un almacén CEDIS por código, alias o nombre; retorna null si no existe coincidencia
+ */
+function findWarehouseByCodeOrAlias(codeOrName = '') {
+  const q = String(codeOrName || '').trim().toLowerCase();
+  if (!q) return null;
+  if (q === 'cedis-cdmx-norte' || q.includes('vallejo') || q === 'norte') {
+    return WAREHOUSES[0];
+  }
+  if (q === 'cedis-cdmx-sur' || q.includes('coyoac') || q === 'coapa') {
+    return WAREHOUSES[1];
+  }
+  return (
+    WAREHOUSES.find(
+      (w) =>
+        w.codigo.toLowerCase() === q ||
+        w.nombre.toLowerCase() === q ||
+        w.nombre.toLowerCase().includes(q) ||
+        q.includes(w.codigo.toLowerCase()) ||
+        (q.includes('sur') && w.codigo === 'CEDIS-CDMX-02') ||
+        (q.includes('guadalajara') && w.codigo === 'CEDIS-GDL-01') ||
+        (q.includes('monterrey') && w.codigo === 'CEDIS-MTY-01') ||
+        (q.includes('puebla') && w.codigo === 'CEDIS-PUE-01')
+    ) || null
+  );
+}
+
+/**
+ * Obtiene los detalles completos del almacén por código o nombre (con fallback al hub Vallejo)
  */
 function getWarehouseDetails(codeOrName = '') {
-  const q = String(codeOrName || '').toLowerCase();
-  const found = WAREHOUSES.find(
-    (w) =>
-      w.codigo.toLowerCase() === q ||
-      w.nombre.toLowerCase().includes(q) ||
-      q.includes(w.codigo.toLowerCase()) ||
-      (q.includes('sur') && w.codigo === 'CEDIS-CDMX-02') ||
-      (q.includes('guadalajara') && w.codigo === 'CEDIS-GDL-01') ||
-      (q.includes('monterrey') && w.codigo === 'CEDIS-MTY-01') ||
-      (q.includes('puebla') && w.codigo === 'CEDIS-PUE-01')
-  );
-  return found || WAREHOUSES[0];
+  return findWarehouseByCodeOrAlias(codeOrName) || WAREHOUSES[0];
 }
 
 /**
@@ -357,6 +373,18 @@ function ensureWarehousesTable(db) {
       now
     );
   }
+
+  // Normalizar inventarios heredados con el código antiguo 'CEDIS-CDMX-NORTE' hacia los 5 CEDIS oficiales
+  try {
+    const legacyRows = db.prepare("SELECT producto_id FROM inventario WHERE ubicacion_almacen = 'CEDIS-CDMX-NORTE' ORDER BY producto_id ASC").all();
+    if (legacyRows.length > 0) {
+      const updInv = db.prepare('UPDATE inventario SET ubicacion_almacen = ? WHERE producto_id = ?');
+      legacyRows.forEach((row, idx) => {
+        const wh = WAREHOUSES[idx % WAREHOUSES.length];
+        updInv.run(wh.codigo, row.producto_id);
+      });
+    }
+  } catch (_) {}
 }
 
 /**
@@ -478,10 +506,164 @@ function resolveStreetNameFromCoordinates(lat, lng) {
   };
 }
 
+/**
+ * Resuelve y valida un almacén CEDIS activo en base de datos o catálogo maestro.
+ * Retorna null si se proporcionó un código explícito que no corresponde a ningún almacén.
+ */
+function resolveValidWarehouse(db, codeOrName = '') {
+  const raw = String(codeOrName || '').trim();
+  if (!raw) return null;
+
+  try {
+    const row = db.prepare(`
+      SELECT * FROM almacenes
+      WHERE activo = 1 AND (LOWER(codigo) = LOWER(?) OR LOWER(nombre) = LOWER(?))
+      LIMIT 1
+    `).get(raw, raw);
+    if (row) return row;
+  } catch (_) {}
+
+  return findWarehouseByCodeOrAlias(raw);
+}
+
+/**
+ * Obtiene el catálogo completo de almacenes CEDIS junto con sus métricas de envíos y
+ * la lista de productos almacenados en cada uno.
+ */
+function getWarehousesWithInventory(db, { almacen = '', q = '', categoria = '' } = {}) {
+  let whRows = [];
+  try {
+    whRows = db.prepare('SELECT * FROM almacenes WHERE activo = 1 ORDER BY id ASC').all();
+  } catch (_) {
+    whRows = [];
+  }
+  if (!whRows.length) {
+    whRows = WAREHOUSES.map((w, idx) => ({
+      id: idx + 1,
+      codigo: w.codigo,
+      nombre: w.nombre,
+      tipo: w.tipo,
+      direccion: w.direccion,
+      ciudad: w.ciudad,
+      estado: w.estado,
+      latitud: w.latitud,
+      longitud: w.longitud,
+      telefono: w.telefono,
+      horario: w.horario,
+      capacidad_m3: w.capacidadM3,
+      muelles_carga: w.muellesCarga,
+      color: w.color,
+      activo: 1
+    }));
+  }
+
+  const productRows = db.prepare(`
+    SELECT c.id, c.sku, c.nombre, c.descripcion, c.categoria, c.marca, c.precio,
+           c.imagen_url, c.vendedor_id, c.activo, c.updated_at,
+           COALESCE(i.stock_disponible, 0) AS stock_disponible,
+           COALESCE(i.stock_reservado, 0) AS stock_reservado,
+           COALESCE(i.ubicacion_almacen, 'CEDIS-CDMX-01') AS ubicacion_almacen,
+           i.ultima_conciliacion,
+           COALESCE(u.nombre, 'Vendedor ExpressMart') AS vendedor_nombre
+    FROM catalogo c
+    LEFT JOIN inventario i ON i.producto_id = c.id
+    LEFT JOIN usuarios u ON u.id = c.vendedor_id
+    WHERE c.activo = 1
+    ORDER BY c.id DESC
+  `).all();
+
+  const whMap = new Map(whRows.map((w) => [w.codigo, w]));
+  const productsByWh = new Map(whRows.map((w) => [w.codigo, []]));
+
+  for (const prod of productRows) {
+    const resolvedWh = getWarehouseDetails(prod.ubicacion_almacen);
+    const codigo = whMap.has(resolvedWh.codigo) ? resolvedWh.codigo : whRows[0].codigo;
+    const whInfo = whMap.get(codigo) || resolvedWh;
+    const list = productsByWh.get(codigo);
+    if (list) {
+      list.push({
+        ...prod,
+        almacen_codigo: whInfo.codigo,
+        almacen_nombre: whInfo.nombre,
+        almacen_ciudad: whInfo.ciudad || '',
+        almacen_direccion: whInfo.direccion,
+        almacen_color: whInfo.color || '#1d4e9a'
+      });
+    }
+  }
+
+  const filterWh = almacen ? findWarehouseByCodeOrAlias(almacen) || { codigo: String(almacen).trim() } : null;
+  const searchQ = String(q || '').trim().toLowerCase();
+  const catQ = String(categoria || '').trim().toLowerCase();
+
+  const matchesProductFilter = (p) => {
+    if (catQ && String(p.categoria || '').toLowerCase() !== catQ) return false;
+    if (searchQ) {
+      const hay = `${p.nombre || ''} ${p.sku || ''} ${p.marca || ''} ${p.categoria || ''} ${p.almacen_nombre || ''}`.toLowerCase();
+      if (!hay.includes(searchQ)) return false;
+    }
+    return true;
+  };
+
+  const enrichedWarehouses = whRows.map((wh) => {
+    const details = getWarehouseDetails(wh.codigo || wh.nombre);
+    const allInWh = productsByWh.get(wh.codigo) || [];
+    const filteredInWh = allInWh.filter(matchesProductFilter);
+
+    let stats = { totalPedidos: 0, preparando: 0, enTransito: 0, entregados: 0 };
+    try {
+      const counts = db.prepare(`
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN estado_envio = 'preparando' THEN 1 ELSE 0 END) as preparando,
+          SUM(CASE WHEN estado_envio = 'en_transito' THEN 1 ELSE 0 END) as enTransito,
+          SUM(CASE WHEN estado_envio = 'entregado' THEN 1 ELSE 0 END) as entregados
+        FROM envios
+        WHERE almacen_codigo = ? OR almacen_origen LIKE '%' || ? || '%'
+      `).get(wh.codigo, wh.codigo);
+      if (counts) {
+        stats = {
+          totalPedidos: Number(counts.total || 0),
+          preparando: Number(counts.preparando || 0),
+          enTransito: Number(counts.enTransito || 0),
+          entregados: Number(counts.entregados || 0)
+        };
+      }
+    } catch (_) {}
+
+    const stockTotal = allInWh.reduce((acc, p) => acc + Number(p.stock_disponible || 0), 0);
+    const valorInventarioMxn = Number(
+      allInWh.reduce((acc, p) => acc + Number(p.precio || 0) * Number(p.stock_disponible || 0), 0).toFixed(2)
+    );
+
+    return {
+      ...wh,
+      direccion: wh.direccion || details.direccion,
+      stats,
+      productosCount: allInWh.length,
+      stockTotal,
+      valorInventarioMxn,
+      productos: filteredInWh
+    };
+  });
+
+  const flatProducts = enrichedWarehouses
+    .filter((w) => !filterWh || w.codigo.toLowerCase() === String(filterWh.codigo || '').toLowerCase())
+    .flatMap((w) => w.productos);
+
+  return {
+    warehouses: enrichedWarehouses,
+    productos: flatProducts
+  };
+}
+
 module.exports = {
   WAREHOUSES,
   REFERENCE_DESTINATIONS,
+  findWarehouseByCodeOrAlias,
   getWarehouseDetails,
+  resolveValidWarehouse,
+  getWarehousesWithInventory,
   resolveDestinationCoordinates,
   resolveWarehouseForDestination,
   generateRouteCoordinates,
@@ -490,4 +672,5 @@ module.exports = {
   ensureShipmentsTableExtended,
   resolveStreetNameFromCoordinates
 };
+
 
