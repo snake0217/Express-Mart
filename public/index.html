@@ -1973,6 +1973,7 @@
         <!-- Iniciar Sesión -->
         <form id="login-form" class="p-space-md rounded-xl bg-surface-container-low space-y-3" novalidate>
           <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Iniciar Sesión</h3>
+          <div id="login-form-alert" class="p-3 rounded-lg bg-red-100 border border-red-300 text-red-900 text-xs font-semibold hidden flex items-center gap-2"></div>
           <div class="field">
             <label for="login-email">Correo electrónico</label>
             <span id="login-email-hint" class="hint">Ejemplo: cliente@expressmart.mx</span>
@@ -2003,12 +2004,13 @@
             <input type="text" id="login-mfa" pattern="^[0-9]{6}$" maxlength="6" placeholder="000000" aria-describedby="mfa-hint" />
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block">Acceder a ExpressMart</button>
+          <button type="submit" id="btn-submit-login" class="btn btn-primary btn-block">Acceder a ExpressMart</button>
         </form>
 
         <!-- Crear Cuenta -->
         <form id="register-form" class="p-space-md rounded-xl bg-surface-container-low space-y-3" novalidate>
           <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Crear Cuenta Nueva</h3>
+          <div id="reg-form-alert" class="p-3 rounded-lg bg-red-100 border border-red-300 text-red-900 text-xs font-semibold hidden flex items-center gap-2"></div>
           <div class="field">
             <label for="reg-nombre">Nombre y apellidos</label>
             <input type="text" id="reg-nombre" required minlength="3" placeholder="Ej. Sofía Martínez" />

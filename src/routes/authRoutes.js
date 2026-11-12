@@ -231,7 +231,8 @@ function registerAuthRoutes(app) {
       mfaRequired: true,
       purpose: 'registro',
       email: cleanEmail,
-      message: `Se ha enviado un código de verificación de 6 dígitos a ${cleanEmail}.`
+      message: `Se ha enviado un código de verificación de 6 dígitos a ${cleanEmail}.`,
+      demoHintCode: otpCode
     });
   });
 

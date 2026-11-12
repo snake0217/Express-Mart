@@ -109,10 +109,71 @@ function updateSessionUI() {
 function initAuthEvents() {
   // Modal de Autenticación
   const authDialog = document.getElementById('auth-dialog');
+
+  function showLoginError(msg) {
+    const alertEl = document.getElementById('login-form-alert');
+    if (alertEl) {
+      alertEl.innerHTML = `<span class="material-symbols-outlined text-[18px] text-red-600 shrink-0">error</span><span>${msg}</span>`;
+      alertEl.classList.remove('hidden');
+    }
+    showAlert(msg, true);
+  }
+
+  function clearLoginError() {
+    const alertEl = document.getElementById('login-form-alert');
+    if (alertEl) {
+      alertEl.innerHTML = '';
+      alertEl.classList.add('hidden');
+    }
+  }
+
+  function showRegisterError(msg, targetInputId = null) {
+    const alertEl = document.getElementById('reg-form-alert');
+    if (alertEl) {
+      alertEl.innerHTML = `<span class="material-symbols-outlined text-[18px] text-red-600 shrink-0">error</span><span>${msg}</span>`;
+      alertEl.classList.remove('hidden');
+      alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    showAlert(msg, true);
+    if (targetInputId) {
+      const el = document.getElementById(targetInputId);
+      if (el) {
+        el.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+        el.focus();
+      }
+    }
+  }
+
+  function clearRegisterError() {
+    const alertEl = document.getElementById('reg-form-alert');
+    if (alertEl) {
+      alertEl.innerHTML = '';
+      alertEl.classList.add('hidden');
+    }
+    ['reg-nombre', 'reg-email', 'reg-password', 'reg-direccion'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('border-red-500', 'ring-1', 'ring-red-500');
+      }
+    });
+  }
+
+  // Limpiar mensajes y bordes de error en cuanto el usuario comience a escribir
+  ['reg-nombre', 'reg-email', 'reg-password', 'reg-direccion'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', clearRegisterError);
+  });
+  ['login-email', 'login-password'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', clearLoginError);
+  });
+
   document.getElementById('btn-open-auth').addEventListener('click', () => {
     if (state.token && state.user) {
       switchTab('view-profile');
     } else {
+      clearLoginError();
+      clearRegisterError();
       authDialog.showModal();
     }
   });
@@ -223,16 +284,26 @@ function initAuthEvents() {
       } catch (err) {
         const overlay = document.getElementById('auth-loading-overlay');
         if (overlay) overlay.classList.add('hidden');
-        showAlert(err.message, true);
+        showLoginError(err.message || 'Error al iniciar sesión.');
       }
     });
   });
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearLoginError();
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     const mfaCode = document.getElementById('login-mfa').value.trim();
+
+    if (!email) {
+      showLoginError('Por favor ingresa tu correo electrónico.');
+      return;
+    }
+    if (!password) {
+      showLoginError('Por favor ingresa tu contraseña.');
+      return;
+    }
 
     try {
       const loadingPromise = simulateAuthLoading({
@@ -253,7 +324,8 @@ function initAuthEvents() {
         openMfaModal({
           email,
           purpose: 'login',
-          message: res.message
+          message: res.message,
+          demoHintCode: res.demoHintCode
         });
         return;
       }
@@ -268,8 +340,8 @@ function initAuthEvents() {
       saveCart();
       updateSessionUI();
       startInactivityMonitor();
-      refreshCartModal();
-      loadOrders();
+      if (typeof refreshCartModal === 'function') refreshCartModal();
+      if (typeof loadOrders === 'function') loadOrders();
       authDialog.close();
       showAlert(`Bienvenido a ExpressMart México, ${state.user.nombre}`);
       showToast({
@@ -280,12 +352,73 @@ function initAuthEvents() {
     } catch (err) {
       const overlay = document.getElementById('auth-loading-overlay');
       if (overlay) overlay.classList.add('hidden');
-      showAlert(err.message, true);
+      showLoginError(err.message || 'Error al iniciar sesión.');
     }
   });
 
-  document.getElementById('register-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  async function handleRegister(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    clearRegisterError();
+
+    const nombreEl = document.getElementById('reg-nombre');
+    const emailEl = document.getElementById('reg-email');
+    const passEl = document.getElementById('reg-password');
+    const dirEl = document.getElementById('reg-direccion');
+    const privacyEl = document.getElementById('reg-privacy');
+    const submitBtn = document.getElementById('btn-submit-register');
+
+    const nombre = nombreEl ? nombreEl.value.trim() : '';
+    const email = emailEl ? emailEl.value.trim() : '';
+    const password = passEl ? passEl.value : '';
+    const direccion = dirEl ? dirEl.value.trim() : '';
+    const privacyChecked = privacyEl ? privacyEl.checked : false;
+
+    // Validación interactiva con foco y alerta visible en el modal
+    if (!nombre || nombre.length < 3) {
+      showRegisterError('Por favor ingresa tu nombre completo (mínimo 3 caracteres).', 'reg-nombre');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      showRegisterError('Por favor ingresa un correo electrónico válido (ejemplo: usuario@dominio.com).', 'reg-email');
+      return;
+    }
+
+    if (!password || password.length < 8) {
+      showRegisterError('La contraseña debe tener mínimo 8 caracteres.', 'reg-password');
+      return;
+    }
+
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasDigit = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+      showRegisterError('La contraseña debe incluir al menos una mayúscula, minúscula, número y símbolo especial.', 'reg-password');
+      return;
+    }
+
+    if (!direccion || direccion.length < 8) {
+      showRegisterError('Por favor ingresa tu dirección completa de entrega en México (mínimo 8 caracteres).', 'reg-direccion');
+      return;
+    }
+
+    if (!privacyChecked) {
+      showRegisterError('Debes aceptar el Aviso de Privacidad Integral y Condiciones de Compra para registrarte.', 'reg-privacy');
+      return;
+    }
+
+    // Feedback visual en el botón de registro y bloqueo contra doble clic
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : 'Registrarse en ExpressMart';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span><span>Registrando cuenta...</span>';
+    }
+
     try {
       const loadingPromise = simulateAuthLoading({
         title: 'Verificando datos...',
@@ -294,25 +427,29 @@ function initAuthEvents() {
         durationMs: 750
       });
 
-      const regEmail = document.getElementById('reg-email').value.trim();
       const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          nombre: document.getElementById('reg-nombre').value,
-          email: regEmail,
-          password: document.getElementById('reg-password').value,
-          direccion: document.getElementById('reg-direccion').value,
-          consentimientoPrivacidad: document.getElementById('reg-privacy').checked
+          nombre,
+          email,
+          password,
+          direccion,
+          consentimientoPrivacidad: true
         })
       });
 
       if (res.mfaRequired) {
         const overlay = document.getElementById('auth-loading-overlay');
         if (overlay) overlay.classList.add('hidden');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHtml;
+        }
         openMfaModal({
-          email: regEmail,
+          email,
           purpose: 'registro',
-          message: res.message
+          message: res.message,
+          demoHintCode: res.demoHintCode
         });
         return;
       }
@@ -332,8 +469,8 @@ function initAuthEvents() {
 
       updateSessionUI();
       startInactivityMonitor();
-      refreshCartModal();
-      loadOrders();
+      if (typeof refreshCartModal === 'function') refreshCartModal();
+      if (typeof loadOrders === 'function') loadOrders();
       authDialog.close();
       showAlert('Cuenta creada y sesión iniciada correctamente.');
       showToast({
@@ -344,9 +481,26 @@ function initAuthEvents() {
     } catch (err) {
       const overlay = document.getElementById('auth-loading-overlay');
       if (overlay) overlay.classList.add('hidden');
-      showAlert(err.message, true);
+      showRegisterError(err.message || 'Error al procesar el registro.');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+      }
     }
-  });
+  }
+
+  const regForm = document.getElementById('register-form');
+  if (regForm) {
+    regForm.addEventListener('submit', handleRegister);
+  }
+
+  const btnSubmitRegister = document.getElementById('btn-submit-register');
+  if (btnSubmitRegister) {
+    btnSubmitRegister.addEventListener('click', (e) => {
+      handleRegister(e);
+    });
+  }
 
   // ===============================================================
   // GESTIÓN DEL MODAL DE VERIFICACIÓN DE DOS PASOS (2FA)
@@ -360,13 +514,19 @@ function initAuthEvents() {
   const btnResendMfa = document.getElementById('btn-resend-mfa');
   const mfaForm = document.getElementById('mfa-form');
 
-  function openMfaModal({ email, purpose = 'login', message }) {
+  function openMfaModal({ email, purpose = 'login', message, demoHintCode }) {
     state.pendingMfa = { email, purpose };
     if (authDialog) authDialog.close();
     if (mfaEmailDisplay) mfaEmailDisplay.textContent = email;
-    if (mfaResultBox) mfaResultBox.innerHTML = '';
+    if (mfaResultBox) {
+      if (demoHintCode) {
+        mfaResultBox.innerHTML = `<div class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-emerald-600">verified</span><span>Código generado para demo: <strong>${demoHintCode}</strong> (o use <strong>123456</strong>)</span></div>`;
+      } else {
+        mfaResultBox.innerHTML = '';
+      }
+    }
     if (mfaCodeInput) {
-      mfaCodeInput.value = '';
+      mfaCodeInput.value = demoHintCode || '';
       setTimeout(() => mfaCodeInput.focus(), 150);
     }
     const dialogTitle = document.getElementById('mfa-dialog-title');

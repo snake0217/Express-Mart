@@ -630,6 +630,7 @@ describe('Pruebas Unitarias - Configuración, Criptografía, Sanitización y Reg
     expect(stockRes.status).toBe(200);
 
     // 7. Simular compra de cliente sobre el producto del vendedor
+    db.prepare("UPDATE tarjetas_simuladas SET saldo = 50000 WHERE REPLACE(REPLACE(numero_tarjeta, ' ', ''), '-', '') = '4111111111114242'").run();
     const clientToken = createSession(db, { usuarioId: 3, rol: 'cliente', mfaVerificado: true }).tokenId;
 
     const checkoutRes = await request(app)
