@@ -344,8 +344,8 @@ function registerAuthRoutes(app) {
     }
 
     // Primer paso del login: Si NO viene mfaCode:
-    // En test, si el usuario no tiene mfa_enabled activo, entrega sesión directa para compatibilidad:
-    if (process.env.NODE_ENV === 'test' && !user.mfa_enabled) {
+    // Si el usuario no tiene mfa_enabled activo (desactivado en panel o perfil), entrega sesión directa:
+    if (!user.mfa_enabled) {
       const session = createSession(db, {
         usuarioId: user.id,
         rol: user.rol,
